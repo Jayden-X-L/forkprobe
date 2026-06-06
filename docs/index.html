@@ -958,6 +958,47 @@
       font-size: 0.9rem;
     }
 
+    .toast {
+      position: fixed;
+      z-index: 40;
+      right: clamp(1rem, 4vw, 2rem);
+      bottom: 1.4rem;
+      min-height: 3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      max-width: min(22rem, calc(100vw - 2rem));
+      padding: 0.75rem 0.95rem;
+      border: 1px solid #b8eee4;
+      border-radius: 8px;
+      color: #064e46;
+      background: #effdf9;
+      box-shadow: 0 18px 40px rgba(16, 24, 40, 0.16);
+      font-weight: 800;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(0.75rem);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .toast::before {
+      content: "✓";
+      display: inline-grid;
+      place-items: center;
+      width: 1.45rem;
+      height: 1.45rem;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--teal);
+      font-size: 0.88rem;
+      flex: 0 0 auto;
+    }
+
+    .toast.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
     @media (max-width: 980px) {
       .hero {
         align-items: flex-start;
@@ -1091,6 +1132,12 @@
       .footer-inner {
         flex-direction: column;
         align-items: flex-start;
+      }
+
+      .toast {
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
       }
     }
   </style>
@@ -1398,12 +1445,14 @@
         <span>GitHub Pages ready · Local-first comparison reports</span>
       </div>
     </footer>
+    <div class="toast" id="downloadToast" role="status" aria-live="polite" aria-atomic="true">已为你下载Skill。</div>
   </div>
 
   <script>
     const copyButton = document.getElementById('copyPrompt');
     const promptText = document.getElementById('promptText');
     const tryDownloadButton = document.getElementById('tryDownloadButton');
+    const downloadToast = document.getElementById('downloadToast');
     const demoButtons = Array.from(document.querySelectorAll('[data-demo-candidate]'));
     const demoTitle = document.getElementById('demoCandidateTitle');
     const demoSummary = document.getElementById('demoCandidateSummary');
@@ -1466,6 +1515,7 @@
 
     let activeDemoCandidate = 'baseline';
     let selectedDemoCandidate = '';
+    let toastTimer;
 
     const copyText = async (text, button, resetText) => {
       try {
@@ -1524,6 +1574,14 @@
       downloadLink.remove();
     };
 
+    const showDownloadToast = () => {
+      window.clearTimeout(toastTimer);
+      downloadToast.classList.add('is-visible');
+      toastTimer = window.setTimeout(() => {
+        downloadToast.classList.remove('is-visible');
+      }, 2600);
+    };
+
     copyButton.addEventListener('click', async () => {
       const text = promptText.innerText.trim();
       try {
@@ -1557,6 +1615,7 @@
     tryDownloadButton.addEventListener('click', (event) => {
       event.preventDefault();
       downloadSkillZip(tryDownloadButton.dataset.downloadUrl);
+      showDownloadToast();
       window.location.hash = 'start';
     });
   </script>
