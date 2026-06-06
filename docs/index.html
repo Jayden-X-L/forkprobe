@@ -1120,7 +1120,7 @@
         <div class="hero-actions">
           <a class="button button-primary" href="#report-demo">查看预览</a>
           <a class="button button-secondary" href="#usecases">适用场景</a>
-          <a class="button button-secondary" href="#start">去试一试 <span aria-hidden="true">↗</span></a>
+          <a class="button button-secondary" href="#start" id="tryDownloadButton" data-download-url="downloads/forkprobe-skill.zip">去试一试 <span aria-hidden="true">↗</span></a>
         </div>
       </div>
 
@@ -1403,6 +1403,7 @@
   <script>
     const copyButton = document.getElementById('copyPrompt');
     const promptText = document.getElementById('promptText');
+    const tryDownloadButton = document.getElementById('tryDownloadButton');
     const demoButtons = Array.from(document.querySelectorAll('[data-demo-candidate]'));
     const demoTitle = document.getElementById('demoCandidateTitle');
     const demoSummary = document.getElementById('demoCandidateSummary');
@@ -1513,6 +1514,16 @@
       renderDemoCandidate(activeDemoCandidate);
     };
 
+    const downloadSkillZip = (url) => {
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = 'forkprobe-skill.zip';
+      downloadLink.rel = 'noopener';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+    };
+
     copyButton.addEventListener('click', async () => {
       const text = promptText.innerText.trim();
       try {
@@ -1541,6 +1552,12 @@
 
     demoCopyHandoff.addEventListener('click', () => {
       copyText(demoHandoff.value.trim(), demoCopyHandoff, '复制 handoff');
+    });
+
+    tryDownloadButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      downloadSkillZip(tryDownloadButton.dataset.downloadUrl);
+      window.location.hash = 'start';
     });
   </script>
 </body>
