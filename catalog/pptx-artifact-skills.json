@@ -1,0 +1,183 @@
+{
+  "domain": "pptx-artifact",
+  "version": "v0.1",
+  "last_updated": "2026-06-02",
+  "description": "Candidate discovery catalog for PPTX artifact comparison. Entries are classified as strategy skills, generator tools, or full pipelines so forkprobe can compare complete PPTX-producing pipelines rather than isolated writing skills.",
+  "roles": {
+    "strategy": "Improves content structure, narrative, scientific framing, or deck planning, but usually needs a generator to create PPTX.",
+    "generator": "Can create or edit PPTX artifacts from a prompt, outline, JSX, JSON, Markdown, or code.",
+    "full_pipeline": "Claims to convert source documents or structured content directly into PPTX or slide artifacts.",
+    "baseline": "Reference pipeline with no extra strategy skill."
+  },
+  "candidates": [
+    {
+      "id": "baseline",
+      "name": "baseline",
+      "role": "baseline",
+      "source": "local",
+      "summary_zh": "不使用额外 PPT 策略 skill，作为成品生成参照。",
+      "summary_en": "No extra PPT strategy skill; used as the artifact-generation reference.",
+      "can_produce_pptx": false,
+      "needs_generator": true,
+      "pairs_with": ["presentations", "pptx"],
+      "recommended": true,
+      "risk_zh": "必须搭配 PPTX 生成器，否则只能输出文字。",
+      "risk_en": "Must be paired with a PPTX generator; otherwise it only produces text."
+    },
+    {
+      "id": "presentations",
+      "name": "Presentations",
+      "role": "generator",
+      "source": "local plugin",
+      "summary_zh": "Codex 本地高质量 PPTX 生成 pipeline，支持渲染预览和 QA。",
+      "summary_en": "Local Codex PPTX generation pipeline with rendering and QA support.",
+      "can_produce_pptx": true,
+      "needs_generator": false,
+      "pairs_with": [],
+      "recommended": true,
+      "risk_zh": "偏完整 artifact-tool 流程，执行较严谨但成本较高。",
+      "risk_en": "Full artifact-tool workflow; reliable but more involved."
+    },
+    {
+      "id": "pptx",
+      "name": "pptx",
+      "role": "generator",
+      "source": "local skill",
+      "summary_zh": "PowerPoint 文件结构、PptxGenJS、HTML-to-PPTX 或 OOXML 方向的生成/编辑管线。",
+      "summary_en": "PPTX generation/editing pipeline for PowerPoint file structure, PptxGenJS, HTML-to-PPTX, or OOXML workflows.",
+      "can_produce_pptx": true,
+      "needs_generator": false,
+      "pairs_with": [],
+      "recommended": true,
+      "risk_zh": "更偏底层文件控制，视觉 QA 需要单独执行。",
+      "risk_en": "More file-structure oriented; visual QA should be run separately."
+    },
+    {
+      "id": "storyboard",
+      "name": "storyboard",
+      "role": "strategy",
+      "source": "local skill",
+      "summary_zh": "先梳理叙事流、页面节奏和场景化表达，适合作为偏叙事型 PPT 策略层。",
+      "summary_en": "Plans narrative flow, slide rhythm, and scenario-based expression before generation.",
+      "can_produce_pptx": false,
+      "needs_generator": true,
+      "pairs_with": ["presentations"],
+      "recommended": true,
+      "risk_zh": "科研组会未必总需要强叙事，可能弱化证据矩阵和技术细节。",
+      "risk_en": "Narrative-first framing may underweight evidence matrices or technical detail for lab meetings."
+    },
+    {
+      "id": "nature-paper2ppt",
+      "name": "nature-paper2ppt",
+      "role": "strategy",
+      "source": "https://github.com/Yuan1z0825/nature-skills#skills/nature-paper2ppt",
+      "summary_zh": "面向 Nature 风格论文转汇报的结构规划 skill，适合科研文档转组会 PPT。",
+      "summary_en": "Nature-style paper-to-deck planning skill for scientific documents and lab presentations.",
+      "can_produce_pptx": false,
+      "needs_generator": true,
+      "pairs_with": ["presentations", "pptx"],
+      "recommended": true,
+      "risk_zh": "更像策略层，最终 PPTX 仍需要生成器。",
+      "risk_en": "Acts mainly as a strategy layer; final PPTX still needs a generator."
+    },
+    {
+      "id": "academic-pptx-skill",
+      "name": "academic-pptx-skill",
+      "role": "strategy",
+      "source": "https://github.com/Gabberflast/academic-pptx-skill",
+      "summary_zh": "偏学术汇报结构增强：action title、证据链、每页一个 exhibit、少装饰。",
+      "summary_en": "Academic deck strategy: action titles, evidence flow, one exhibit per slide, restrained visuals.",
+      "can_produce_pptx": false,
+      "needs_generator": true,
+      "pairs_with": ["presentations", "pptx"],
+      "recommended": true,
+      "risk_zh": "主要管学术 PPT 逻辑和设计原则，不应单独作为 PPTX 生成候选。",
+      "risk_en": "Mainly handles academic deck logic and design principles; should not be used alone as a PPTX generator."
+    },
+    {
+      "id": "powerpoint-skill",
+      "name": "powerpoint-skill",
+      "role": "strategy",
+      "source": "https://github.com/Noi1r/powerpoint-skill",
+      "summary_zh": "偏论文/PDF 转 PPT 的技能候选，可能适合公式、论文图和技术型 deck。",
+      "summary_en": "Candidate for paper/PDF-to-PPT workflows, useful for equations, paper figures, and technical decks.",
+      "can_produce_pptx": false,
+      "needs_generator": true,
+      "pairs_with": ["presentations", "pptx"],
+      "recommended": false,
+      "risk_zh": "需要先验证 SKILL.md、依赖和最终 PPTX 产出路径。",
+      "risk_en": "Needs verification for SKILL.md format, dependencies, and final PPTX output path."
+    },
+    {
+      "id": "ppt-master",
+      "name": "ppt-master",
+      "role": "full_pipeline",
+      "source": "https://github.com/hugohe3/ppt-master",
+      "summary_zh": "完整文档转 PPTX 系统候选，source document → strategist → executor → native editable PPTX。",
+      "summary_en": "Full document-to-PPTX pipeline candidate: source document → strategist → executor → native editable PPTX.",
+      "can_produce_pptx": true,
+      "needs_generator": false,
+      "pairs_with": [],
+      "recommended": true,
+      "risk_zh": "流程可能较重，需要验证依赖、运行时间和本地环境适配。",
+      "risk_en": "Potentially heavy pipeline; dependencies, runtime, and local fit need verification."
+    },
+    {
+      "id": "md-slides",
+      "name": "md-slides",
+      "role": "full_pipeline",
+      "source": "https://github.com/zl190/md-slides",
+      "summary_zh": "Markdown 到 slides 的轻量 pipeline，可作为结构清楚、快速生成的对照组。",
+      "summary_en": "Lightweight Markdown-to-slides pipeline for a clear, fast-structured comparison baseline.",
+      "can_produce_pptx": true,
+      "needs_generator": false,
+      "pairs_with": [],
+      "recommended": true,
+      "risk_zh": "更适合结构化 Markdown，视觉质量和科研图表表达可能有限。",
+      "risk_en": "Best for structured Markdown; visual quality and scientific figure expression may be limited."
+    },
+    {
+      "id": "presentation-skill",
+      "name": "presentation-skill",
+      "role": "generator",
+      "source": "https://github.com/sirilsengolraj-source/presentation-skill",
+      "summary_zh": "面向 Codex/ChatGPT agent 的 PPTX skill 候选，强调 outline.json 到 PPTX 的生成/编辑/QA。",
+      "summary_en": "PPTX skill candidate for Codex/ChatGPT agents, emphasizing outline.json to PPTX generation/editing/QA.",
+      "can_produce_pptx": true,
+      "needs_generator": false,
+      "pairs_with": [],
+      "recommended": false,
+      "risk_zh": "需要验证代码质量、依赖和是否适配当前 Codex 工具链。",
+      "risk_en": "Needs verification for code quality, dependencies, and current Codex toolchain fit."
+    },
+    {
+      "id": "anthropic-pptx",
+      "name": "Anthropic pptx skill",
+      "role": "generator",
+      "source": "https://github.com/anthropics/skills/blob/main/skills/pptx/SKILL.md",
+      "summary_zh": "Anthropic 官方 PPTX skill，可作为通用 PPTX 生成/编辑参考。",
+      "summary_en": "Anthropic official PPTX skill, useful as a general PPTX generation/editing reference.",
+      "can_produce_pptx": true,
+      "needs_generator": false,
+      "pairs_with": [],
+      "recommended": false,
+      "risk_zh": "需要检查 license、平台适配和是否能直接用于当前 Codex 环境。",
+      "risk_en": "Check license, platform fit, and whether it can run directly in the current Codex environment."
+    }
+  ],
+  "default_shortlists": {
+    "scientific_pptx": [
+      "baseline+presentations",
+      "academic-pptx-skill+presentations",
+      "nature-paper2ppt+presentations",
+      "ppt-master",
+      "md-slides"
+    ],
+    "local_only": [
+      "baseline+presentations",
+      "presentations",
+      "pptx",
+      "storyboard+presentations"
+    ]
+  }
+}

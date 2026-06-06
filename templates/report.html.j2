@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>forkprobe — comparison report</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script>
+    function forkprobeReport() {
+      return {
+        lang: 'en',
+        winner: null,
+        verdictType: null,
+        reason: '',
+        submitted: false,
+        submitError: null,
+        copiedHandoff: false,
+        candidates: {{ candidates_json }},
+        messages: {
+          en: {
+            title: 'forkprobe — comparison report',
+            tagline: 'Find the skill that actually helps.',
+            paths: 'paths',
+            total: 'total',
+            connected: 'connected to local server',
+            noServer: 'Demo mode: your choice stays on this page only',
+            preference: 'Pick the output you prefer · v0.1 prototype',
+            originalInput: 'Original input',
+            error: 'error',
+            tokens: 'tokens',
+            approx: 'approx.',
+            totalTokens: 'total tokens:',
+            estimatedTokens: 'estimated context',
+            estimatedTokenHint: 'includes skill instructions, input, and output',
+            providerTokens: 'model raw count, for reference',
+            rawStats: 'Raw model stats',
+            guideInput: 'Input',
+            guideJudge: 'Judge',
+            guideCompare: 'Compare',
+            guideContinue: 'Continue',
+            compareTitle: 'Compare outputs',
+            compareHint: 'Scroll horizontally to review all candidates.',
+            artifactsTitle: 'Generated artifacts',
+            artifactOpen: 'Open file',
+            artifactPreview: 'Preview',
+            recommendedBadge: 'AI recommended',
+            pick: '✓ Pick this one',
+            picked: '✓ Picked',
+            tie: 'It is a tie',
+            none: 'None are good',
+            reasonLabel: 'Why did you pick this one?',
+            reasonOptional: '(optional, but this is gold for skill authors)',
+            reasonPlaceholder: 'e.g. less robotic, kept the original meaning, sounded more like a human researcher...',
+            cancel: 'Cancel',
+            submit: 'Submit verdict',
+            captured: '✓ Verdict captured. Back in chat, say "I picked" and forkprobe can resume from the local log.',
+            closeTab: 'You can close this tab. Latest verdict is in',
+            serverError: 'Could not reach forkprobe server',
+            serverErrorHint: 'The server may have timed out. Your selection is in the browser console; you can also re-run forkprobe.',
+            privacy: 'Privacy: 100% local in v0.1',
+            judgeTitle: 'AI judge recommendation',
+            judgeRecommended: 'Recommended',
+            judgeConfidence: 'confidence',
+            judgeCouldNotRun: 'Judge could not run',
+            judgeScores: 'Candidate notes',
+            judgeReasoning: 'Why this recommendation',
+            judgeAgentNote: 'Independent judge subagent using the same model as your main session. It only suggests among candidates on this page.',
+            selectedLabel: 'Selected',
+            handoffTitle: 'Continue in your agent session',
+            handoffHelp: 'Back in chat, say "I picked"; if resume is unavailable, copy this text instead.',
+            handoffNoReason: 'No extra reason provided.',
+            handoffPickPrefix: 'Please continue this task using',
+            handoffTie: 'I think these forkprobe outputs are roughly tied. Please continue by combining the strongest parts, or ask me which direction to prefer.',
+            handoffNone: 'I am not satisfied with any forkprobe output. Please retry with a different approach or ask me what should change.',
+            handoffReason: 'My reason',
+            handoffCopy: 'Copy handoff',
+            handoffCopied: 'Copied',
+          },
+          zh: {
+            title: 'forkprobe — 对比报告',
+            tagline: '别猜哪个 skill 有用，直接并排看结果。',
+            paths: '路结果',
+            total: '总耗时',
+            connected: '已连接本地记录服务',
+            noServer: '演示模式：你的选择只会保留在当前页面',
+            preference: '请选择你更认可的结果 · v0.1 原型',
+            originalInput: '原始输入',
+            error: '错误',
+            tokens: 'tokens',
+            approx: '约',
+            totalTokens: '总 tokens：',
+            estimatedTokens: '估算上下文',
+            estimatedTokenHint: '含 skill 指令、输入、输出',
+            providerTokens: '模型原始统计,仅参考',
+            rawStats: '模型原始统计',
+            guideInput: '输入',
+            guideJudge: 'AI 评审',
+            guideCompare: '对比',
+            guideContinue: '继续',
+            compareTitle: '横向对比结果',
+            compareHint: '左右滑动查看全部候选结果。',
+            artifactsTitle: '生成的文件',
+            artifactOpen: '打开文件',
+            artifactPreview: '预览',
+            recommendedBadge: 'AI 推荐',
+            pick: '✓ 选择这个',
+            picked: '✓ 已选择',
+            tie: '差不多',
+            none: '都不满意',
+            reasonLabel: '为什么选这个?',
+            reasonOptional: '(可选,但这对改进 skill 很有价值)',
+            reasonPlaceholder: '例如: 没那么像 AI、保留了原意、更像真实研究者写的...',
+            cancel: '取消',
+            submit: '提交选择',
+            captured: '✓ 已记录选择。回到对话说“我选好了”, forkprobe 会从本地日志继续。',
+            closeTab: '你可以关闭这个页面。最新选择位置:',
+            serverError: '无法连接 forkprobe 本地服务',
+            serverErrorHint: '本地服务可能已经超时。你的选择仍在浏览器控制台里; 也可以重新运行 forkprobe。',
+            privacy: '隐私:v0.1 完全本地保存',
+            judgeTitle: 'AI 评审推荐',
+            judgeRecommended: '推荐',
+            judgeConfidence: '置信度',
+            judgeCouldNotRun: '评审未能完成',
+            judgeScores: '候选点评',
+            judgeReasoning: '推荐理由',
+            judgeAgentNote: '独立评审子agent 完成,使用你自己主会话同源的模型。它只建议本页候选结果',
+            selectedLabel: '已选择',
+            handoffTitle: '回到对话继续执行',
+            handoffHelp: '回到对话说“我选好了”; 如果无法自动恢复,再复制下面这段发回对话。',
+            handoffNoReason: '未填写额外理由。',
+            handoffPickPrefix: '请继续使用',
+            handoffTie: '我认为这次 forkprobe 的结果差不多。请综合各结果的优点继续,或者先问我更偏好的方向。',
+            handoffNone: '我对这次 forkprobe 的结果都不满意。请换一种方式重试,或先问我希望改哪里。',
+            handoffReason: '我的理由',
+            handoffCopy: '复制交接文本',
+            handoffCopied: '已复制',
+          },
+        },
+        skillCopy: {
+          en: {
+            'baseline': { description: 'Raw model output, no skill', author: '' },
+            'writing-anti-ai': { description: 'Reduces AI-like phrasing and makes writing feel more natural', author: 'Galaxy-Dawn' },
+            'research-paper-writing-skills': { description: 'Paper-style polish for Chinese academic writing', author: 'Master-cai' },
+            'paper-writer-skill': { description: 'Manuscript-style academic tone for formal papers', author: 'kgraph57' },
+            'byo:nature-polishing': { description: 'Nature-style English polish for translation or English drafts', author: 'Yuan1z' },
+            'nature-polishing': { description: 'Nature-style English polish for translation or English drafts', author: 'Yuan1z' },
+            'baseline-presentations': { description: 'Raw model planning plus Presentations-generated PPTX', author: '' },
+            'nature-paper2ppt-presentations': { description: 'Nature paper-to-deck planning plus Presentations-generated PPTX', author: 'Yuan1z' },
+            'pptx-direct': { description: 'Direct PowerPoint file structure and layout control', author: '' },
+            'storyboard-presentations': { description: 'Narrative storyboard first, then Presentations-generated PPTX', author: '' },
+          },
+          zh: {
+            'baseline': { description: '原始模型输出，无 skill', author: '' },
+            'writing-anti-ai': { description: '降低机器感，让表达更自然', author: 'Galaxy-Dawn' },
+            'research-paper-writing-skills': { description: '面向中文科研写作的论文表达优化', author: 'Master-cai' },
+            'paper-writer-skill': { description: '偏完整论文成稿语气，适合正式学术表达', author: 'kgraph57' },
+            'byo:nature-polishing': { description: 'Nature 风格英文润色，适合中译英或英文稿优化', author: 'Yuan1z' },
+            'nature-polishing': { description: 'Nature 风格英文润色，适合中译英或英文稿优化', author: 'Yuan1z' },
+            'baseline-presentations': { description: '原始规划 + Presentations 生成 PPTX', author: '' },
+            'nature-paper2ppt-presentations': { description: 'Nature 论文转汇报规划 + Presentations 生成 PPTX', author: 'Yuan1z' },
+            'pptx-direct': { description: '直接控制 PowerPoint 文件结构和版式', author: '' },
+            'storyboard-presentations': { description: '先做叙事分镜，再生成 PPTX', author: '' },
+          },
+        },
+        skillTags: {
+          en: {
+            'baseline': ['reference', 'no skill'],
+            'writing-anti-ai': ['natural tone', 'less AI-like'],
+            'research-paper-writing-skills': ['Chinese academic', 'structured'],
+            'paper-writer-skill': ['formal paper', 'CN + EN aware'],
+            'byo:nature-polishing': ['Nature-style EN', 'English polish'],
+            'nature-polishing': ['Nature-style EN', 'English polish'],
+            'baseline-presentations': ['PPTX', 'baseline'],
+            'nature-paper2ppt-presentations': ['PPTX', 'Nature-style'],
+            'pptx-direct': ['PPTX', 'layout control'],
+            'storyboard-presentations': ['PPTX', 'story flow'],
+          },
+          zh: {
+            'baseline': ['原始参照', '无 skill'],
+            'writing-anti-ai': ['更自然', '降机器感'],
+            'research-paper-writing-skills': ['中文科研', '结构化'],
+            'paper-writer-skill': ['正式论文', '中英兼顾'],
+            'byo:nature-polishing': ['Nature 英文', '英文润色'],
+            'nature-polishing': ['Nature 英文', '英文润色'],
+            'baseline-presentations': ['PPTX', '参照'],
+            'nature-paper2ppt-presentations': ['PPTX', 'Nature 汇报'],
+            'pptx-direct': ['PPTX', '版式控制'],
+            'storyboard-presentations': ['PPTX', '叙事流'],
+          },
+        },
+        init() {
+          let saved = null;
+          try {
+            saved = window.localStorage ? window.localStorage.getItem('forkprobe:lang') : null;
+          } catch (_err) {
+            saved = null;
+          }
+          const browserLangs = navigator.languages && navigator.languages.length
+            ? navigator.languages
+            : [navigator.language || 'en-US'];
+          const detected = browserLangs.some((lang) => String(lang).toLowerCase().startsWith('zh')) ? 'zh' : 'en';
+          this.lang = saved || detected;
+          this.applyLanguage();
+        },
+        t(key) {
+          return (this.messages[this.lang] && this.messages[this.lang][key]) || this.messages.en[key] || key;
+        },
+        setLang(lang) {
+          this.lang = lang;
+          try {
+            if (window.localStorage) window.localStorage.setItem('forkprobe:lang', lang);
+          } catch (_err) {
+            // Some embedded browsers disable localStorage. Manual switching should still work.
+          }
+          this.applyLanguage();
+        },
+        applyLanguage() {
+          document.documentElement.lang = this.lang === 'zh' ? 'zh-CN' : 'en';
+          document.title = this.t('title');
+        },
+        candidateName(id) {
+          if (id === '__tie__') return this.t('tie');
+          if (id === '__none__') return this.t('none');
+          const candidate = this.candidates[id] || {};
+          return candidate.name || id;
+        },
+        skillDescription(id) {
+          const copy = (this.skillCopy[this.lang] && this.skillCopy[this.lang][id]) || {};
+          const candidate = this.candidates[id] || {};
+          return copy.description || candidate.category || '';
+        },
+        skillAuthor(id) {
+          const copy = (this.skillCopy[this.lang] && this.skillCopy[this.lang][id]) || {};
+          const candidate = this.candidates[id] || {};
+          const author = copy.author !== undefined ? copy.author : candidate.author;
+          if (!author || author === '—' || author === '(user-provided)') return '';
+          return author;
+        },
+        skillTagList(id) {
+          const tags = this.skillTags[this.lang] && this.skillTags[this.lang][id];
+          if (tags && tags.length) return tags;
+          const candidate = this.candidates[id] || {};
+          return candidate.category ? [candidate.category] : [];
+        },
+        handoffText() {
+          const reason = (this.reason || '').trim() || this.t('handoffNoReason');
+          if (this.verdictType === 'tie') {
+            return `${this.t('handoffTie')}\n${this.t('handoffReason')}: ${reason}`;
+          }
+          if (this.verdictType === 'none') {
+            return `${this.t('handoffNone')}\n${this.t('handoffReason')}: ${reason}`;
+          }
+          const skillName = this.candidateName(this.winner);
+          if (this.lang === 'zh') {
+            return `${this.t('handoffPickPrefix')} ${skillName} (${this.winner}) 继续处理这个任务。\n${this.t('handoffReason')}: ${reason}`;
+          }
+          return `${this.t('handoffPickPrefix')} ${skillName} (${this.winner}) for the rest of this task.\n${this.t('handoffReason')}: ${reason}`;
+        },
+        async copyHandoff() {
+          try {
+            await navigator.clipboard.writeText(this.handoffText());
+            this.copiedHandoff = true;
+            setTimeout(() => { this.copiedHandoff = false; }, 1600);
+          } catch (_err) {
+            this.copiedHandoff = false;
+          }
+        },
+        async submit() {
+          const verdictUrl = '{{ verdict_url }}';
+          const payload = {
+            winner: this.winner,
+            verdict_type: this.verdictType,
+            winner_name: this.candidateName(this.winner),
+            reason: this.reason,
+            handoff_text: this.handoffText(),
+            submitted_at: new Date().toISOString(),
+          };
+          if (!verdictUrl) {
+            console.log('Verdict (no server attached):', payload);
+            this.submitted = true;
+            return;
+          }
+          try {
+            const resp = await fetch(verdictUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            this.submitted = true;
+            this.submitError = null;
+          } catch (err) {
+            this.submitError = err.message;
+            console.error('Verdict submit failed:', err);
+          }
+        },
+      };
+    }
+  </script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    .academic {
+      font-family: 'Source Han Serif SC', 'Noto Serif CJK SC', 'Songti SC', 'PMingLiU', serif;
+      line-height: 1.75;
+    }
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat({{ result_count }}, minmax(28rem, 1fr));
+      gap: 1rem;
+      min-width: max(100%, {{ result_count * 28 + (result_count - 1) }}rem);
+      align-items: stretch;
+      grid-auto-rows: 1fr;
+    }
+    @media (max-width: 640px) {
+      .results-grid {
+        grid-template-columns: repeat({{ result_count }}, minmax(20rem, 1fr));
+        min-width: max(100%, {{ result_count * 20 + (result_count - 1) }}rem);
+      }
+    }
+    .results-scroll {
+      overflow-x: auto;
+      padding-bottom: 0.75rem;
+      scroll-snap-type: x proximity;
+    }
+    .result-card {
+      scroll-snap-align: start;
+      height: 100%;
+    }
+    .flow-graph {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      color: #475569;
+    }
+    .flow-step {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      white-space: nowrap;
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+    .flow-dot {
+      display: inline-flex;
+      width: 1.55rem;
+      height: 1.55rem;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 0.6875rem;
+      font-weight: 700;
+    }
+    .flow-arrow {
+      position: relative;
+      display: inline-block;
+      flex: 0 0 2.2rem;
+      height: 1px;
+      background: #cbd5e1;
+    }
+    .flow-arrow::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 50%;
+      width: 0.45rem;
+      height: 0.45rem;
+      border-right: 1px solid #cbd5e1;
+      border-top: 1px solid #cbd5e1;
+      transform: translateY(-50%) rotate(45deg);
+      transform-origin: center;
+    }
+    .results-shell::after {
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0.75rem;
+      width: 4rem;
+      background: linear-gradient(to left, rgb(248 250 252), rgb(248 250 252 / 0));
+    }
+    .latency-bar {
+      height: 3px;
+      background: linear-gradient(to right, #2563eb min(var(--pct), 100%), #d7dee8 min(var(--pct), 100%));
+      border-radius: 9999px;
+    }
+    .skill-header {
+      min-height: 9.5rem;
+    }
+    @media (max-width: 640px) {
+      .flow-graph {
+        gap: 0.4rem;
+      }
+      .flow-step {
+        font-size: 0.8rem;
+      }
+      .flow-dot {
+        width: 1.35rem;
+        height: 1.35rem;
+      }
+      .flow-arrow {
+        flex-basis: 1.25rem;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen p-6" x-data="forkprobeReport()">
+
+  <!-- Header -->
+  <header class="mb-6 pb-4 border-b border-slate-200">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-950">
+          forkprobe
+        </h1>
+        <p class="mt-1 text-sm font-medium text-slate-700" x-text="t('tagline')">
+          Find the skill that actually helps.
+        </p>
+        <div class="flow-graph mt-3" aria-label="forkprobe report flow">
+          <span class="flow-step">
+            <span class="flow-dot">1</span>
+            <span x-text="t('guideInput')">Input</span>
+          </span>
+          <span class="flow-arrow" aria-hidden="true"></span>
+          <span class="flow-step">
+            <span class="flow-dot">2</span>
+            <span x-text="t('guideJudge')">AI recommendation</span>
+          </span>
+          <span class="flow-arrow" aria-hidden="true"></span>
+          <span class="flow-step">
+            <span class="flow-dot">3</span>
+            <span x-text="t('guideCompare')">Side-by-side compare</span>
+          </span>
+          <span class="flow-arrow" aria-hidden="true"></span>
+          <span class="flow-step">
+            <span class="flow-dot">4</span>
+            <span x-text="t('guideContinue')">Continue with winner</span>
+          </span>
+        </div>
+        <p class="text-sm text-slate-600 mt-2">
+          {{ result_count }} <span x-text="t('paths')">paths</span> · {{ "%.1f"|format(duration_seconds) }}s <span x-text="t('total')">total</span>
+          {% if total_estimated_tokens %}
+          · <span x-text="t('totalTokens')">total tokens:</span> <span x-text="t('approx')">approx.</span> {{ total_estimated_tokens_display }}
+          {% endif %}
+          {% if verdict_url %}
+          · <span class="text-blue-700" x-text="t('connected')">connected to local server</span>
+          {% else %}
+          · <span class="text-amber-700" x-text="t('noServer')">no server (verdict will only log to console)</span>
+          {% endif %}
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+        <span x-text="t('preference')">Pick the output you prefer · v0.1 prototype</span>
+        <div class="inline-flex overflow-hidden rounded border border-slate-300 bg-white">
+          <button type="button"
+                  @click="setLang('zh')"
+                  class="px-2 py-1 transition"
+                  :class="lang === 'zh' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'">
+            中文
+          </button>
+          <button type="button"
+                  @click="setLang('en')"
+                  class="px-2 py-1 transition border-l border-slate-300"
+                  :class="lang === 'en' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'">
+            English
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Original input (collapsed) -->
+  <details class="mb-6 bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
+    <summary class="text-sm text-slate-700 cursor-pointer hover:text-slate-950 transition">
+      <span x-text="t('originalInput')">Original input</span> ({{ task_input|length }} chars)
+    </summary>
+    <pre class="mt-3 text-sm whitespace-pre-wrap text-slate-800 academic">{{ task_input|e }}</pre>
+  </details>
+
+  {% if judge_result %}
+  <!-- AI judge recommendation -->
+  <section class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 shadow-sm">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-blue-700" x-text="t('judgeTitle')">
+          AI judge recommendation
+        </p>
+        <p class="mt-1 text-xs leading-5 text-blue-900/75" x-text="t('judgeAgentNote')">
+          Independent judge subagent using the same model as your main session. It only suggests among candidates on this page.
+        </p>
+        {% if judge_result.error %}
+        <h2 class="mt-1 text-lg font-semibold text-slate-950" x-text="t('judgeCouldNotRun')">Judge could not run</h2>
+        <p class="mt-2 text-sm text-slate-700">{{ judge_result.error|e }}</p>
+        {% else %}
+        <h2 class="mt-2 text-xl font-semibold text-slate-950">
+          <span x-text="t('judgeRecommended')">Recommended</span>:
+          <span x-text="candidateName('{{ judge_result.winner_skill_id or '' }}')">{{ judge_result.winner_skill_id|e }}</span>
+        </h2>
+        <p class="mt-2 max-w-4xl text-sm font-medium text-slate-800">{{ judge_result.summary|e }}</p>
+        <details class="mt-2">
+          <summary class="cursor-pointer text-sm text-blue-800 hover:text-blue-950" x-text="t('judgeReasoning')">
+            Why this recommendation
+          </summary>
+          <p class="mt-2 text-sm leading-6 text-slate-700">{{ judge_result.reasoning|e }}</p>
+        </details>
+        {% endif %}
+      </div>
+      {% if judge_result.confidence is not none %}
+      <div class="shrink-0 rounded border border-blue-200 bg-white px-3 py-2 text-sm text-slate-700">
+        <span class="text-xs uppercase tracking-wide text-slate-500" x-text="t('judgeConfidence')">confidence</span>
+        <div class="text-xl font-semibold text-blue-700">{{ "%.0f"|format(judge_result.confidence * 100) }}%</div>
+      </div>
+      {% endif %}
+    </div>
+    {% if judge_result.scores %}
+    <details class="mt-3">
+      <summary class="cursor-pointer text-sm text-blue-800 hover:text-blue-950" x-text="t('judgeScores')">
+        Candidate notes
+      </summary>
+      <div class="mt-2 grid gap-2 md:grid-cols-2">
+        {% for candidate_id, score in judge_result.scores.items() %}
+        <div class="rounded border border-blue-100 bg-white p-3 text-sm">
+          <div class="font-medium text-slate-900">{{ candidate_id }}</div>
+          <div class="mt-1 text-slate-600">
+            {% if score.score is defined %}{{ score.score|e }}/100 · {% endif %}{{ (score.note if score.note is defined else score)|e }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <!-- Results grid -->
+  <div class="mb-2 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h2 class="text-base font-semibold text-slate-950" x-text="t('compareTitle')">Compare outputs</h2>
+      <p class="text-xs text-slate-500" x-text="t('compareHint')">Scroll horizontally to review all candidates.</p>
+    </div>
+  </div>
+  <div class="results-shell relative">
+  <div class="results-scroll">
+  <div class="results-grid">
+    {% for r in results %}
+    <div class="result-card bg-white rounded-lg border border-slate-200 shadow-sm flex flex-col overflow-hidden transition"
+         :class="winner === '{{ r.skill_id }}' ? 'ring-2 ring-blue-500 border-blue-500 shadow-md' : ''">
+
+      <!-- Skill header -->
+      <div class="skill-header p-4 border-b border-slate-200 bg-slate-50/80">
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="font-semibold text-slate-950">{{ r.skill_name }}</h3>
+          {% if judge_result and not judge_result.error and judge_result.winner_skill_id == r.skill_id %}
+          <span class="shrink-0 rounded-full bg-blue-100 px-2 py-1 text-[11px] font-medium text-blue-800" x-text="t('recommendedBadge')">
+            AI recommended
+          </span>
+          {% endif %}
+        </div>
+        <p class="mt-1 text-sm text-slate-600" x-text='skillDescription({{ r.skill_id|tojson }})'>
+          {{ r.skill_category }}
+        </p>
+        <p class="text-xs text-slate-500 mt-1" x-show='skillAuthor({{ r.skill_id|tojson }})' x-cloak>
+          <span x-text='skillAuthor({{ r.skill_id|tojson }})'>{{ r.skill_author }}</span>
+        </p>
+        <div class="mt-3 flex flex-wrap gap-1.5">
+          <template x-for='tag in skillTagList({{ r.skill_id|tojson }})' :key="tag">
+            <span class="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600" x-text="tag"></span>
+          </template>
+        </div>
+      </div>
+
+      <!-- Output -->
+      <div class="flex-1 p-4 overflow-y-auto" style="max-height: 32rem;">
+        {% if r.error %}
+        <div class="text-amber-700 text-sm">
+          <span class="font-mono text-xs uppercase tracking-wider" x-text="t('error')">error</span>
+          <p class="mt-2">{{ r.error|e }}</p>
+        </div>
+        {% else %}
+        {% if r.artifacts is defined and r.artifacts %}
+        <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500" x-text="t('artifactsTitle')">Generated artifacts</p>
+          <div class="mt-3 space-y-3">
+            {% for artifact in r.artifacts %}
+            <div class="rounded border border-slate-200 bg-white p-3">
+              {% if artifact.preview_href is defined and artifact.preview_href %}
+              <a href="{{ artifact.preview_href }}" target="_blank" rel="noreferrer">
+                <img src="{{ artifact.preview_href }}" alt="{{ artifact.label if artifact.label is defined else artifact.path }}" class="mb-3 max-h-56 w-full rounded border border-slate-100 object-contain bg-white">
+              </a>
+              {% elif artifact.preview_path is defined and artifact.preview_path %}
+              <a href="{{ artifact.preview_path }}" target="_blank" rel="noreferrer">
+                <img src="{{ artifact.preview_path }}" alt="{{ artifact.label if artifact.label is defined else artifact.path }}" class="mb-3 max-h-56 w-full rounded border border-slate-100 object-contain bg-white">
+              </a>
+              {% endif %}
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium text-slate-900">{{ artifact.label if artifact.label is defined and artifact.label else artifact.path }}</p>
+                  {% if artifact.kind is defined and artifact.kind %}
+                  <p class="text-xs text-slate-500">{{ artifact.kind }}</p>
+                  {% endif %}
+                </div>
+                <a class="shrink-0 rounded bg-white px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-200 hover:bg-blue-50"
+                   href="{{ artifact.href if artifact.href is defined and artifact.href else artifact.path }}"
+                   target="_blank"
+                   rel="noreferrer"
+                   x-text="t('artifactOpen')">Open file</a>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        <div class="academic text-sm text-slate-900 whitespace-pre-wrap">{{ r.output|e }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Metrics -->
+      <div class="px-4 py-3 border-t border-slate-200 bg-slate-50">
+        <div class="flex justify-between gap-3 text-xs text-slate-500 mb-2">
+          <div>
+            <div class="font-medium text-slate-600">
+              <span x-text="t('approx')">approx.</span>
+              {{ r.estimated_tokens_used if r.estimated_tokens_used is defined and r.estimated_tokens_used else r.tokens_used }}
+              <span x-text="t('tokens')">tokens</span>
+            </div>
+            <div class="mt-0.5 text-[11px] text-slate-400">
+              <span x-text="t('estimatedTokens')">estimated context</span> ·
+              <span x-text="t('estimatedTokenHint')">includes skill instructions, input, and output</span>
+            </div>
+          </div>
+          <span>{{ "%.1f"|format(r.latency_seconds) }}s</span>
+        </div>
+        {% if r.provider_tokens_used is defined and r.provider_tokens_used %}
+        <details class="mb-2 text-[11px] text-slate-400">
+          <summary class="cursor-pointer hover:text-slate-600" x-text="t('rawStats')">Raw model stats</summary>
+          <div class="mt-1">
+            <span x-text="t('providerTokens')">model raw count, for reference</span>:
+            {{ r.provider_tokens_used }} <span x-text="t('tokens')">tokens</span>
+          </div>
+        </details>
+        {% endif %}
+        <div class="latency-bar"
+             style="--pct: {{ (r.latency_seconds / 10 * 100)|round }}%"></div>
+      </div>
+
+      <!-- Pick button -->
+      <button @click="winner = '{{ r.skill_id }}'; verdictType = 'pick'"
+              :disabled="submitted"
+              class="px-4 py-3 text-sm font-medium transition
+                     text-white
+                     disabled:bg-slate-200 disabled:text-slate-400"
+              :class="winner === '{{ r.skill_id }}' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-900 hover:bg-slate-800'">
+        <span x-show="winner !== '{{ r.skill_id }}'" x-text="t('pick')">✓ Pick this one</span>
+        <span x-show="winner === '{{ r.skill_id }}'" x-cloak x-text="t('picked')">✓ Picked</span>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  </div>
+  </div>
+
+  <!-- Alternate verdicts -->
+  <div class="mt-6 flex gap-2 justify-center">
+    <button @click="winner = '__tie__'; verdictType = 'tie'"
+            :disabled="submitted"
+            class="px-4 py-2 text-sm rounded transition
+                   bg-white hover:bg-slate-50 text-slate-700 border border-slate-300
+                   disabled:opacity-50"
+            :class="verdictType === 'tie' ? 'ring-2 ring-slate-400' : ''">
+      <span x-text="t('tie')">It is a tie</span>
+    </button>
+    <button @click="winner = '__none__'; verdictType = 'none'"
+            :disabled="submitted"
+            class="px-4 py-2 text-sm rounded transition
+                   bg-white hover:bg-slate-50 text-slate-700 border border-slate-300
+                   disabled:opacity-50"
+            :class="verdictType === 'none' ? 'ring-2 ring-slate-400' : ''">
+      <span x-text="t('none')">None are good</span>
+    </button>
+  </div>
+
+  <!-- Reason input -->
+  <div x-show="winner && !submitted" x-cloak
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0 transform translate-y-2"
+       x-transition:enter-end="opacity-100 transform translate-y-0"
+       class="mt-6 bg-white rounded-lg p-4 border border-slate-200 shadow-sm max-w-2xl mx-auto">
+    <label class="block text-sm font-medium text-slate-800 mb-2">
+      <span x-text="t('reasonLabel')">Why did you pick this one?</span>
+      <span class="text-slate-500 font-normal" x-text="t('reasonOptional')">(optional, but this is gold for skill authors)</span>
+    </label>
+    <textarea x-model="reason"
+              class="w-full bg-white text-slate-900 border border-slate-300 rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              rows="3"
+              :placeholder="t('reasonPlaceholder')"
+              placeholder="e.g. less robotic, kept the original meaning, sounded more like a human researcher..."></textarea>
+    <div class="mt-3 flex justify-end gap-2">
+      <button @click="winner = null; verdictType = null; reason = ''"
+              class="px-3 py-2 text-sm text-slate-600 hover:text-slate-950 transition">
+        <span x-text="t('cancel')">Cancel</span>
+      </button>
+      <button @click="submit()"
+              class="px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-800 text-white rounded transition">
+        <span x-text="t('submit')">Submit verdict</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Continuation handoff -->
+  <div x-show="winner" x-cloak
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0 transform translate-y-2"
+       x-transition:enter-end="opacity-100 transform translate-y-0"
+       class="mt-6 rounded-lg border border-blue-200 bg-blue-50/60 p-4 shadow-sm max-w-3xl mx-auto">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <p class="text-xs font-semibold tracking-wide text-blue-700">
+          <span class="uppercase" x-text="t('selectedLabel')">Selected</span>:
+          <span class="normal-case" x-text="candidateName(winner)"></span>
+        </p>
+        <p class="text-sm font-semibold text-slate-900" x-text="t('handoffTitle')">Continue in your agent session</p>
+        <p class="mt-1 text-xs text-slate-600" x-text="t('handoffHelp')">
+          Copy this back into Claude/Codex if the session does not continue automatically.
+        </p>
+      </div>
+      <button type="button"
+              @click="copyHandoff()"
+              class="shrink-0 rounded bg-blue-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-blue-700">
+        <span x-text="copiedHandoff ? t('handoffCopied') : t('handoffCopy')">Copy handoff</span>
+      </button>
+    </div>
+    <textarea readonly
+              rows="4"
+              :value="handoffText()"
+              @focus="$event.target.select()"
+              class="mt-3 w-full resize-y rounded border border-blue-200 bg-white p-3 text-sm leading-6 text-slate-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+  </div>
+
+  <!-- Submitted confirmation -->
+  <div x-show="submitted" x-cloak
+       class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto text-center">
+    <p class="text-blue-800 text-sm" x-text="t('captured')">
+      ✓ Verdict captured. Back in chat, say "I picked" and forkprobe can resume from the local log.
+    </p>
+    <p class="text-xs text-slate-600 mt-2">
+      <span x-text="t('closeTab')">You can close this tab. Latest verdict is in</span>
+      <code class="text-slate-800">./forkprobe-logs/</code>
+    </p>
+  </div>
+
+  <!-- Submission error -->
+  <div x-show="submitError" x-cloak
+       class="mt-6 bg-rose-50 border border-rose-200 rounded-lg p-4 max-w-2xl mx-auto">
+    <p class="text-rose-800 text-sm font-medium" x-text="t('serverError')">Could not reach forkprobe server</p>
+    <p class="text-xs text-slate-600 mt-2">
+      <span x-text="submitError"></span> — <span x-text="t('serverErrorHint')">The server may have timed out. Your selection is in the browser console; you can also re-run forkprobe.</span>
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-12 pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
+    forkprobe · MIT ·
+    <a href="https://github.com/shijunluo/forkprobe" class="hover:text-slate-800 transition">github</a> ·
+    <span x-text="t('privacy')">Privacy: 100% local in v0.1</span>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,87 @@
+{
+  "domain": "academic-writing",
+  "version": "v0.1",
+  "last_updated": "2026-05-28",
+  "description": "Skills for academic paragraph polishing, anti-AI text patterns, and SCI-style scientific writing. Targeted at Chinese SCI Q1 authors as primary user persona.",
+  "selection_criteria": [
+    "Active commit/issue in last 90 days",
+    "Compatible with Anthropic SKILL.md format (or trivially adaptable)",
+    "License compatible with MIT",
+    "At least one of: 100+ stars, clear academic identity, Chinese first-class support",
+    "Diversity: covers anti-AI + academic-style across zh + en (2x2 matrix, each cell ≥ 1)"
+  ],
+  "skills": [
+    {
+      "id": "humanizer",
+      "name": "humanizer",
+      "author": "blader",
+      "language": "en",
+      "category": "anti-AI",
+      "source": "https://github.com/blader/humanizer",
+      "approx_stars": 800,
+      "license": "MIT",
+      "approach": "Names 20+ specific AI writing patterns, does two-pass detection",
+      "load_via": "git_clone",
+      "notes": "Most rigorous anti-AI approach in the catalog. Strong on English text."
+    },
+    {
+      "id": "writing-anti-ai",
+      "name": "writing-anti-ai",
+      "author": "Galaxy-Dawn",
+      "language": "zh+en",
+      "category": "anti-AI",
+      "source": "https://github.com/Galaxy-Dawn/claude-scholar",
+      "subdir": "skills/writing-anti-ai",
+      "approx_stars": 400,
+      "license": "MIT",
+      "approach": "Bilingual anti-AI patterns: inflated symbolism, em dash overuse, rule of three, AI vocab, etc.",
+      "load_via": "git_clone",
+      "notes": "Only catalog entry with first-class Chinese support. Critical for primary user persona. Lives in a multi-skill repo; subdir required."
+    },
+    {
+      "id": "research-paper-writing-skills",
+      "name": "Research-Paper-Writing-Skills",
+      "author": "Master-cai (curated from Peng Sida's open notes)",
+      "language": "zh",
+      "category": "academic-style",
+      "source": "https://github.com/Master-cai/Research-Paper-Writing-Skills",
+      "subdir": "research-paper-writing",
+      "approx_stars": "TBD",
+      "license": "MIT",
+      "approach": "ML/CV/NLP paper writing conventions, from Chinese academic perspective",
+      "load_via": "git_clone",
+      "notes": "Authored by Chinese academic — high resonance with target user community (中文 SCI 投稿者). Skill lives in research-paper-writing subdir."
+    },
+    {
+      "id": "paper-writer-skill",
+      "name": "paper-writer-skill",
+      "author": "kgraph57",
+      "language": "en",
+      "category": "academic-style",
+      "source": "https://github.com/kgraph57/paper-writer-skill",
+      "approx_stars": "TBD",
+      "license": "MIT",
+      "approach": "Full IMRAD pipeline, medical/scientific focus, manuscript lifecycle including reviewer response",
+      "load_via": "git_clone",
+      "notes": "Complement to research-paper-writing-skills — covers medical/biology side of SCI authorship. WARNING: This is a multi-step workflow skill (58KB SKILL.md) designed for tool use; in v0.1's single-turn harness it often hits max_turns. Better suited for v0.2 when we support multi-turn execution.",
+      "v01_compatibility": "partial"
+    }
+  ],
+  "diversity_matrix": {
+    "anti-AI × en": ["humanizer"],
+    "anti-AI × zh+en": ["writing-anti-ai"],
+    "academic-style × zh": ["research-paper-writing-skills"],
+    "academic-style × en": ["paper-writer-skill"]
+  },
+  "recommended_defaults": {
+    "chinese_user": ["baseline", "writing-anti-ai", "research-paper-writing-skills"],
+    "english_user": ["baseline", "humanizer", "paper-writer-skill"],
+    "bilingual_user": ["baseline", "writing-anti-ai", "humanizer"]
+  },
+  "byo_supported": true,
+  "byo_formats": [
+    "Local directory containing SKILL.md",
+    "GitHub URL (will git clone)",
+    "Raw URL to SKILL.md file"
+  ]
+}

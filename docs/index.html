@@ -1,0 +1,1547 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="forkprobe helps you compare AI skills side by side for office, research, and finance workflows.">
+  <title>forkprobe - Find the skill that actually helps</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #101828;
+      --muted: #475467;
+      --soft: #667085;
+      --line: #d7e0ea;
+      --paper: #ffffff;
+      --page: #f6f9fc;
+      --blue: #2563eb;
+      --teal: #0f9f8f;
+      --amber: #d97706;
+      --rose: #e11d48;
+      --green: #16a34a;
+      --shadow: 0 18px 45px rgba(16, 24, 40, 0.12);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.65;
+      letter-spacing: 0;
+      color: var(--ink);
+      overflow-x: hidden;
+      background:
+        linear-gradient(180deg, rgba(248, 251, 255, 0.96), rgba(244, 248, 252, 0.96)),
+        repeating-linear-gradient(90deg, rgba(37, 99, 235, 0.08) 0 1px, transparent 1px 80px),
+        repeating-linear-gradient(0deg, rgba(15, 159, 143, 0.07) 0 1px, transparent 1px 80px);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .site-shell {
+      overflow: hidden;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav {
+      position: fixed;
+      z-index: 20;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem clamp(1rem, 4vw, 3rem);
+      background: rgba(246, 249, 252, 0.78);
+      border-bottom: 1px solid rgba(215, 224, 234, 0.75);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-weight: 800;
+      font-size: 1.05rem;
+    }
+
+    .brand-mark {
+      width: 2rem;
+      height: 2rem;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue), var(--teal));
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.18);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .nav-links a {
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+    }
+
+    .nav-links a:hover {
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--ink);
+    }
+
+    .hero {
+      position: relative;
+      min-height: 86vh;
+      padding: clamp(6.5rem, 10vw, 8rem) clamp(1rem, 4vw, 3rem) 4rem;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(246, 249, 252, 0.98) 0%, rgba(246, 249, 252, 0.82) 36%, rgba(246, 249, 252, 0.03) 70%, rgba(246, 249, 252, 0.36) 100%),
+        linear-gradient(180deg, rgba(255,255,255,0.4), rgba(246,249,252,0.8));
+      z-index: 1;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 3;
+      width: min(47rem, 100%);
+      padding-top: 1rem;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      color: var(--blue);
+      font-weight: 700;
+      font-size: 0.92rem;
+      margin: 0 0 1rem;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 2.2rem;
+      height: 2px;
+      background: var(--blue);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(3rem, 8vw, 6.6rem);
+      line-height: 0.94;
+      letter-spacing: 0;
+      color: #09111f;
+    }
+
+    .hero-subtitle {
+      margin: 1.3rem 0 0;
+      max-width: 43rem;
+      font-size: clamp(1.12rem, 2.2vw, 1.55rem);
+      line-height: 1.55;
+      color: #344054;
+      font-weight: 650;
+      overflow-wrap: break-word;
+    }
+
+    .hero-lede {
+      margin: 1.1rem 0 0;
+      max-width: 40rem;
+      color: var(--muted);
+      font-size: 1rem;
+      overflow-wrap: break-word;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.7rem;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-height: 2.8rem;
+      padding: 0.72rem 1rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      font-weight: 750;
+      cursor: pointer;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+    }
+
+    .button-primary {
+      color: #fff;
+      background: #111827;
+      box-shadow: 0 12px 28px rgba(17, 24, 39, 0.16);
+    }
+
+    .button-primary:hover {
+      background: #1f2937;
+    }
+
+    .button-secondary {
+      background: rgba(255, 255, 255, 0.78);
+      border-color: var(--line);
+      color: var(--ink);
+    }
+
+    .button-secondary:hover {
+      border-color: #b7c5d4;
+      box-shadow: 0 10px 22px rgba(16, 24, 40, 0.08);
+    }
+
+    .hero-visual {
+      position: absolute;
+      z-index: 0;
+      right: clamp(-18rem, -12vw, -4rem);
+      top: 7.2rem;
+      width: min(70rem, 74vw);
+      min-width: 50rem;
+      transform: rotate(-2deg);
+      opacity: 0.98;
+      pointer-events: none;
+    }
+
+    .report-board {
+      max-width: 100%;
+      border: 1px solid rgba(151, 164, 184, 0.45);
+      background: rgba(255,255,255,0.9);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .report-top {
+      height: 4.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0 1.2rem;
+      border-bottom: 1px solid var(--line);
+      background: #f8fbff;
+    }
+
+    .traffic {
+      display: flex;
+      gap: 0.42rem;
+    }
+
+    .traffic span {
+      width: 0.72rem;
+      height: 0.72rem;
+      border-radius: 50%;
+      display: block;
+    }
+
+    .traffic span:nth-child(1) { background: #ef4444; }
+    .traffic span:nth-child(2) { background: #f59e0b; }
+    .traffic span:nth-child(3) { background: #16a34a; }
+
+    .report-title {
+      min-width: 0;
+      font-weight: 800;
+      color: #101828;
+      font-size: 0.98rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .report-meta {
+      color: var(--soft);
+      font-size: 0.82rem;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.6rem;
+      padding: 1rem 1.2rem 0.1rem;
+    }
+
+    .flow-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+
+    .flow-chip b {
+      display: inline-grid;
+      place-items: center;
+      width: 1.65rem;
+      height: 1.65rem;
+      border-radius: 50%;
+      color: var(--blue);
+      background: #dbeafe;
+      font-size: 0.78rem;
+    }
+
+    .judge-strip {
+      margin: 1rem 1.2rem;
+      padding: 0.9rem 1rem;
+      border: 1px solid #b8d4ff;
+      border-radius: 8px;
+      background: #eef6ff;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .judge-strip strong {
+      display: block;
+      font-size: 0.95rem;
+    }
+
+    .judge-strip p {
+      margin: 0.2rem 0 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    .confidence {
+      color: var(--blue);
+      font-size: 1.35rem;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .candidate-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(15rem, 1fr));
+      gap: 0.85rem;
+      padding: 0 1.2rem 1.2rem;
+    }
+
+    .candidate {
+      min-height: 18rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .candidate-head {
+      padding: 0.85rem;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .candidate-head strong {
+      display: block;
+      font-size: 0.92rem;
+    }
+
+    .candidate-head span {
+      display: block;
+      margin-top: 0.15rem;
+      color: var(--soft);
+      font-size: 0.76rem;
+    }
+
+    .candidate-body {
+      padding: 0.85rem;
+      color: #26364a;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      flex: 1;
+    }
+
+    .candidate-foot {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.8rem 0.85rem;
+      border-top: 1px solid var(--line);
+      color: var(--soft);
+      font-size: 0.76rem;
+    }
+
+    .winner-bar {
+      height: 0.35rem;
+      background: linear-gradient(90deg, var(--blue), var(--teal));
+    }
+
+    section {
+      padding: clamp(4rem, 8vw, 6.5rem) clamp(1rem, 4vw, 3rem);
+    }
+
+    .section-inner {
+      width: min(1160px, 100%);
+      margin: 0 auto;
+    }
+
+    .section-kicker {
+      color: var(--teal);
+      font-weight: 800;
+      margin: 0 0 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    h2 {
+      margin: 0;
+      max-width: 52rem;
+      font-size: clamp(1.85rem, 2.8vw, 2.75rem);
+      line-height: 1.18;
+      letter-spacing: 0;
+      color: #101828;
+    }
+
+    .section-lede {
+      max-width: 45rem;
+      margin: 1rem 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .usecase-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    #usecases {
+      order: 2;
+    }
+
+    .usecase {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 10px 25px rgba(16, 24, 40, 0.06);
+      overflow: hidden;
+    }
+
+    .usecase-media {
+      height: 10rem;
+      padding: 1rem;
+      display: grid;
+      place-items: center;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(15, 159, 143, 0.08)),
+        #fbfdff;
+    }
+
+    .mini-screen {
+      width: 100%;
+      height: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      padding: 0.75rem;
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .mini-line {
+      height: 0.55rem;
+      border-radius: 999px;
+      background: #dbe4f0;
+    }
+
+    .mini-line.blue { background: #93c5fd; }
+    .mini-line.teal { background: #99f6e4; }
+    .mini-line.amber { background: #fcd34d; }
+    .mini-chart {
+      display: grid;
+      align-items: end;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.35rem;
+      min-height: 4rem;
+    }
+
+    .mini-chart i {
+      display: block;
+      border-radius: 4px 4px 0 0;
+      background: var(--blue);
+    }
+
+    .mini-chart i:nth-child(2) { background: var(--teal); }
+    .mini-chart i:nth-child(3) { background: var(--amber); }
+    .mini-chart i:nth-child(4) { background: var(--rose); }
+    .mini-chart i:nth-child(5) { background: var(--green); }
+    .mini-chart i:nth-child(6) { background: #64748b; }
+
+    .usecase-body {
+      padding: 1.15rem;
+    }
+
+    .usecase h3 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: 0;
+    }
+
+    .usecase p {
+      margin: 0.65rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 1rem;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.75rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid #d7e0ea;
+      color: #344054;
+      background: #fff;
+      font-size: 0.78rem;
+      font-weight: 650;
+    }
+
+    .report-demo-section {
+      order: 1;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.96), rgba(247,251,255,0.96)),
+        linear-gradient(90deg, rgba(37,99,235,0.06), transparent 38%, rgba(15,159,143,0.06));
+      border-top: 1px solid var(--line);
+    }
+
+    .report-demo-section .section-inner {
+      width: min(1280px, 100%);
+    }
+
+    .demo-report {
+      margin-top: 2.2rem;
+      border: 1px solid #cbd8e7;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 22px 55px rgba(16, 24, 40, 0.12);
+      overflow: hidden;
+    }
+
+    .demo-report-top {
+      min-height: 4.4rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--line);
+      background: #f8fbff;
+    }
+
+    .demo-report-title strong,
+    .demo-pane-title strong {
+      display: block;
+      line-height: 1.25;
+    }
+
+    .demo-report-title span,
+    .demo-pane-title span {
+      display: block;
+      margin-top: 0.15rem;
+      color: var(--soft);
+      font-size: 0.82rem;
+    }
+
+    .demo-report-stats {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.45rem;
+    }
+
+    .demo-stat {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2rem;
+      padding: 0.25rem 0.65rem;
+      border: 1px solid #d7e4f3;
+      border-radius: 999px;
+      color: #344054;
+      background: #fff;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .demo-report-grid {
+      display: grid;
+      grid-template-columns: 17.5rem minmax(0, 1fr) 21rem;
+      min-height: 39rem;
+    }
+
+    .demo-sidebar,
+    .demo-inspector {
+      background: #f8fbff;
+    }
+
+    .demo-sidebar {
+      border-right: 1px solid var(--line);
+      padding: 1rem;
+    }
+
+    .demo-inspector {
+      border-left: 1px solid var(--line);
+      padding: 1rem;
+    }
+
+    .demo-pane-title {
+      margin-bottom: 0.8rem;
+    }
+
+    .demo-input-box {
+      padding: 0.85rem;
+      border: 1px solid #d7e4f3;
+      border-radius: 8px;
+      background: #fff;
+      color: #344054;
+      font-size: 0.86rem;
+      line-height: 1.55;
+    }
+
+    .demo-skill-list {
+      display: grid;
+      gap: 0.65rem;
+      margin-top: 1rem;
+    }
+
+    .demo-skill-button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.8rem;
+      align-items: center;
+      min-height: 4.35rem;
+      padding: 0.8rem;
+      border: 1px solid #d7e4f3;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+
+    .demo-skill-button:hover {
+      transform: translateY(-1px);
+      border-color: #9ec3ff;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.08);
+    }
+
+    .demo-skill-button.is-active {
+      border-color: #7db4ff;
+      background: #eef6ff;
+      box-shadow: inset 3px 0 0 var(--blue);
+    }
+
+    .demo-skill-button.is-selected {
+      border-color: #71d2c4;
+      box-shadow: inset 3px 0 0 var(--teal);
+    }
+
+    .demo-skill-name {
+      display: block;
+      font-weight: 820;
+      line-height: 1.3;
+      overflow-wrap: anywhere;
+    }
+
+    .demo-skill-role {
+      display: block;
+      margin-top: 0.2rem;
+      color: var(--soft);
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+
+    .demo-score {
+      display: inline-grid;
+      place-items: center;
+      width: 2.35rem;
+      height: 2.35rem;
+      border-radius: 50%;
+      color: var(--blue);
+      background: #dbeafe;
+      font-size: 0.85rem;
+      font-weight: 850;
+    }
+
+    .demo-output {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      background: #fff;
+    }
+
+    .demo-output-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 1rem;
+      align-items: start;
+      padding: 1.25rem 1.35rem 1rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .demo-output-title h3 {
+      margin: 0;
+      font-size: 1.55rem;
+      line-height: 1.2;
+    }
+
+    .demo-output-title p {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .demo-output-metrics {
+      display: flex;
+      gap: 0.55rem;
+      justify-content: flex-end;
+      color: var(--soft);
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .demo-output-body {
+      flex: 1;
+      padding: 1.35rem;
+      color: #223044;
+      font-size: 1rem;
+      line-height: 1.8;
+    }
+
+    .demo-output-body p {
+      margin: 0 0 1rem;
+    }
+
+    .demo-output-body p:last-child {
+      margin-bottom: 0;
+    }
+
+    .demo-output-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.35rem;
+      border-top: 1px solid var(--line);
+      background: #fbfdff;
+    }
+
+    .demo-hint {
+      color: var(--soft);
+      font-size: 0.86rem;
+    }
+
+    .demo-select-button,
+    .demo-copy-button {
+      min-height: 2.55rem;
+      padding: 0.55rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .demo-select-button {
+      color: #fff;
+      background: #111827;
+    }
+
+    .demo-select-button:hover,
+    .demo-copy-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .demo-copy-button {
+      border-color: #b8d4ff;
+      color: var(--blue);
+      background: #fff;
+    }
+
+    .demo-judge,
+    .demo-verdict {
+      border: 1px solid #b8d4ff;
+      border-radius: 8px;
+      background: #eef6ff;
+      padding: 0.95rem;
+    }
+
+    .demo-judge strong,
+    .demo-verdict strong {
+      display: block;
+      color: #0f3f91;
+      font-size: 0.95rem;
+    }
+
+    .demo-judge p,
+    .demo-verdict p {
+      margin: 0.35rem 0 0;
+      color: #344054;
+      font-size: 0.86rem;
+      line-height: 1.55;
+    }
+
+    .demo-bars {
+      display: grid;
+      gap: 0.6rem;
+      margin-top: 0.95rem;
+    }
+
+    .demo-bar {
+      display: grid;
+      grid-template-columns: 5.6rem 1fr 2rem;
+      gap: 0.55rem;
+      align-items: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .demo-bar-track {
+      height: 0.5rem;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #dbe4f0;
+    }
+
+    .demo-bar-fill {
+      display: block;
+      height: 100%;
+      width: 70%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--teal));
+    }
+
+    .demo-verdict {
+      margin-top: 0.9rem;
+      border-color: #b8eee4;
+      background: #effdf9;
+    }
+
+    .demo-verdict strong {
+      color: #087267;
+    }
+
+    .demo-handoff-label {
+      display: block;
+      margin: 1rem 0 0.45rem;
+      color: #344054;
+      font-size: 0.84rem;
+      font-weight: 800;
+    }
+
+    .demo-handoff {
+      width: 100%;
+      min-height: 9rem;
+      resize: none;
+      border: 1px solid #d7e4f3;
+      border-radius: 8px;
+      padding: 0.85rem;
+      color: #26364a;
+      background: #fff;
+      font: inherit;
+      font-size: 0.86rem;
+      line-height: 1.55;
+    }
+
+    .cta {
+      order: 3;
+      background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(217, 119, 6, 0.08)),
+        #f7fbff;
+    }
+
+    .prompt-box {
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.75rem;
+      align-items: stretch;
+      width: min(860px, 100%);
+      border: 1px solid #b8d4ff;
+      border-radius: 8px;
+      background: #fff;
+      padding: 0.85rem;
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.08);
+    }
+
+    .prompt-box code {
+      display: block;
+      color: #1f2937;
+      white-space: normal;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .copy-button {
+      min-width: 8rem;
+      border: 0;
+      border-radius: 8px;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 160ms ease, transform 160ms ease;
+    }
+
+    .copy-button:hover {
+      transform: translateY(-1px);
+      background: #1d4ed8;
+    }
+
+    .footer {
+      padding: 2rem clamp(1rem, 4vw, 3rem);
+      color: var(--soft);
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .footer-inner {
+      width: min(1160px, 100%);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 980px) {
+      .hero {
+        align-items: flex-start;
+        min-height: auto;
+        padding-bottom: 2rem;
+      }
+
+      .hero::before {
+        background: linear-gradient(180deg, rgba(246,249,252,0.98), rgba(246,249,252,0.72));
+      }
+
+      .hero-visual {
+        position: relative;
+        right: auto;
+        top: auto;
+        width: 100%;
+        min-width: 0;
+        margin-top: 2.4rem;
+        transform: none;
+        z-index: 2;
+      }
+
+      .hero {
+        display: block;
+      }
+
+      .usecase-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .demo-report-top {
+        grid-template-columns: auto 1fr;
+      }
+
+      .demo-report-stats {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+      }
+
+      .demo-report-grid {
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+
+      .demo-sidebar,
+      .demo-inspector {
+        border: 0;
+      }
+
+      .demo-sidebar {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .demo-inspector {
+        border-top: 1px solid var(--line);
+      }
+
+      .demo-skill-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .demo-output-head {
+        grid-template-columns: 1fr;
+      }
+
+      .demo-output-metrics {
+        justify-content: flex-start;
+      }
+
+      .candidate-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .nav {
+        position: static;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        padding-top: 3rem;
+      }
+
+      .flow-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .report-meta,
+      .judge-strip .confidence {
+        display: none;
+      }
+
+      .report-top {
+        padding: 0 0.9rem;
+      }
+
+      .report-title {
+        max-width: 9rem;
+        font-size: 0.86rem;
+      }
+
+      .demo-skill-list {
+        grid-template-columns: 1fr;
+      }
+
+      .demo-report-top {
+        gap: 0.7rem;
+      }
+
+      .demo-report-title strong {
+        font-size: 0.95rem;
+      }
+
+      .demo-output-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .prompt-box {
+        grid-template-columns: 1fr;
+      }
+
+      .copy-button {
+        min-height: 2.8rem;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="site-shell">
+    <nav class="nav" aria-label="主导航">
+      <a class="brand" href="#top" aria-label="forkprobe 首页">
+        <span class="brand-mark">fp</span>
+        <span>forkprobe</span>
+      </a>
+      <div class="nav-links">
+        <a href="#report-demo">预览</a>
+        <a href="#usecases">场景</a>
+        <a href="#start">开始</a>
+      </div>
+    </nav>
+
+    <header class="hero" id="top">
+      <div class="hero-copy">
+        <p class="eyebrow">Find the skill that actually helps.</p>
+        <h1>forkprobe</h1>
+        <p class="hero-subtitle">别猜哪个 skill 有用，直接并排看结果。</p>
+        <p class="hero-lede">
+          面向办公、科研、金融任务，把同一个需求交给多个 AI skill 并行处理，生成本地报告，横向比较输出质量、耗时、消耗量和 AI 评审建议，再用胜出的路径继续工作。
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#report-demo">查看预览</a>
+          <a class="button button-secondary" href="#usecases">适用场景</a>
+          <a class="button button-secondary" href="#start">去试一试 <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-label="forkprobe 对比报告界面预览">
+        <div class="report-board">
+          <div class="report-top">
+            <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="report-title">forkprobe report</div>
+            <div class="report-meta">5 paths · 52.4s · 14,099 tokens</div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-chip"><b>1</b> 输入</div>
+            <div class="flow-chip"><b>2</b> AI 评审</div>
+            <div class="flow-chip"><b>3</b> 对比</div>
+            <div class="flow-chip"><b>4</b> 继续</div>
+          </div>
+          <div class="judge-strip">
+            <div>
+              <strong>AI 评审推荐：social-copy skill</strong>
+              <p>社媒化表达更自然，同时保留办公、科研、金融三类场景。</p>
+            </div>
+            <div class="confidence">82%</div>
+          </div>
+          <div class="candidate-grid">
+            <article class="candidate">
+              <div class="candidate-head">
+                <strong>Baseline (no skill)</strong>
+                <span>原始模型输出</span>
+              </div>
+              <div class="candidate-body">
+                forkprobe 能帮助用户比较不同 skill 的输出效果，适用于办公、科研、金融等场景。
+              </div>
+              <div class="candidate-foot"><span>约 840 tokens</span><span>18.3s</span></div>
+            </article>
+            <article class="candidate">
+              <div class="candidate-head">
+                <strong>press-release skill</strong>
+                <span>价值主张更清晰</span>
+              </div>
+              <div class="candidate-body">
+                面向知识工作者发布的新型 skill 对比工作流，让团队在正式交付前先验证哪条 AI 路径真正有效。
+              </div>
+              <div class="candidate-foot"><span>约 1,420 tokens</span><span>21.9s</span></div>
+            </article>
+            <article class="candidate">
+              <div class="candidate-head">
+                <strong>social-copy skill</strong>
+                <span>更适合传播</span>
+              </div>
+              <div class="candidate-body">
+                现在不是缺 skill，而是不知道哪个 skill 真有用。forkprobe 把答案摊开给你看。
+              </div>
+              <div class="candidate-foot"><span>约 1,110 tokens</span><span>19.6s</span></div>
+              <div class="winner-bar"></div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="usecases">
+        <div class="section-inner">
+          <p class="section-kicker">三类高频任务</p>
+          <h2>网络上的skill百花齐放，使用各种skill 之前，先知道哪一个真的帮得上忙。</h2>
+          <p class="section-lede">
+            forkprobe 不是再造一个写作助手，而是把多个候选 skill 变成可观察、可比较、可选择的工作流。
+          </p>
+
+          <div class="usecase-grid">
+            <article class="usecase">
+              <div class="usecase-media">
+                <div class="mini-screen" aria-hidden="true">
+                  <div class="mini-line blue" style="width: 78%"></div>
+                  <div class="mini-line" style="width: 92%"></div>
+                  <div class="mini-line teal" style="width: 64%"></div>
+                  <div class="mini-line" style="width: 86%"></div>
+                  <div class="mini-line amber" style="width: 70%"></div>
+                </div>
+              </div>
+              <div class="usecase-body">
+                <h3>办公方向</h3>
+                <p>产品方案、GTM、会议纪要、市场分析和汇报 PPT，不再反复试提示词，而是直接比较几条 skill 路线。</p>
+                <div class="tag-list">
+                  <span class="tag">产品方案</span>
+                  <span class="tag">内部宣传</span>
+                  <span class="tag">PPT</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="usecase">
+              <div class="usecase-media">
+                <div class="mini-screen" aria-hidden="true">
+                  <div class="mini-line teal" style="width: 88%"></div>
+                  <div class="mini-line" style="width: 74%"></div>
+                  <div class="mini-chart">
+                    <i style="height: 45%"></i>
+                    <i style="height: 70%"></i>
+                    <i style="height: 54%"></i>
+                    <i style="height: 82%"></i>
+                    <i style="height: 62%"></i>
+                    <i style="height: 38%"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="usecase-body">
+                <h3>科研方向</h3>
+                <p>中文 SCI 润色、英文摘要、Nature 风格、审稿回复、figure storyline 和科研 PPT，比较表达效果同时守住技术含义。</p>
+                <div class="tag-list">
+                  <span class="tag">SCI 写作</span>
+                  <span class="tag">图表说明</span>
+                  <span class="tag">组会材料</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="usecase">
+              <div class="usecase-media">
+                <div class="mini-screen" aria-hidden="true">
+                  <div class="mini-chart">
+                    <i style="height: 60%"></i>
+                    <i style="height: 52%"></i>
+                    <i style="height: 78%"></i>
+                    <i style="height: 42%"></i>
+                    <i style="height: 86%"></i>
+                    <i style="height: 68%"></i>
+                  </div>
+                  <div class="mini-line blue" style="width: 90%"></div>
+                  <div class="mini-line amber" style="width: 67%"></div>
+                </div>
+              </div>
+              <div class="usecase-body">
+                <h3>金融方向</h3>
+                <p>持仓数据、行业报告、财报摘要、风险敞口和投委会材料，让多个分析路径并行跑，再选证据链最稳的一版。</p>
+                <div class="tag-list">
+                  <span class="tag">投研分析</span>
+                  <span class="tag">行业报告</span>
+                  <span class="tag">风险对比</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="report-demo-section" id="report-demo">
+        <div class="section-inner">
+          <p class="section-kicker">实际使用时</p>
+          <h2>使用 forkprobe，同一个任务、多个 skill 的结果清晰可见，轻松选择 winner。</h2>
+          <p class="section-lede">
+            左侧是原始输入和候选 skill，中间展示每一路完整输出，右侧给出 AI 评审建议。选定 winner 后，forkprobe 会生成 continuation handoff，让当前会话沿着你选中的结果继续执行。
+          </p>
+
+          <div class="demo-report" aria-label="forkprobe 交互式报告示例">
+            <div class="demo-report-top">
+              <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+              <div class="demo-report-title">
+                <strong>forkprobe report · launch-copy</strong>
+                <span>本地生成 · 选择结果后继续执行</span>
+              </div>
+              <div class="demo-report-stats" aria-label="报告统计">
+                <span class="demo-stat">4 路结果</span>
+                <span class="demo-stat">52.4s</span>
+                <span class="demo-stat">约 14,099 tokens</span>
+              </div>
+            </div>
+
+            <div class="demo-report-grid">
+              <aside class="demo-sidebar">
+                <div class="demo-pane-title">
+                  <strong>原始输入</strong>
+                  <span>宣传稿生成任务</span>
+                </div>
+                <div class="demo-input-box">
+                  写一篇 forkprobe 发布页文案，聚焦办公、科研、金融方向。希望能对比几个 skill 的写作效果，最后挑一版继续扩写。
+                </div>
+
+                <div class="demo-skill-list" role="tablist" aria-label="候选 skill">
+                  <button class="demo-skill-button is-active" type="button" data-demo-candidate="baseline" aria-pressed="true">
+                    <span>
+                      <span class="demo-skill-name">Baseline (no skill)</span>
+                      <span class="demo-skill-role">原始模型输出</span>
+                    </span>
+                    <span class="demo-score">62</span>
+                  </button>
+                  <button class="demo-skill-button" type="button" data-demo-candidate="press" aria-pressed="false">
+                    <span>
+                      <span class="demo-skill-name">press-release skill</span>
+                      <span class="demo-skill-role">更像正式发布稿</span>
+                    </span>
+                    <span class="demo-score">81</span>
+                  </button>
+                  <button class="demo-skill-button" type="button" data-demo-candidate="social" aria-pressed="false">
+                    <span>
+                      <span class="demo-skill-name">social-copy skill</span>
+                      <span class="demo-skill-role">更适合传播</span>
+                    </span>
+                    <span class="demo-score">86</span>
+                  </button>
+                  <button class="demo-skill-button" type="button" data-demo-candidate="finance" aria-pressed="false">
+                    <span>
+                      <span class="demo-skill-name">finance-analyst skill</span>
+                      <span class="demo-skill-role">金融场景更稳</span>
+                    </span>
+                    <span class="demo-score">79</span>
+                  </button>
+                </div>
+              </aside>
+
+              <div class="demo-output">
+                <div class="demo-output-head">
+                  <div class="demo-output-title">
+                    <h3 id="demoCandidateTitle">Baseline (no skill)</h3>
+                    <p id="demoCandidateSummary">原始模型输出，信息完整但记忆点不够强。</p>
+                  </div>
+                  <div class="demo-output-metrics">
+                    <span id="demoCandidateTokens">约 840 tokens</span>
+                    <span id="demoCandidateTime">18.3s</span>
+                  </div>
+                </div>
+                <div class="demo-output-body" id="demoCandidateOutput">
+                  <p>forkprobe 可以帮助用户比较不同 AI skill 的输出效果。它适用于办公、科研和金融等场景，能够把同一个任务交给多个候选 skill 执行，并生成本地报告。</p>
+                  <p>用户可以查看不同结果之间的差异，结合 AI 评审建议选择更适合的版本，再继续完成正式任务。</p>
+                </div>
+                <div class="demo-output-actions">
+                  <span class="demo-hint" id="demoActiveHint">正在查看 Baseline (no skill)，点击其他候选可切换输出。</span>
+                  <button class="demo-select-button" type="button" id="demoSelectWinner">选择这个</button>
+                </div>
+              </div>
+
+              <aside class="demo-inspector">
+                <div class="demo-judge">
+                  <strong>AI 评审推荐：social-copy skill</strong>
+                  <p>独立评审子agent 完成，使用主会话同源模型。它只建议本页候选结果。</p>
+                  <div class="demo-bars" aria-label="候选评分">
+                    <div class="demo-bar"><span>自然度</span><span class="demo-bar-track"><span class="demo-bar-fill" style="width: 86%"></span></span><span>86</span></div>
+                    <div class="demo-bar"><span>可信度</span><span class="demo-bar-track"><span class="demo-bar-fill" style="width: 82%"></span></span><span>82</span></div>
+                    <div class="demo-bar"><span>传播性</span><span class="demo-bar-track"><span class="demo-bar-fill" style="width: 91%"></span></span><span>91</span></div>
+                  </div>
+                </div>
+
+                <div class="demo-verdict">
+                  <strong id="demoVerdictTitle">尚未选择 winner</strong>
+                  <p id="demoVerdictReason">先点击中间下方的“选择这个”，这里会生成下一步交接文本。</p>
+                </div>
+
+                <label class="demo-handoff-label" for="demoHandoff">Continuation handoff</label>
+                <textarea class="demo-handoff" id="demoHandoff" readonly>请选择一个候选结果。选中后，这里会生成一段可以粘贴回当前 Agent 会话的继续执行文本。</textarea>
+                <button class="demo-copy-button" type="button" id="demoCopyHandoff">复制 handoff</button>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta" id="start">
+        <div class="section-inner">
+          <p class="section-kicker">一句话启动 skill 对比</p>
+          <h2>把任务交给 Agent 前，说“先帮我比较几个 skill”。</h2>
+          <p class="section-lede">
+            不管你用 Claude Code、Codex、OpenClaw、WorkBuddy 还是 OpenCode，都可以先让 forkprobe 找候选、跑对比、给评审，再由你决定继续哪一个 skill。
+          </p>
+          <div class="prompt-box">
+            <code id="promptText">先帮我比较几个 skill，看看哪个更适合当前任务。或者：请用 forkprobe 推荐候选，等我确认后再并排执行并生成 report，让我选择 winner。</code>
+            <button class="copy-button" type="button" id="copyPrompt">复制</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>forkprobe · Find the skill that actually helps.</span>
+        <span>GitHub Pages ready · Local-first comparison reports</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const copyButton = document.getElementById('copyPrompt');
+    const promptText = document.getElementById('promptText');
+    const demoButtons = Array.from(document.querySelectorAll('[data-demo-candidate]'));
+    const demoTitle = document.getElementById('demoCandidateTitle');
+    const demoSummary = document.getElementById('demoCandidateSummary');
+    const demoTokens = document.getElementById('demoCandidateTokens');
+    const demoTime = document.getElementById('demoCandidateTime');
+    const demoOutput = document.getElementById('demoCandidateOutput');
+    const demoHint = document.getElementById('demoActiveHint');
+    const demoSelectWinner = document.getElementById('demoSelectWinner');
+    const demoVerdictTitle = document.getElementById('demoVerdictTitle');
+    const demoVerdictReason = document.getElementById('demoVerdictReason');
+    const demoHandoff = document.getElementById('demoHandoff');
+    const demoCopyHandoff = document.getElementById('demoCopyHandoff');
+
+    const demoCandidates = {
+      baseline: {
+        title: 'Baseline (no skill)',
+        summary: '原始模型输出，信息完整但记忆点不够强。',
+        tokens: '约 840 tokens',
+        time: '18.3s',
+        reason: '作为参照很清楚，但不适合直接当发布稿。',
+        output: [
+          'forkprobe 可以帮助用户比较不同 AI skill 的输出效果。它适用于办公、科研和金融等场景，能够把同一个任务交给多个候选 skill 执行，并生成本地报告。',
+          '用户可以查看不同结果之间的差异，结合 AI 评审建议选择更适合的版本，再继续完成正式任务。'
+        ]
+      },
+      press: {
+        title: 'press-release skill',
+        summary: '更像正式发布稿，价值主张稳，适合对外说明。',
+        tokens: '约 1,420 tokens',
+        time: '21.9s',
+        reason: '价值主张和受众描述更清楚，适合官网、PRD 开头和团队对齐。',
+        output: [
+          '今天，我们发布 forkprobe：一个面向 AI skill 工作流的并排评估工具。它解决的不是“再多装一个 skill”的问题，而是帮助知识工作者知道哪一个 skill 真正适合当前任务。',
+          '在办公、科研和金融场景里，同一份输入可能需要完全不同的表达路径。forkprobe 会先推荐候选，再并行生成结果，最后用本地报告呈现质量、耗时、消耗量和 AI 评审建议。'
+        ]
+      },
+      social: {
+        title: 'social-copy skill',
+        summary: '更适合传播，表达自然，有更强的第一眼记忆点。',
+        tokens: '约 1,110 tokens',
+        time: '19.6s',
+        reason: '社媒化表达更自然，同时保留办公、科研、金融三类场景。',
+        output: [
+          '现在不是缺 skill，而是不知道哪个 skill 真有用。你想写一篇科研摘要、做一份投研报告、改一个内部分享稿，模型往往会直接开写。但真正的问题是：该用哪个 skill 来写？',
+          'forkprobe 的做法很直接：别猜，直接并排看。把同一个任务交给几个候选 skill，同时跑 baseline、发布稿、社媒表达或领域分析，再生成一个本地 report。你看结果，AI 子 agent 给建议，最后由你选 winner。'
+        ]
+      },
+      finance: {
+        title: 'finance-analyst skill',
+        summary: '金融场景更稳，强调证据链、风险和口径一致性。',
+        tokens: '约 1,680 tokens',
+        time: '24.7s',
+        reason: '适合金融投研或数据分析任务，但发布页传播感略弱。',
+        output: [
+          '在金融工作流中，forkprobe 的核心价值是降低路径选择成本。面对持仓数据、行业报告、财报摘要和风险材料，团队可以同时比较多个分析 skill 的输出口径。',
+          '报告页不仅展示结论，还展示每条路径的耗时、消耗量、风险提示和适用边界。对于投委会材料或行业研究初稿，forkprobe 能帮助用户更快找到证据链更稳定的一版。'
+        ]
+      }
+    };
+
+    let activeDemoCandidate = 'baseline';
+    let selectedDemoCandidate = '';
+
+    const copyText = async (text, button, resetText) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = '已复制';
+      } catch (error) {
+        button.textContent = '请手动复制';
+      }
+      window.setTimeout(() => {
+        button.textContent = resetText;
+      }, 1500);
+    };
+
+    const renderDemoCandidate = (key) => {
+      const candidate = demoCandidates[key];
+      activeDemoCandidate = key;
+
+      demoTitle.textContent = candidate.title;
+      demoSummary.textContent = candidate.summary;
+      demoTokens.textContent = candidate.tokens;
+      demoTime.textContent = candidate.time;
+      demoHint.textContent = `正在查看 ${candidate.title}，点击其他候选可切换输出。`;
+
+      demoOutput.innerHTML = '';
+      candidate.output.forEach((line) => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = line;
+        demoOutput.appendChild(paragraph);
+      });
+
+      demoButtons.forEach((button) => {
+        const isActive = button.dataset.demoCandidate === key;
+        const isSelected = button.dataset.demoCandidate === selectedDemoCandidate;
+        button.classList.toggle('is-active', isActive);
+        button.classList.toggle('is-selected', isSelected);
+        button.setAttribute('aria-pressed', String(isActive));
+      });
+    };
+
+    const selectDemoWinner = () => {
+      const candidate = demoCandidates[activeDemoCandidate];
+      selectedDemoCandidate = activeDemoCandidate;
+      demoVerdictTitle.textContent = `已选择：${candidate.title}`;
+      demoVerdictReason.textContent = `我的理由：${candidate.reason}`;
+      demoHandoff.value = `请继续使用 ${candidate.title} 处理这个任务。\n\n我的选择理由：${candidate.reason}\n\n请沿用这一路结果的表达风格，继续把 forkprobe 发布页文案完善成可直接发布的版本，并保留办公、科研、金融三个使用场景。`;
+      renderDemoCandidate(activeDemoCandidate);
+    };
+
+    copyButton.addEventListener('click', async () => {
+      const text = promptText.innerText.trim();
+      try {
+        await navigator.clipboard.writeText(text);
+        copyButton.textContent = '已复制';
+      } catch (error) {
+        const range = document.createRange();
+        range.selectNodeContents(promptText);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        copyButton.textContent = '已选中';
+      }
+      window.setTimeout(() => {
+        copyButton.textContent = '复制';
+      }, 1500);
+    });
+
+    demoButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        renderDemoCandidate(button.dataset.demoCandidate);
+      });
+    });
+
+    demoSelectWinner.addEventListener('click', selectDemoWinner);
+
+    demoCopyHandoff.addEventListener('click', () => {
+      copyText(demoHandoff.value.trim(), demoCopyHandoff, '复制 handoff');
+    });
+  </script>
+</body>
+</html>

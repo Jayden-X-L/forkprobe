@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# forkprobe runtime artifacts
+forkprobe-logs/
+report.html
+report-*.html
+.skills-cache/
+*.log
+*.port
+task-*.md
+task-*.txt
+docx-render-*/
+*-edgeone-upload.zip
+*-social-promo-*.md
+*-final-internal-comms-*.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
