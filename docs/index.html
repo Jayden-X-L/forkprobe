@@ -107,6 +107,12 @@
       font-size: 0.92rem;
     }
 
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
     .nav-links a {
       padding: 0.55rem 0.75rem;
       border-radius: 8px;
@@ -115,6 +121,33 @@
     .nav-links a:hover {
       background: rgba(37, 99, 235, 0.08);
       color: var(--ink);
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      padding: 0.2rem;
+      border: 1px solid rgba(151, 164, 184, 0.5);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .lang-option {
+      min-height: 1.85rem;
+      padding: 0.25rem 0.55rem;
+      border: 0;
+      border-radius: 6px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 0.8rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .lang-option.is-active {
+      color: #fff;
+      background: #111827;
     }
 
     .hero {
@@ -170,7 +203,7 @@
 
     .hero-subtitle {
       margin: 1.3rem 0 0;
-      max-width: 43rem;
+      max-width: 37rem;
       font-size: clamp(1.12rem, 2.2vw, 1.55rem);
       line-height: 1.55;
       color: #344054;
@@ -180,7 +213,7 @@
 
     .hero-lede {
       margin: 1.1rem 0 0;
-      max-width: 40rem;
+      max-width: 37rem;
       color: var(--muted);
       font-size: 1rem;
       overflow-wrap: break-word;
@@ -235,7 +268,7 @@
     .hero-visual {
       position: absolute;
       z-index: 0;
-      right: clamp(-18rem, -12vw, -4rem);
+      right: clamp(-28rem, -20vw, -12rem);
       top: 7.2rem;
       width: min(70rem, 74vw);
       min-width: 50rem;
@@ -1082,6 +1115,10 @@
         display: none;
       }
 
+      .nav-actions {
+        margin-left: auto;
+      }
+
       .hero {
         padding-top: 3rem;
       }
@@ -1149,10 +1186,16 @@
         <span class="brand-mark">fp</span>
         <span>forkprobe</span>
       </a>
-      <div class="nav-links">
-        <a href="#report-demo">预览</a>
-        <a href="#usecases">场景</a>
-        <a href="#start">开始</a>
+      <div class="nav-actions">
+        <div class="nav-links">
+          <a href="#report-demo">预览</a>
+          <a href="#usecases">场景</a>
+          <a href="#start">开始</a>
+        </div>
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button class="lang-option" type="button" data-lang-option="en" aria-pressed="false">EN</button>
+          <button class="lang-option" type="button" data-lang-option="zh" aria-pressed="true">中文</button>
+        </div>
       </div>
     </nav>
 
@@ -1449,10 +1492,393 @@
   </div>
 
   <script>
+    const LANG_STORAGE_KEY = 'forkprobe.lang';
+
+    const translations = {
+      en: {
+        langCode: 'en',
+        text: {
+          'meta.title': 'forkprobe - Find the skill that actually helps',
+          'meta.description': 'forkprobe helps you compare AI skills side by side for office, research, finance, and artifact workflows.',
+          'nav.aria': 'Primary navigation',
+          'nav.brandAria': 'forkprobe home',
+          'nav.preview': 'Preview',
+          'nav.usecases': 'Use cases',
+          'nav.start': 'Start',
+          'hero.eyebrow': 'Find the skill that actually helps.',
+          'hero.subtitle': 'Stop guessing which skill works. Compare the real outputs side by side.',
+          'hero.lede': 'forkprobe gives the same task to the base model and multiple candidate AI skills, runs them in parallel, and generates a local report with output quality, latency, token estimates, and an AI judge recommendation. You pick the winning path and continue from there.',
+          'hero.previewButton': 'View preview',
+          'hero.usecasesButton': 'Use cases',
+          'hero.visualAria': 'Preview of a forkprobe comparison report',
+          'hero.tryDownload': 'Try it',
+          'flow.input': '<b>1</b> Input',
+          'flow.judge': '<b>2</b> AI judge',
+          'flow.compare': '<b>3</b> Compare',
+          'flow.continue': '<b>4</b> Continue',
+          'heroJudge.title': 'AI judge recommends: social-copy skill',
+          'heroJudge.body': 'More natural for distribution while keeping office, research, and finance use cases visible.',
+          'heroCard.baselineRole': 'Base model output',
+          'heroCard.baselineBody': 'forkprobe helps users compare AI skill outputs across office writing, research, finance, and other workflows.',
+          'heroCard.baselineTokens': 'About 840 tokens',
+          'heroCard.pressRole': 'Clearer value proposition',
+          'heroCard.pressBody': 'A new skill comparison workflow for knowledge workers, helping teams validate the strongest AI path before delivery.',
+          'heroCard.pressTokens': 'About 1,420 tokens',
+          'heroCard.socialRole': 'Best for distribution',
+          'heroCard.socialBody': 'The problem is no longer a lack of skills. The problem is knowing which one actually helps. forkprobe lays the evidence out.',
+          'heroCard.socialTokens': 'About 1,110 tokens',
+          'usecases.kicker': 'Three frequent workflows',
+          'usecases.title': 'The skill ecosystem is blooming. Before you use one, see which one truly helps.',
+          'usecases.lede': 'forkprobe is not another writing assistant. It turns candidate skills into an observable, comparable, selectable workflow.',
+          'usecases.officeTitle': 'Office work',
+          'usecases.officeBody': 'Product plans, GTM copy, meeting notes, market analysis, and presentation drafts: compare several skill routes instead of trying prompts one by one.',
+          'usecases.officeTag1': 'Product plans',
+          'usecases.officeTag2': 'Internal comms',
+          'usecases.officeTag3': 'Slides',
+          'usecases.researchTitle': 'Research',
+          'usecases.researchBody': 'SCI polishing, English abstracts, Nature-style writing, reviewer responses, figure storylines, and research decks: compare expression while preserving technical meaning.',
+          'usecases.researchTag1': 'SCI writing',
+          'usecases.researchTag2': 'Figure captions',
+          'usecases.researchTag3': 'Lab meetings',
+          'usecases.financeTitle': 'Finance',
+          'usecases.financeBody': 'Holdings data, industry reports, earnings summaries, risk exposure, and investment committee materials: run multiple analysis paths and keep the strongest evidence chain.',
+          'usecases.financeTag1': 'Investment research',
+          'usecases.financeTag2': 'Industry reports',
+          'usecases.financeTag3': 'Risk comparison',
+          'demo.kicker': 'In practice',
+          'demo.title': 'One task, multiple skills, visible results, and a winner you can continue from.',
+          'demo.lede': 'The left panel shows the original task and candidate skills. The center shows each complete output. The right panel gives an AI judge recommendation. After you choose a winner, forkprobe creates a continuation handoff so the current Agent session can keep working from the selected result.',
+          'demo.reportAria': 'Interactive forkprobe report example',
+          'demo.reportTitle': 'forkprobe report · launch-copy',
+          'demo.reportSubtitle': 'Generated locally · choose a result and continue',
+          'demo.statsAria': 'Report statistics',
+          'demo.statResults': '4 paths',
+          'demo.statTokens': 'About 14,099 tokens',
+          'demo.inputTitle': 'Original input',
+          'demo.inputSubtitle': 'Launch copy task',
+          'demo.inputBody': 'Write launch page copy for forkprobe, focused on office, research, and finance workflows. I want to compare several skill outputs and continue from the best one.',
+          'demo.skillListAria': 'Candidate skills',
+          'demo.roleBaseline': 'Base model output',
+          'demo.rolePress': 'More like a formal announcement',
+          'demo.roleSocial': 'Best for distribution',
+          'demo.roleFinance': 'Stronger for finance tasks',
+          'demo.selectButton': 'Select this',
+          'demo.judgeTitle': 'AI judge recommends: social-copy skill',
+          'demo.judgeBody': 'Judged by an independent sub-agent using the same model family as the main session. It only recommends from the candidates on this page.',
+          'demo.scoreAria': 'Candidate scores',
+          'demo.scoreNatural': 'Naturalness',
+          'demo.scoreTrust': 'Credibility',
+          'demo.scoreSpread': 'Distribution',
+          'demo.unselectedTitle': 'No winner selected yet',
+          'demo.unselectedReason': 'Click "Select this" below the center output to generate the next-step handoff here.',
+          'demo.emptyHandoff': 'Choose a candidate result. After selection, this box will contain a continuation handoff you can paste back into the current Agent session.',
+          'demo.handoffLabel': 'Continuation handoff',
+          'demo.copyHandoff': 'Copy handoff',
+          'cta.kicker': 'Start skill comparison in one sentence',
+          'cta.title': 'Before handing a task to your Agent, say: "compare a few skills first."',
+          'cta.lede': 'Whether you use Claude Code, Codex, OpenClaw, WorkBuddy, OpenCode, or another Agent surface, forkprobe can recommend candidates, run comparisons, generate a report, and let you decide which skill to continue with.',
+          'cta.prompt': 'Compare a few skills first and see which one fits the current task better. Or: use forkprobe to recommend candidates, wait for my confirmation, run them side by side, generate a report, and let me choose the winner.',
+          'cta.copy': 'Copy',
+          'footer.left': 'forkprobe · Find the skill that actually helps.',
+          'footer.right': 'GitHub Pages ready · Local-first comparison reports',
+          'toast.downloaded': 'Skill download started.',
+          'ui.copied': 'Copied',
+          'ui.manualCopy': 'Copy manually',
+          'ui.selected': 'Selected'
+        },
+        demo: {
+          activeHint: 'Viewing {title}. Click another candidate to switch outputs.',
+          selectedTitle: 'Selected: {title}',
+          reasonPrefix: 'Reason: ',
+          handoff: (title, reason) => `Please continue this task using ${title}.\n\nSelection reason: ${reason}\n\nPlease preserve this output path's tone and structure, then turn the forkprobe launch page copy into a publish-ready version while keeping office, research, and finance use cases visible.`
+        },
+        candidates: {
+          baseline: {
+            title: 'Baseline (no skill)',
+            summary: 'The base model output is complete, but the hook is not strong enough.',
+            tokens: 'About 840 tokens',
+            time: '18.3s',
+            reason: 'Useful as a baseline, but not strong enough to use directly as launch copy.',
+            output: [
+              'forkprobe helps users compare outputs from different AI skills. It works for office, research, finance, and other workflows by giving the same task to multiple candidate skills and producing a local report.',
+              'Users can inspect the differences, combine them with an AI judge recommendation, select the best version, and continue with the formal task.'
+            ]
+          },
+          press: {
+            title: 'press-release skill',
+            summary: 'More formal, with a stable value proposition for external communication.',
+            tokens: 'About 1,420 tokens',
+            time: '21.9s',
+            reason: 'Clearer audience and value framing; useful for a website, PRD opening, or team alignment.',
+            output: [
+              'Today we are launching forkprobe: a side-by-side evaluation workflow for AI skills. It does not solve the problem by adding yet another skill. It helps knowledge workers identify which existing skill actually fits the task.',
+              'Across office, research, and finance work, the same input may need very different execution paths. forkprobe recommends candidates, runs them in parallel, and presents quality, latency, token usage, and AI judge feedback in a local report.'
+            ]
+          },
+          social: {
+            title: 'social-copy skill',
+            summary: 'More memorable, more natural, and easier to distribute.',
+            tokens: 'About 1,110 tokens',
+            time: '19.6s',
+            reason: 'The social copy feels more natural while preserving the office, research, and finance scenarios.',
+            output: [
+              'The problem is no longer a lack of skills. The problem is knowing which one actually helps. You may be writing a research abstract, an investment memo, or an internal announcement. The model can start writing immediately, but the real question is: which skill should it use?',
+              'forkprobe takes the direct route: do not guess, compare. Give the same task to several candidate skills, run the baseline, announcement-style copy, social copy, or domain analysis in parallel, then generate a local report. You inspect the outputs, an AI sub-agent gives a recommendation, and you choose the winner.'
+            ]
+          },
+          finance: {
+            title: 'finance-analyst skill',
+            summary: 'Stronger for finance workflows, with more attention to evidence, risk, and consistency.',
+            tokens: 'About 1,680 tokens',
+            time: '24.7s',
+            reason: 'Best suited for investment research or data analysis, but a little less strong for a launch page.',
+            output: [
+              'In finance workflows, forkprobe lowers the cost of choosing an analysis path. For holdings data, industry reports, earnings summaries, and risk materials, teams can compare the output assumptions of multiple analysis skills.',
+              'The report does more than show conclusions. It exposes latency, token estimates, risk notes, and fit boundaries for each path. For investment committee material or industry research drafts, forkprobe helps users move toward the version with the strongest evidence chain.'
+            ]
+          }
+        }
+      },
+      zh: {
+        langCode: 'zh-CN',
+        text: {
+          'meta.title': 'forkprobe - Find the skill that actually helps',
+          'meta.description': 'forkprobe 帮你并排比较办公、科研、金融和成品生成任务中的 AI skill 输出。',
+          'nav.aria': '主导航',
+          'nav.brandAria': 'forkprobe 首页',
+          'nav.preview': '预览',
+          'nav.usecases': '场景',
+          'nav.start': '开始',
+          'hero.eyebrow': 'Find the skill that actually helps.',
+          'hero.subtitle': '别猜哪个 skill 有用，直接并排看结果。',
+          'hero.lede': '面向办公、科研、金融任务，把同一个需求交给多个 AI skill 并行处理，生成本地报告，横向比较输出质量、耗时、消耗量和 AI 评审建议，再用胜出的路径继续工作。',
+          'hero.previewButton': '查看预览',
+          'hero.usecasesButton': '适用场景',
+          'hero.visualAria': 'forkprobe 对比报告界面预览',
+          'hero.tryDownload': '去试一试',
+          'flow.input': '<b>1</b> 输入',
+          'flow.judge': '<b>2</b> AI 评审',
+          'flow.compare': '<b>3</b> 对比',
+          'flow.continue': '<b>4</b> 继续',
+          'heroJudge.title': 'AI 评审推荐：social-copy skill',
+          'heroJudge.body': '社媒化表达更自然，同时保留办公、科研、金融三类场景。',
+          'heroCard.baselineRole': '原始模型输出',
+          'heroCard.baselineBody': 'forkprobe 能帮助用户比较不同 skill 的输出效果，适用于办公、科研、金融等场景。',
+          'heroCard.baselineTokens': '约 840 tokens',
+          'heroCard.pressRole': '价值主张更清晰',
+          'heroCard.pressBody': '面向知识工作者发布的新型 skill 对比工作流，让团队在正式交付前先验证哪条 AI 路径真正有效。',
+          'heroCard.pressTokens': '约 1,420 tokens',
+          'heroCard.socialRole': '更适合传播',
+          'heroCard.socialBody': '现在不是缺 skill，而是不知道哪个 skill 真有用。forkprobe 把答案摊开给你看。',
+          'heroCard.socialTokens': '约 1,110 tokens',
+          'usecases.kicker': '三类高频任务',
+          'usecases.title': '网络上的 skill 百花齐放，使用各种 skill 之前，先知道哪一个真的帮得上忙。',
+          'usecases.lede': 'forkprobe 不是再造一个写作助手，而是把多个候选 skill 变成可观察、可比较、可选择的工作流。',
+          'usecases.officeTitle': '办公方向',
+          'usecases.officeBody': '产品方案、GTM、会议纪要、市场分析和汇报 PPT，不再反复试提示词，而是直接比较几条 skill 路线。',
+          'usecases.officeTag1': '产品方案',
+          'usecases.officeTag2': '内部宣传',
+          'usecases.officeTag3': 'PPT',
+          'usecases.researchTitle': '科研方向',
+          'usecases.researchBody': '中文 SCI 润色、英文摘要、Nature 风格、审稿回复、figure storyline 和科研 PPT，比较表达效果同时守住技术含义。',
+          'usecases.researchTag1': 'SCI 写作',
+          'usecases.researchTag2': '图表说明',
+          'usecases.researchTag3': '组会材料',
+          'usecases.financeTitle': '金融方向',
+          'usecases.financeBody': '持仓数据、行业报告、财报摘要、风险敞口和投委会材料，让多个分析路径并行跑，再选证据链最稳的一版。',
+          'usecases.financeTag1': '投研分析',
+          'usecases.financeTag2': '行业报告',
+          'usecases.financeTag3': '风险对比',
+          'demo.kicker': '实际使用时',
+          'demo.title': '使用 forkprobe，同一个任务、多个 skill 的结果清晰可见，轻松选择 winner。',
+          'demo.lede': '左侧是原始输入和候选 skill，中间展示每一路完整输出，右侧给出 AI 评审建议。选定 winner 后，forkprobe 会生成 continuation handoff，让当前会话沿着你选中的结果继续执行。',
+          'demo.reportAria': 'forkprobe 交互式报告示例',
+          'demo.reportTitle': 'forkprobe report · launch-copy',
+          'demo.reportSubtitle': '本地生成 · 选择结果后继续执行',
+          'demo.statsAria': '报告统计',
+          'demo.statResults': '4 路结果',
+          'demo.statTokens': '约 14,099 tokens',
+          'demo.inputTitle': '原始输入',
+          'demo.inputSubtitle': '宣传稿生成任务',
+          'demo.inputBody': '写一篇 forkprobe 发布页文案，聚焦办公、科研、金融方向。希望能对比几个 skill 的写作效果，最后挑一版继续扩写。',
+          'demo.skillListAria': '候选 skill',
+          'demo.roleBaseline': '原始模型输出',
+          'demo.rolePress': '更像正式发布稿',
+          'demo.roleSocial': '更适合传播',
+          'demo.roleFinance': '金融场景更稳',
+          'demo.selectButton': '选择这个',
+          'demo.judgeTitle': 'AI 评审推荐：social-copy skill',
+          'demo.judgeBody': '独立评审子 agent 完成，使用主会话同源模型。它只建议本页候选结果。',
+          'demo.scoreAria': '候选评分',
+          'demo.scoreNatural': '自然度',
+          'demo.scoreTrust': '可信度',
+          'demo.scoreSpread': '传播性',
+          'demo.unselectedTitle': '尚未选择 winner',
+          'demo.unselectedReason': '先点击中间下方的“选择这个”，这里会生成下一步交接文本。',
+          'demo.emptyHandoff': '请选择一个候选结果。选中后，这里会生成一段可以粘贴回当前 Agent 会话的继续执行文本。',
+          'demo.handoffLabel': 'Continuation handoff',
+          'demo.copyHandoff': '复制 handoff',
+          'cta.kicker': '一句话启动 skill 对比',
+          'cta.title': '把任务交给 Agent 前，说“先帮我比较几个 skill”。',
+          'cta.lede': '不管你用 Claude Code、Codex、OpenClaw、WorkBuddy 还是 OpenCode，都可以先让 forkprobe 找候选、跑对比、给评审，再由你决定继续哪一个 skill。',
+          'cta.prompt': '先帮我比较几个 skill，看看哪个更适合当前任务。或者：请用 forkprobe 推荐候选，等我确认后再并排执行并生成 report，让我选择 winner。',
+          'cta.copy': '复制',
+          'footer.left': 'forkprobe · Find the skill that actually helps.',
+          'footer.right': 'GitHub Pages ready · Local-first comparison reports',
+          'toast.downloaded': '已为你下载 Skill。',
+          'ui.copied': '已复制',
+          'ui.manualCopy': '请手动复制',
+          'ui.selected': '已选中'
+        },
+        demo: {
+          activeHint: '正在查看 {title}，点击其他候选可切换输出。',
+          selectedTitle: '已选择：{title}',
+          reasonPrefix: '我的理由：',
+          handoff: (title, reason) => `请继续使用 ${title} 处理这个任务。\n\n我的选择理由：${reason}\n\n请沿用这一路结果的表达风格，继续把 forkprobe 发布页文案完善成可直接发布的版本，并保留办公、科研、金融三个使用场景。`
+        },
+        candidates: {
+          baseline: {
+            title: 'Baseline (no skill)',
+            summary: '原始模型输出，信息完整但记忆点不够强。',
+            tokens: '约 840 tokens',
+            time: '18.3s',
+            reason: '作为参照很清楚，但不适合直接当发布稿。',
+            output: [
+              'forkprobe 可以帮助用户比较不同 AI skill 的输出效果。它适用于办公、科研和金融等场景，能够把同一个任务交给多个候选 skill 执行，并生成本地报告。',
+              '用户可以查看不同结果之间的差异，结合 AI 评审建议选择更适合的版本，再继续完成正式任务。'
+            ]
+          },
+          press: {
+            title: 'press-release skill',
+            summary: '更像正式发布稿，价值主张稳，适合对外说明。',
+            tokens: '约 1,420 tokens',
+            time: '21.9s',
+            reason: '价值主张和受众描述更清楚，适合官网、PRD 开头和团队对齐。',
+            output: [
+              '今天，我们发布 forkprobe：一个面向 AI skill 工作流的并排评估工具。它解决的不是“再多装一个 skill”的问题，而是帮助知识工作者知道哪一个 skill 真正适合当前任务。',
+              '在办公、科研和金融场景里，同一份输入可能需要完全不同的表达路径。forkprobe 会先推荐候选，再并行生成结果，最后用本地报告呈现质量、耗时、消耗量和 AI 评审建议。'
+            ]
+          },
+          social: {
+            title: 'social-copy skill',
+            summary: '更适合传播，表达自然，有更强的第一眼记忆点。',
+            tokens: '约 1,110 tokens',
+            time: '19.6s',
+            reason: '社媒化表达更自然，同时保留办公、科研、金融三类场景。',
+            output: [
+              '现在不是缺 skill，而是不知道哪个 skill 真有用。你想写一篇科研摘要、做一份投研报告、改一个内部分享稿，模型往往会直接开写。但真正的问题是：该用哪个 skill 来写？',
+              'forkprobe 的做法很直接：别猜，直接并排看。把同一个任务交给几个候选 skill，同时跑 baseline、发布稿、社媒表达或领域分析，再生成一个本地 report。你看结果，AI 子 agent 给建议，最后由你选 winner。'
+            ]
+          },
+          finance: {
+            title: 'finance-analyst skill',
+            summary: '金融场景更稳，强调证据链、风险和口径一致性。',
+            tokens: '约 1,680 tokens',
+            time: '24.7s',
+            reason: '适合金融投研或数据分析任务，但发布页传播感略弱。',
+            output: [
+              '在金融工作流中，forkprobe 的核心价值是降低路径选择成本。面对持仓数据、行业报告、财报摘要和风险材料，团队可以同时比较多个分析 skill 的输出口径。',
+              '报告页不仅展示结论，还展示每条路径的耗时、消耗量、风险提示和适用边界。对于投委会材料或行业研究初稿，forkprobe 能帮助用户更快找到证据链更稳定的一版。'
+            ]
+          }
+        }
+      }
+    };
+
+    const textBindings = [
+      ['.nav-links a[href="#report-demo"]', 'nav.preview'],
+      ['.nav-links a[href="#usecases"]', 'nav.usecases'],
+      ['.nav-links a[href="#start"]', 'nav.start'],
+      ['.eyebrow', 'hero.eyebrow'],
+      ['.hero-subtitle', 'hero.subtitle'],
+      ['.hero-lede', 'hero.lede'],
+      ['.hero-actions .button-primary', 'hero.previewButton'],
+      ['.hero-actions .button-secondary[href="#usecases"]', 'hero.usecasesButton'],
+      ['.judge-strip strong', 'heroJudge.title'],
+      ['.judge-strip p', 'heroJudge.body'],
+      ['.candidate-grid .candidate:nth-child(1) .candidate-head span', 'heroCard.baselineRole'],
+      ['.candidate-grid .candidate:nth-child(1) .candidate-body', 'heroCard.baselineBody'],
+      ['.candidate-grid .candidate:nth-child(1) .candidate-foot span:nth-child(1)', 'heroCard.baselineTokens'],
+      ['.candidate-grid .candidate:nth-child(2) .candidate-head span', 'heroCard.pressRole'],
+      ['.candidate-grid .candidate:nth-child(2) .candidate-body', 'heroCard.pressBody'],
+      ['.candidate-grid .candidate:nth-child(2) .candidate-foot span:nth-child(1)', 'heroCard.pressTokens'],
+      ['.candidate-grid .candidate:nth-child(3) .candidate-head span', 'heroCard.socialRole'],
+      ['.candidate-grid .candidate:nth-child(3) .candidate-body', 'heroCard.socialBody'],
+      ['.candidate-grid .candidate:nth-child(3) .candidate-foot span:nth-child(1)', 'heroCard.socialTokens'],
+      ['#usecases .section-kicker', 'usecases.kicker'],
+      ['#usecases h2', 'usecases.title'],
+      ['#usecases .section-lede', 'usecases.lede'],
+      ['#usecases .usecase:nth-child(1) h3', 'usecases.officeTitle'],
+      ['#usecases .usecase:nth-child(1) p', 'usecases.officeBody'],
+      ['#usecases .usecase:nth-child(1) .tag:nth-child(1)', 'usecases.officeTag1'],
+      ['#usecases .usecase:nth-child(1) .tag:nth-child(2)', 'usecases.officeTag2'],
+      ['#usecases .usecase:nth-child(1) .tag:nth-child(3)', 'usecases.officeTag3'],
+      ['#usecases .usecase:nth-child(2) h3', 'usecases.researchTitle'],
+      ['#usecases .usecase:nth-child(2) p', 'usecases.researchBody'],
+      ['#usecases .usecase:nth-child(2) .tag:nth-child(1)', 'usecases.researchTag1'],
+      ['#usecases .usecase:nth-child(2) .tag:nth-child(2)', 'usecases.researchTag2'],
+      ['#usecases .usecase:nth-child(2) .tag:nth-child(3)', 'usecases.researchTag3'],
+      ['#usecases .usecase:nth-child(3) h3', 'usecases.financeTitle'],
+      ['#usecases .usecase:nth-child(3) p', 'usecases.financeBody'],
+      ['#usecases .usecase:nth-child(3) .tag:nth-child(1)', 'usecases.financeTag1'],
+      ['#usecases .usecase:nth-child(3) .tag:nth-child(2)', 'usecases.financeTag2'],
+      ['#usecases .usecase:nth-child(3) .tag:nth-child(3)', 'usecases.financeTag3'],
+      ['#report-demo .section-kicker', 'demo.kicker'],
+      ['#report-demo h2', 'demo.title'],
+      ['#report-demo .section-lede', 'demo.lede'],
+      ['.demo-report-title strong', 'demo.reportTitle'],
+      ['.demo-report-title span', 'demo.reportSubtitle'],
+      ['.demo-report-stats .demo-stat:nth-child(1)', 'demo.statResults'],
+      ['.demo-report-stats .demo-stat:nth-child(3)', 'demo.statTokens'],
+      ['.demo-sidebar .demo-pane-title strong', 'demo.inputTitle'],
+      ['.demo-sidebar .demo-pane-title span', 'demo.inputSubtitle'],
+      ['.demo-input-box', 'demo.inputBody'],
+      ['.demo-skill-button[data-demo-candidate="baseline"] .demo-skill-role', 'demo.roleBaseline'],
+      ['.demo-skill-button[data-demo-candidate="press"] .demo-skill-role', 'demo.rolePress'],
+      ['.demo-skill-button[data-demo-candidate="social"] .demo-skill-role', 'demo.roleSocial'],
+      ['.demo-skill-button[data-demo-candidate="finance"] .demo-skill-role', 'demo.roleFinance'],
+      ['#demoSelectWinner', 'demo.selectButton'],
+      ['.demo-judge strong', 'demo.judgeTitle'],
+      ['.demo-judge p', 'demo.judgeBody'],
+      ['.demo-bar:nth-child(1) > span:first-child', 'demo.scoreNatural'],
+      ['.demo-bar:nth-child(2) > span:first-child', 'demo.scoreTrust'],
+      ['.demo-bar:nth-child(3) > span:first-child', 'demo.scoreSpread'],
+      ['.demo-handoff-label', 'demo.handoffLabel'],
+      ['#demoCopyHandoff', 'demo.copyHandoff'],
+      ['#start .section-kicker', 'cta.kicker'],
+      ['#start h2', 'cta.title'],
+      ['#start .section-lede', 'cta.lede'],
+      ['#promptText', 'cta.prompt'],
+      ['#copyPrompt', 'cta.copy'],
+      ['.footer-inner span:nth-child(1)', 'footer.left'],
+      ['.footer-inner span:nth-child(2)', 'footer.right'],
+      ['#downloadToast', 'toast.downloaded']
+    ];
+
+    const htmlBindings = [
+      ['#tryDownloadButton', 'hero.tryDownload', (text) => `${text} <span aria-hidden="true">↗</span>`],
+      ['.flow-row .flow-chip:nth-child(1)', 'flow.input'],
+      ['.flow-row .flow-chip:nth-child(2)', 'flow.judge'],
+      ['.flow-row .flow-chip:nth-child(3)', 'flow.compare'],
+      ['.flow-row .flow-chip:nth-child(4)', 'flow.continue']
+    ];
+
+    const attrBindings = [
+      ['meta[name="description"]', 'content', 'meta.description'],
+      ['.nav', 'aria-label', 'nav.aria'],
+      ['.brand', 'aria-label', 'nav.brandAria'],
+      ['.hero-visual', 'aria-label', 'hero.visualAria'],
+      ['.demo-report', 'aria-label', 'demo.reportAria'],
+      ['.demo-report-stats', 'aria-label', 'demo.statsAria'],
+      ['.demo-skill-list', 'aria-label', 'demo.skillListAria'],
+      ['.demo-bars', 'aria-label', 'demo.scoreAria']
+    ];
+
     const copyButton = document.getElementById('copyPrompt');
     const promptText = document.getElementById('promptText');
     const tryDownloadButton = document.getElementById('tryDownloadButton');
     const downloadToast = document.getElementById('downloadToast');
+    const langOptions = Array.from(document.querySelectorAll('[data-lang-option]'));
     const demoButtons = Array.from(document.querySelectorAll('[data-demo-candidate]'));
     const demoTitle = document.getElementById('demoCandidateTitle');
     const demoSummary = document.getElementById('demoCandidateSummary');
@@ -1466,78 +1892,99 @@
     const demoHandoff = document.getElementById('demoHandoff');
     const demoCopyHandoff = document.getElementById('demoCopyHandoff');
 
-    const demoCandidates = {
-      baseline: {
-        title: 'Baseline (no skill)',
-        summary: '原始模型输出，信息完整但记忆点不够强。',
-        tokens: '约 840 tokens',
-        time: '18.3s',
-        reason: '作为参照很清楚，但不适合直接当发布稿。',
-        output: [
-          'forkprobe 可以帮助用户比较不同 AI skill 的输出效果。它适用于办公、科研和金融等场景，能够把同一个任务交给多个候选 skill 执行，并生成本地报告。',
-          '用户可以查看不同结果之间的差异，结合 AI 评审建议选择更适合的版本，再继续完成正式任务。'
-        ]
-      },
-      press: {
-        title: 'press-release skill',
-        summary: '更像正式发布稿，价值主张稳，适合对外说明。',
-        tokens: '约 1,420 tokens',
-        time: '21.9s',
-        reason: '价值主张和受众描述更清楚，适合官网、PRD 开头和团队对齐。',
-        output: [
-          '今天，我们发布 forkprobe：一个面向 AI skill 工作流的并排评估工具。它解决的不是“再多装一个 skill”的问题，而是帮助知识工作者知道哪一个 skill 真正适合当前任务。',
-          '在办公、科研和金融场景里，同一份输入可能需要完全不同的表达路径。forkprobe 会先推荐候选，再并行生成结果，最后用本地报告呈现质量、耗时、消耗量和 AI 评审建议。'
-        ]
-      },
-      social: {
-        title: 'social-copy skill',
-        summary: '更适合传播，表达自然，有更强的第一眼记忆点。',
-        tokens: '约 1,110 tokens',
-        time: '19.6s',
-        reason: '社媒化表达更自然，同时保留办公、科研、金融三类场景。',
-        output: [
-          '现在不是缺 skill，而是不知道哪个 skill 真有用。你想写一篇科研摘要、做一份投研报告、改一个内部分享稿，模型往往会直接开写。但真正的问题是：该用哪个 skill 来写？',
-          'forkprobe 的做法很直接：别猜，直接并排看。把同一个任务交给几个候选 skill，同时跑 baseline、发布稿、社媒表达或领域分析，再生成一个本地 report。你看结果，AI 子 agent 给建议，最后由你选 winner。'
-        ]
-      },
-      finance: {
-        title: 'finance-analyst skill',
-        summary: '金融场景更稳，强调证据链、风险和口径一致性。',
-        tokens: '约 1,680 tokens',
-        time: '24.7s',
-        reason: '适合金融投研或数据分析任务，但发布页传播感略弱。',
-        output: [
-          '在金融工作流中，forkprobe 的核心价值是降低路径选择成本。面对持仓数据、行业报告、财报摘要和风险材料，团队可以同时比较多个分析 skill 的输出口径。',
-          '报告页不仅展示结论，还展示每条路径的耗时、消耗量、风险提示和适用边界。对于投委会材料或行业研究初稿，forkprobe 能帮助用户更快找到证据链更稳定的一版。'
-        ]
-      }
-    };
-
+    let activeLang = 'zh';
+    let demoCandidates = translations.zh.candidates;
     let activeDemoCandidate = 'baseline';
     let selectedDemoCandidate = '';
     let toastTimer;
 
-    const copyText = async (text, button, resetText) => {
+    const normalizeLanguage = (value) => {
+      const lowerValue = String(value || '').toLowerCase();
+      return lowerValue.startsWith('zh') ? 'zh' : 'en';
+    };
+
+    const getStoredLanguage = () => {
       try {
-        await navigator.clipboard.writeText(text);
-        button.textContent = '已复制';
+        return window.localStorage.getItem(LANG_STORAGE_KEY);
       } catch (error) {
-        button.textContent = '请手动复制';
+        return '';
       }
-      window.setTimeout(() => {
-        button.textContent = resetText;
-      }, 1500);
+    };
+
+    const persistLanguage = (lang) => {
+      try {
+        window.localStorage.setItem(LANG_STORAGE_KEY, lang);
+      } catch (error) {
+        // localStorage can be unavailable on some file:// previews.
+      }
+    };
+
+    const getInitialLanguage = () => {
+      const queryLang = new URLSearchParams(window.location.search).get('lang');
+      if (queryLang) {
+        return normalizeLanguage(queryLang);
+      }
+
+      const storedLang = getStoredLanguage();
+      if (storedLang) {
+        return normalizeLanguage(storedLang);
+      }
+
+      return normalizeLanguage(navigator.language || 'en');
+    };
+
+    const setText = (selector, text) => {
+      document.querySelectorAll(selector).forEach((element) => {
+        element.textContent = text;
+      });
+    };
+
+    const setHtml = (selector, html) => {
+      document.querySelectorAll(selector).forEach((element) => {
+        element.innerHTML = html;
+      });
+    };
+
+    const setAttr = (selector, attr, value) => {
+      document.querySelectorAll(selector).forEach((element) => {
+        element.setAttribute(attr, value);
+      });
+    };
+
+    const updateUrlLanguage = (lang) => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('lang', lang);
+      window.history.replaceState({}, '', url);
+    };
+
+    const currentText = (key) => translations[activeLang].text[key];
+
+    const renderSelectedState = () => {
+      const locale = translations[activeLang];
+
+      if (!selectedDemoCandidate) {
+        demoVerdictTitle.textContent = locale.text['demo.unselectedTitle'];
+        demoVerdictReason.textContent = locale.text['demo.unselectedReason'];
+        demoHandoff.value = locale.text['demo.emptyHandoff'];
+        return;
+      }
+
+      const candidate = demoCandidates[selectedDemoCandidate];
+      demoVerdictTitle.textContent = locale.demo.selectedTitle.replace('{title}', candidate.title);
+      demoVerdictReason.textContent = `${locale.demo.reasonPrefix}${candidate.reason}`;
+      demoHandoff.value = locale.demo.handoff(candidate.title, candidate.reason);
     };
 
     const renderDemoCandidate = (key) => {
-      const candidate = demoCandidates[key];
+      const locale = translations[activeLang];
+      const candidate = demoCandidates[key] || demoCandidates.baseline;
       activeDemoCandidate = key;
 
       demoTitle.textContent = candidate.title;
       demoSummary.textContent = candidate.summary;
       demoTokens.textContent = candidate.tokens;
       demoTime.textContent = candidate.time;
-      demoHint.textContent = `正在查看 ${candidate.title}，点击其他候选可切换输出。`;
+      demoHint.textContent = locale.demo.activeHint.replace('{title}', candidate.title);
 
       demoOutput.innerHTML = '';
       candidate.output.forEach((line) => {
@@ -1555,12 +2002,58 @@
       });
     };
 
+    const applyLanguage = (lang, shouldUpdateUrl = false) => {
+      activeLang = normalizeLanguage(lang);
+      const locale = translations[activeLang];
+      demoCandidates = locale.candidates;
+
+      document.documentElement.lang = locale.langCode;
+      document.title = locale.text['meta.title'];
+      document.body.dataset.lang = activeLang;
+
+      textBindings.forEach(([selector, key]) => {
+        setText(selector, locale.text[key]);
+      });
+
+      htmlBindings.forEach(([selector, key, transform]) => {
+        const value = transform ? transform(locale.text[key]) : locale.text[key];
+        setHtml(selector, value);
+      });
+
+      attrBindings.forEach(([selector, attr, key]) => {
+        setAttr(selector, attr, locale.text[key]);
+      });
+
+      langOptions.forEach((button) => {
+        const isActive = button.dataset.langOption === activeLang;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+      });
+
+      renderDemoCandidate(activeDemoCandidate);
+      renderSelectedState();
+      persistLanguage(activeLang);
+
+      if (shouldUpdateUrl) {
+        updateUrlLanguage(activeLang);
+      }
+    };
+
+    const copyText = async (text, button, resetText) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = currentText('ui.copied');
+      } catch (error) {
+        button.textContent = currentText('ui.manualCopy');
+      }
+      window.setTimeout(() => {
+        button.textContent = resetText;
+      }, 1500);
+    };
+
     const selectDemoWinner = () => {
-      const candidate = demoCandidates[activeDemoCandidate];
       selectedDemoCandidate = activeDemoCandidate;
-      demoVerdictTitle.textContent = `已选择：${candidate.title}`;
-      demoVerdictReason.textContent = `我的理由：${candidate.reason}`;
-      demoHandoff.value = `请继续使用 ${candidate.title} 处理这个任务。\n\n我的选择理由：${candidate.reason}\n\n请沿用这一路结果的表达风格，继续把 forkprobe 发布页文案完善成可直接发布的版本，并保留办公、科研、金融三个使用场景。`;
+      renderSelectedState();
       renderDemoCandidate(activeDemoCandidate);
     };
 
@@ -1582,21 +2075,27 @@
       }, 2600);
     };
 
+    langOptions.forEach((button) => {
+      button.addEventListener('click', () => {
+        applyLanguage(button.dataset.langOption, true);
+      });
+    });
+
     copyButton.addEventListener('click', async () => {
       const text = promptText.innerText.trim();
       try {
         await navigator.clipboard.writeText(text);
-        copyButton.textContent = '已复制';
+        copyButton.textContent = currentText('ui.copied');
       } catch (error) {
         const range = document.createRange();
         range.selectNodeContents(promptText);
         const selection = window.getSelection();
         selection.removeAllRanges();
         selection.addRange(range);
-        copyButton.textContent = '已选中';
+        copyButton.textContent = currentText('ui.selected');
       }
       window.setTimeout(() => {
-        copyButton.textContent = '复制';
+        copyButton.textContent = currentText('cta.copy');
       }, 1500);
     });
 
@@ -1609,7 +2108,7 @@
     demoSelectWinner.addEventListener('click', selectDemoWinner);
 
     demoCopyHandoff.addEventListener('click', () => {
-      copyText(demoHandoff.value.trim(), demoCopyHandoff, '复制 handoff');
+      copyText(demoHandoff.value.trim(), demoCopyHandoff, currentText('demo.copyHandoff'));
     });
 
     tryDownloadButton.addEventListener('click', (event) => {
@@ -1618,6 +2117,8 @@
       showDownloadToast();
       window.location.hash = 'start';
     });
+
+    applyLanguage(getInitialLanguage());
   </script>
 </body>
 </html>
