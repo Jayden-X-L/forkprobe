@@ -9,7 +9,7 @@ Flow:
   5. Server writes verdict back into the log JSON, then shuts down
   6. compare.py's wait_for_verdict() unblocks and prints success
 
-Privacy: server binds to 127.0.0.1 only. Never listens on external interfaces.
+Privacy: server binds to the local loopback interface only. Never listens on external interfaces.
 """
 from __future__ import annotations
 
@@ -32,9 +32,9 @@ _log_path_holder: dict = {"path": None}
 _received_verdict: dict = {}
 _server_token: Optional[str] = None
 
-_BIND_HOST = "127.0.0.1"
+_BIND_HOST = "localhost"
 _URL_HOST = "localhost"
-_ALLOWED_ORIGIN_HOSTS = {_URL_HOST, _BIND_HOST, "::1"}
+_ALLOWED_ORIGIN_HOSTS = {_URL_HOST, "::1"}
 
 
 def build_verdict_url(port: int, token: Optional[str] = None) -> str:
