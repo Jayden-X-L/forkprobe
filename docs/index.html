@@ -1205,10 +1205,11 @@
         <h1>forkprobe</h1>
         <p class="hero-subtitle">别猜哪个 skill 有用，直接并排看结果。</p>
         <p class="hero-lede">
-          面向办公、科研、金融任务，把同一个需求交给多个 AI skill 并行处理，生成本地报告，横向比较输出质量、耗时、消耗量和 AI 评审建议，再用胜出的路径继续工作。
+          面向办公、科研、金融任务，forkprobe 会先基于你的任务推荐多个候选 AI skill，再把同一个需求交给它们并行处理，生成本地报告，横向比较输出质量、耗时、消耗量和 AI 评审建议，再用胜出的路径继续工作。
         </p>
         <div class="hero-actions">
           <a class="button button-primary" href="#report-demo">查看预览</a>
+          <a class="button button-secondary" href="https://github.com/Jayden-X-L/forkprobe" target="_blank" rel="noopener">GitHub</a>
           <a class="button button-secondary" href="#usecases">适用场景</a>
           <a class="button button-secondary" href="#start" id="tryDownloadButton" data-download-url="downloads/forkprobe-skill.zip">去试一试 <span aria-hidden="true">↗</span></a>
         </div>
@@ -1222,9 +1223,9 @@
             <div class="report-meta">5 paths · 52.4s · 14,099 tokens</div>
           </div>
           <div class="flow-row">
-            <div class="flow-chip"><b>1</b> 输入</div>
-            <div class="flow-chip"><b>2</b> AI 评审</div>
-            <div class="flow-chip"><b>3</b> 对比</div>
+            <div class="flow-chip"><b>1</b> 任务</div>
+            <div class="flow-chip"><b>2</b> 推荐</div>
+            <div class="flow-chip"><b>3</b> 试跑</div>
             <div class="flow-chip"><b>4</b> 继续</div>
           </div>
           <div class="judge-strip">
@@ -1277,7 +1278,7 @@
           <p class="section-kicker">三类高频任务</p>
           <h2>网络上的skill百花齐放，使用各种skill 之前，先知道哪一个真的帮得上忙。</h2>
           <p class="section-lede">
-            forkprobe 不是再造一个写作助手，而是把多个候选 skill 变成可观察、可比较、可选择的工作流。
+            forkprobe 不是再造一个写作助手，而是先读取任务信号、推荐候选 skill，再把这些候选变成可观察、可比较、可选择的工作流。
           </p>
 
           <div class="usecase-grid">
@@ -1362,7 +1363,7 @@
           <p class="section-kicker">实际使用时</p>
           <h2>使用 forkprobe，同一个任务、多个 skill 的结果清晰可见，轻松选择 winner。</h2>
           <p class="section-lede">
-            左侧是原始输入和候选 skill，中间展示每一路完整输出，右侧给出 AI 评审建议。选定 winner 后，forkprobe 会生成 continuation handoff，让当前会话沿着你选中的结果继续执行。
+            左侧是原始输入和 forkprobe 基于任务推荐的候选 skill，中间展示每一路完整输出，右侧给出 AI 评审建议。选定 winner 后，forkprobe 会生成 continuation handoff，让当前会话沿着你选中的结果继续执行。
           </p>
 
           <div class="demo-report" aria-label="forkprobe 交互式报告示例">
@@ -1507,14 +1508,14 @@
           'nav.start': 'Start',
           'hero.eyebrow': 'Find the skill that actually helps.',
           'hero.subtitle': 'Stop guessing which skill works. Compare the real outputs side by side.',
-          'hero.lede': 'forkprobe gives the same task to the base model and multiple candidate AI skills, runs them in parallel, and generates a local report with output quality, latency, token estimates, and an AI judge recommendation. You pick the winning path and continue from there.',
+          'hero.lede': 'forkprobe recommends multiple candidate AI skills based on your task, gives the same task to those skills and the base model, runs them in parallel, and generates a local report with output quality, latency, token estimates, and an AI judge recommendation. You pick the winning path and continue from there.',
           'hero.previewButton': 'View preview',
           'hero.usecasesButton': 'Use cases',
           'hero.visualAria': 'Preview of a forkprobe comparison report',
           'hero.tryDownload': 'Try it',
-          'flow.input': '<b>1</b> Input',
-          'flow.judge': '<b>2</b> AI judge',
-          'flow.compare': '<b>3</b> Compare',
+          'flow.input': '<b>1</b> Task',
+          'flow.judge': '<b>2</b> Recommend',
+          'flow.compare': '<b>3</b> Run',
           'flow.continue': '<b>4</b> Continue',
           'heroJudge.title': 'AI judge recommends: social-copy skill',
           'heroJudge.body': 'More natural for distribution while keeping office, research, and finance use cases visible.',
@@ -1529,7 +1530,7 @@
           'heroCard.socialTokens': 'About 1,110 tokens',
           'usecases.kicker': 'Three frequent workflows',
           'usecases.title': 'The skill ecosystem is blooming. Before you use one, see which one truly helps.',
-          'usecases.lede': 'forkprobe is not another writing assistant. It turns candidate skills into an observable, comparable, selectable workflow.',
+          'usecases.lede': 'forkprobe is not another writing assistant. It reads the task signal, recommends candidate skills, then turns those skills into an observable, comparable, selectable workflow.',
           'usecases.officeTitle': 'Office work',
           'usecases.officeBody': 'Product plans, GTM copy, meeting notes, market analysis, and presentation drafts: compare several skill routes instead of trying prompts one by one.',
           'usecases.officeTag1': 'Product plans',
@@ -1547,7 +1548,7 @@
           'usecases.financeTag3': 'Risk comparison',
           'demo.kicker': 'In practice',
           'demo.title': 'One task, multiple skills, visible results, and a winner you can continue from.',
-          'demo.lede': 'The left panel shows the original task and candidate skills. The center shows each complete output. The right panel gives an AI judge recommendation. After you choose a winner, forkprobe creates a continuation handoff so the current Agent session can keep working from the selected result.',
+          'demo.lede': 'The left panel shows the original task and the skills forkprobe recommended for it. The center shows each complete output. The right panel gives an AI judge recommendation. After you choose a winner, forkprobe creates a continuation handoff so the current Agent session can keep working from the selected result.',
           'demo.reportAria': 'Interactive forkprobe report example',
           'demo.reportTitle': 'forkprobe report · launch-copy',
           'demo.reportSubtitle': 'Generated locally · choose a result and continue',
@@ -1651,14 +1652,14 @@
           'nav.start': '开始',
           'hero.eyebrow': 'Find the skill that actually helps.',
           'hero.subtitle': '别猜哪个 skill 有用，直接并排看结果。',
-          'hero.lede': '面向办公、科研、金融任务，把同一个需求交给多个 AI skill 并行处理，生成本地报告，横向比较输出质量、耗时、消耗量和 AI 评审建议，再用胜出的路径继续工作。',
+          'hero.lede': '面向办公、科研、金融任务，forkprobe 会先基于你的任务推荐多个候选 AI skill，再把同一个需求交给它们并行处理，生成本地报告，横向比较输出质量、耗时、消耗量和 AI 评审建议，再用胜出的路径继续工作。',
           'hero.previewButton': '查看预览',
           'hero.usecasesButton': '适用场景',
           'hero.visualAria': 'forkprobe 对比报告界面预览',
           'hero.tryDownload': '去试一试',
-          'flow.input': '<b>1</b> 输入',
-          'flow.judge': '<b>2</b> AI 评审',
-          'flow.compare': '<b>3</b> 对比',
+          'flow.input': '<b>1</b> 任务',
+          'flow.judge': '<b>2</b> 推荐',
+          'flow.compare': '<b>3</b> 试跑',
           'flow.continue': '<b>4</b> 继续',
           'heroJudge.title': 'AI 评审推荐：social-copy skill',
           'heroJudge.body': '社媒化表达更自然，同时保留办公、科研、金融三类场景。',
@@ -1673,7 +1674,7 @@
           'heroCard.socialTokens': '约 1,110 tokens',
           'usecases.kicker': '三类高频任务',
           'usecases.title': '网络上的 skill 百花齐放，使用各种 skill 之前，先知道哪一个真的帮得上忙。',
-          'usecases.lede': 'forkprobe 不是再造一个写作助手，而是把多个候选 skill 变成可观察、可比较、可选择的工作流。',
+          'usecases.lede': 'forkprobe 不是再造一个写作助手，而是先读取任务信号、推荐候选 skill，再把这些候选变成可观察、可比较、可选择的工作流。',
           'usecases.officeTitle': '办公方向',
           'usecases.officeBody': '产品方案、GTM、会议纪要、市场分析和汇报 PPT，不再反复试提示词，而是直接比较几条 skill 路线。',
           'usecases.officeTag1': '产品方案',
@@ -1691,7 +1692,7 @@
           'usecases.financeTag3': '风险对比',
           'demo.kicker': '实际使用时',
           'demo.title': '使用 forkprobe，同一个任务、多个 skill 的结果清晰可见，轻松选择 winner。',
-          'demo.lede': '左侧是原始输入和候选 skill，中间展示每一路完整输出，右侧给出 AI 评审建议。选定 winner 后，forkprobe 会生成 continuation handoff，让当前会话沿着你选中的结果继续执行。',
+          'demo.lede': '左侧是原始输入和 forkprobe 基于任务推荐的候选 skill，中间展示每一路完整输出，右侧给出 AI 评审建议。选定 winner 后，forkprobe 会生成 continuation handoff，让当前会话沿着你选中的结果继续执行。',
           'demo.reportAria': 'forkprobe 交互式报告示例',
           'demo.reportTitle': 'forkprobe report · launch-copy',
           'demo.reportSubtitle': '本地生成 · 选择结果后继续执行',
