@@ -3,9 +3,9 @@ Tiny local HTTP server that captures the user's verdict from report.html.
 
 Flow:
   1. compare.py calls start_server(log_path) -> port
-  2. report.html.j2 renders with {{ verdict_url }} = "http://localhost:<port>/verdict"
+  2. report.html.j2 receives a tokenized local verdict endpoint
   3. Browser opens report.html; user clicks "Pick this one" + submits
-  4. JS does fetch(verdict_url, { method: 'POST', body: JSON })
+  4. JS posts the verdict JSON back to the loopback-only endpoint
   5. Server writes verdict back into the log JSON, then shuts down
   6. compare.py's wait_for_verdict() unblocks and prints success
 
@@ -14,12 +14,14 @@ Privacy: server binds to 127.0.0.1 only. Never listens on external interfaces.
 from __future__ import annotations
 
 import json
+import secrets
 import socket
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Optional
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 
 # Module-level state for the running server
@@ -28,6 +30,29 @@ _httpd: Optional[HTTPServer] = None
 _verdict_event = threading.Event()
 _log_path_holder: dict = {"path": None}
 _received_verdict: dict = {}
+_server_token: Optional[str] = None
+
+_BIND_HOST = "127.0.0.1"
+_URL_HOST = "localhost"
+_ALLOWED_ORIGIN_HOSTS = {_URL_HOST, _BIND_HOST, "::1"}
+
+
+def build_verdict_url(port: int, token: Optional[str] = None) -> str:
+    """Return the tokenized local endpoint used by the generated report."""
+    active_token = token if token is not None else _server_token
+    query = f"?{urlencode({'token': active_token})}" if active_token else ""
+    return f"http://{_URL_HOST}:{port}/verdict{query}"
+
+
+def _origin_is_allowed(origin: Optional[str]) -> bool:
+    """Allow file:// reports and loopback browser origins only."""
+    if not origin or origin == "null":
+        return True
+    try:
+        parsed = urlsplit(origin)
+    except ValueError:
+        return False
+    return (parsed.hostname or "") in _ALLOWED_ORIGIN_HOSTS
 
 
 def build_handoff_text(verdict: dict, log: Optional[dict] = None) -> str:
@@ -111,19 +136,29 @@ def write_latest_files(log_path: Path, log: dict, handoff_path: Optional[Path] =
 def _find_free_port() -> int:
     """Pick an available high port on localhost."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
+        s.bind((_BIND_HOST, 0))
         return s.getsockname()[1]
 
 
 class _VerdictHandler(BaseHTTPRequestHandler):
     """Handles POST /verdict and (optionally) GET / for liveness."""
 
-    def _send_cors(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
+    def _send_cors(self) -> bool:
+        origin = self.headers.get("Origin")
+        if not _origin_is_allowed(origin):
+            return False
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        return True
 
     def do_OPTIONS(self):  # CORS preflight (file:// pages need this)
+        if not _origin_is_allowed(self.headers.get("Origin")):
+            self.send_response(403)
+            self.end_headers()
+            return
         self.send_response(204)
         self._send_cors()
         self.end_headers()
@@ -140,9 +175,25 @@ class _VerdictHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        if self.path != "/verdict":
+        parsed_path = urlsplit(self.path)
+        if parsed_path.path != "/verdict":
             self.send_response(404)
             self.end_headers()
+            return
+
+        if not _origin_is_allowed(self.headers.get("Origin")):
+            self.send_response(403)
+            self.end_headers()
+            return
+
+        query = parse_qs(parsed_path.query)
+        supplied_token = (query.get("token") or [""])[0]
+        if _server_token and supplied_token != _server_token:
+            self.send_response(403)
+            self._send_cors()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "invalid verdict token"}).encode("utf-8"))
             return
 
         try:
@@ -197,24 +248,25 @@ class _VerdictHandler(BaseHTTPRequestHandler):
         return
 
 
-def start_server(log_path: Path) -> int:
+def start_server(log_path: Path, token: Optional[str] = None) -> int:
     """
     Start the verdict server on a free localhost port. Returns the port.
 
     Idempotent — calling twice in the same process reuses the same server.
     """
-    global _server_thread, _httpd
+    global _server_thread, _httpd, _server_token
 
     _log_path_holder["path"] = log_path
     _verdict_event.clear()
     _received_verdict.clear()
+    _server_token = token or secrets.token_urlsafe(24)
 
     if _httpd is not None:
         # Already running, just rebind log path
         return _httpd.server_address[1]
 
     port = _find_free_port()
-    _httpd = HTTPServer(("127.0.0.1", port), _VerdictHandler)
+    _httpd = HTTPServer((_BIND_HOST, port), _VerdictHandler)
     _server_thread = threading.Thread(target=_httpd.serve_forever, daemon=True)
     _server_thread.start()
     return port
@@ -231,12 +283,13 @@ def wait_for_verdict(timeout_seconds: int = 600) -> Optional[dict]:
 
 
 def stop_server() -> None:
-    global _httpd, _server_thread
+    global _httpd, _server_thread, _server_token
     if _httpd is not None:
         _httpd.shutdown()
         _httpd.server_close()
         _httpd = None
         _server_thread = None
+        _server_token = None
 
 
 # --- Smoke test ---
@@ -248,9 +301,9 @@ if __name__ == "__main__":
     tmp_log.write_text(json.dumps({"timestamp": "test", "candidates": [], "verdict": None}, indent=2))
 
     port = start_server(tmp_log)
-    print(f"Verdict server listening on http://127.0.0.1:{port}")
+    print(f"Verdict server listening on a loopback-only endpoint: {build_verdict_url(port)}")
     print(f"Log file: {tmp_log}")
-    print(f"Try: curl -X POST http://127.0.0.1:{port}/verdict -H 'Content-Type: application/json' -d '{{\"winner\":\"baseline\",\"reason\":\"test\"}}'")
+    print("Submit a JSON verdict with any local HTTP client, including the generated token.")
     print("Waiting up to 60s for a verdict...")
 
     verdict = wait_for_verdict(timeout_seconds=60)

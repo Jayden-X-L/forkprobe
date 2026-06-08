@@ -88,8 +88,8 @@ def render(
         duration_seconds: total elapsed time
         output_path: where to write report.html
         auto_open: if True, open in default browser after writing
-        verdict_url: optional http://127.0.0.1:PORT/verdict URL; when provided,
-                     the report POSTs verdict data back to it
+        verdict_url: optional tokenized loopback endpoint; when provided,
+                     the report posts verdict data back to the local run
         judge_result: optional dict from compare.py's JudgeResult
 
     Returns:

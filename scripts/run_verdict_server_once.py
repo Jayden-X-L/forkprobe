@@ -7,7 +7,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from verdict_server import start_server, stop_server, wait_for_verdict
+from verdict_server import build_verdict_url, start_server, stop_server, wait_for_verdict
 
 
 def main() -> int:
@@ -21,7 +21,7 @@ def main() -> int:
     port_file = Path(args.port_file).resolve()
     port = start_server(log_path)
     port_file.write_text(str(port), encoding="utf-8")
-    print(f"Verdict server: http://127.0.0.1:{port}/verdict", flush=True)
+    print(f"Verdict server: {build_verdict_url(port)}", flush=True)
 
     try:
         verdict = wait_for_verdict(timeout_seconds=args.timeout)

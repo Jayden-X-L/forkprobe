@@ -551,11 +551,11 @@ def main():
     stop_verdict_server = None
     if not args.no_server:
         try:
-            from verdict_server import start_server, wait_for_verdict, stop_server
+            from verdict_server import build_verdict_url, start_server, wait_for_verdict, stop_server
             port = start_server(log_file)
-            verdict_url = f"http://127.0.0.1:{port}/verdict"
+            verdict_url = build_verdict_url(port)
             stop_verdict_server = stop_server
-            print(f"[forkprobe] Verdict server: {verdict_url}")
+            print(f"[forkprobe] Verdict server: loopback-only endpoint ready on port {port}")
         except Exception as e:
             print(f"[forkprobe] Could not start verdict server ({e}). Continuing without it.")
 

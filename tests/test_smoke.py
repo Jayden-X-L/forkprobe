@@ -12,6 +12,7 @@ import os
 import sys
 import tempfile
 import unittest
+import urllib.error
 import urllib.request
 from pathlib import Path
 from unittest.mock import patch
@@ -139,6 +140,35 @@ class TestSkillLoader(unittest.TestCase):
             prompt = skill.to_system_prompt()
             self.assertIn("Test skill for smoke test", prompt)
             self.assertIn("Be helpful", prompt)
+
+    def test_remote_skill_source_validation(self):
+        from skill_loader import _normalize_remote_skill_url, fetch_skill
+
+        self.assertEqual(
+            _normalize_remote_skill_url("https://github.com/example/repo/tree/main/skills/demo"),
+            "https://github.com/example/repo.git",
+        )
+        self.assertEqual(
+            _normalize_remote_skill_url("https://gitlab.com/example/repo"),
+            "https://gitlab.com/example/repo.git",
+        )
+        old_allow = os.environ.pop("FORKPROBE_ALLOW_UNTRUSTED_SKILL_SOURCE", None)
+        try:
+            for source in (
+                "http://github.com/example/repo",
+                "https://127.0.0.1/example/repo",
+                "https://localhost/example/repo",
+                "https://example.com/not-allowed/repo",
+            ):
+                with self.subTest(source=source):
+                    with self.assertRaises(ValueError):
+                        _normalize_remote_skill_url(source)
+
+            with self.assertRaises(ValueError):
+                fetch_skill("git@github.com:example/repo.git")
+        finally:
+            if old_allow is not None:
+                os.environ["FORKPROBE_ALLOW_UNTRUSTED_SKILL_SOURCE"] = old_allow
 
 
 class TestCatalog(unittest.TestCase):
@@ -308,11 +338,11 @@ class TestTokenEstimates(unittest.TestCase):
 
 class TestVerdictServer(unittest.TestCase):
     def test_imports(self):
-        from verdict_server import start_server, wait_for_verdict, stop_server
+        from verdict_server import build_verdict_url, start_server, wait_for_verdict, stop_server
 
     def test_start_stop_cycle(self):
         """Server should start on a free port and stop cleanly."""
-        from verdict_server import start_server, stop_server
+        from verdict_server import build_verdict_url, start_server, stop_server
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             log_path = Path(f.name)
             f.write(b'{"verdict": null}')
@@ -320,13 +350,14 @@ class TestVerdictServer(unittest.TestCase):
             port = start_server(log_path)
             self.assertIsInstance(port, int)
             self.assertGreater(port, 1024)
+            self.assertIn("token=", build_verdict_url(port))
         finally:
             stop_server()
             log_path.unlink()
 
     def test_verdict_writes_handoff_file(self):
         """A submitted verdict should update the log and create a copyable handoff."""
-        from verdict_server import start_server, stop_server, wait_for_verdict
+        from verdict_server import build_verdict_url, start_server, stop_server, wait_for_verdict
         with tempfile.TemporaryDirectory() as tmp:
             log_path = Path(tmp) / "run.json"
             log_path.write_text(json.dumps({
@@ -337,6 +368,7 @@ class TestVerdictServer(unittest.TestCase):
             }), encoding="utf-8")
             try:
                 port = start_server(log_path)
+                verdict_url = build_verdict_url(port)
                 payload = {
                     "winner": "humanizer",
                     "winner_name": "Humanizer",
@@ -344,8 +376,19 @@ class TestVerdictServer(unittest.TestCase):
                     "reason": "more natural",
                     "handoff_text": "Please continue using Humanizer.",
                 }
+                bad_req = urllib.request.Request(
+                    f"http://localhost:{port}/verdict",
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with self.assertRaises(urllib.error.HTTPError) as cm:
+                    urllib.request.urlopen(bad_req, timeout=5)
+                self.assertEqual(cm.exception.code, 403)
+                cm.exception.close()
+
                 req = urllib.request.Request(
-                    f"http://127.0.0.1:{port}/verdict",
+                    verdict_url,
                     data=json.dumps(payload).encode("utf-8"),
                     headers={"Content-Type": "application/json"},
                     method="POST",
@@ -427,8 +470,9 @@ class TestRenderReport(unittest.TestCase):
         ]
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "r.html"
+            verdict_url = "http://localhost:1234/verdict?token=test"
             render(task_input="test input", results=dummy, duration_seconds=3.0,
-                   output_path=out, auto_open=False, verdict_url="http://localhost:1234/verdict",
+                   output_path=out, auto_open=False, verdict_url=verdict_url,
                    judge_result={
                        "winner_skill_id": "test-skill",
                        "verdict_type": "pick",
@@ -451,7 +495,7 @@ class TestRenderReport(unittest.TestCase):
             self.assertNotIn("forkprobe Comparison Report", html)
             self.assertIn("test output", html)
             self.assertIn("another output", html)
-            self.assertIn("http://localhost:1234/verdict", html)
+            self.assertIn(verdict_url, html)
             self.assertIn("AI judge recommendation", html)
             self.assertIn("Test is clearer.", html)
             self.assertIn("handoffText", html)

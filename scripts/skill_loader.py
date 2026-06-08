@@ -8,6 +8,7 @@ on every run. BYO paths are read directly.
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import os
 import re
 import shutil
@@ -15,8 +16,12 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlsplit
 
 CACHE_DIR = Path(os.path.expanduser("~/.forkprobe-cache"))
+_ALLOWED_REMOTE_HOSTS = {"github.com", "gitlab.com"}
+_LOCAL_REMOTE_HOSTS = {"localhost"}
+_TRUE_VALUES = {"1", "true", "yes", "on"}
 
 
 @dataclass
@@ -147,6 +152,55 @@ def _slug_from_url(url: str) -> str:
     return f"{safe}-{h}"
 
 
+def _allow_untrusted_remote_sources() -> bool:
+    """Opt-in escape hatch for users who knowingly trust another public HTTPS host."""
+    return os.environ.get("FORKPROBE_ALLOW_UNTRUSTED_SKILL_SOURCE", "").lower() in _TRUE_VALUES
+
+
+def _is_ip_address(host: str) -> bool:
+    try:
+        ipaddress.ip_address(host)
+        return True
+    except ValueError:
+        return False
+
+
+def _normalize_remote_skill_url(source: str) -> str:
+    """
+    Validate and normalize a remote skill source before git clone.
+
+    Remote fetch is intentionally narrow by default: HTTPS only, no credentials,
+    no direct IP/localhost targets, and only GitHub/GitLab unless the user opts in
+    with FORKPROBE_ALLOW_UNTRUSTED_SKILL_SOURCE=1.
+    """
+    parsed = urlsplit(source)
+    if parsed.scheme != "https":
+        raise ValueError(
+            "Remote skill sources must use HTTPS. Use a local path for private skills, "
+            "or mirror the skill to an HTTPS GitHub/GitLab repository."
+        )
+    if parsed.username or parsed.password:
+        raise ValueError("Remote skill source URLs must not include credentials.")
+
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if not host:
+        raise ValueError(f"Remote skill source is missing a host: {source!r}")
+    if host in _LOCAL_REMOTE_HOSTS or host.endswith(".local") or _is_ip_address(host):
+        raise ValueError("Remote skill sources may not use localhost, .local hosts, or direct IP addresses.")
+    if host not in _ALLOWED_REMOTE_HOSTS and not _allow_untrusted_remote_sources():
+        allowed = ", ".join(sorted(_ALLOWED_REMOTE_HOSTS))
+        raise ValueError(
+            f"Remote skill source host {host!r} is not in the default allowlist ({allowed}). "
+            "Use a local path, or set FORKPROBE_ALLOW_UNTRUSTED_SKILL_SOURCE=1 if you trust this HTTPS host."
+        )
+
+    # Normalize trailing /tree/main or /blob/main URLs to the repository root.
+    bare = re.sub(r"/(tree|blob)/[^/]+/?.*$", "", source)
+    if not bare.endswith(".git"):
+        bare = bare.rstrip("/") + ".git"
+    return bare
+
+
 def _git_clone(url: str, dest: Path, depth: int = 1) -> None:
     """Shallow clone a public repo. Raises CalledProcessError on failure."""
     subprocess.run(
@@ -177,13 +231,11 @@ def fetch_skill(source: str, force_refresh: bool = False) -> Path:
             raise FileNotFoundError(f"Skill path does not exist: {p}")
         return p.parent if p.is_file() else p
 
-    # GitHub URL → clone
-    if source.startswith(("http://", "https://", "git@")):
-        # Normalize trailing /tree/main or /blob/main URLs to bare repo
-        bare = re.sub(r"/(tree|blob)/[^/]+/?.*$", "", source)
-        if not bare.endswith(".git") and "github.com" in bare:
-            bare = bare + ".git"
-
+    # Remote URL → validate, normalize, then clone without invoking a shell.
+    if source.startswith("git@"):
+        raise ValueError("SSH skill sources are disabled by default. Use an HTTPS URL or a local path.")
+    if source.startswith(("http://", "https://")):
+        bare = _normalize_remote_skill_url(source)
         CACHE_DIR.mkdir(exist_ok=True)
         slug = _slug_from_url(bare)
         dest = CACHE_DIR / slug

@@ -156,6 +156,8 @@ python3 scripts/render_artifact_report.py \
 - GitHub/network discovery uses sanitized task signals, not the raw document.
 - Local verdict logs store the selected winner, optional reason, report path, and continuation handoff.
 - Use `--local-only` or ask for local-only candidates to skip network discovery.
+- Use `--no-server` to render reports without the local verdict-capture server.
+- See [SECURITY.md](./SECURITY.md) for loopback server, token, CORS, remote fetch, and command-execution notes.
 
 ## Tests
 

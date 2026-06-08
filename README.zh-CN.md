@@ -165,6 +165,8 @@ python3 scripts/render_artifact_report.py \
 - GitHub / 网络发现只使用清洗后的任务信号，不直接使用原始文档。
 - 本地 verdict 日志只记录 winner、可选理由、report 路径和 continuation handoff。
 - 如果不想联网，可以使用 `--local-only`，或明确说“只要本地候选”。
+- 如果不想启动本地 verdict-capture server，可以使用 `--no-server`。
+- 本地回写 token、CORS、远程 fetch 和命令执行说明见 [SECURITY.md](./SECURITY.md)。
 
 ## 测试
 
