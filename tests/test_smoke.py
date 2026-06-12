@@ -513,6 +513,9 @@ class TestRenderReport(unittest.TestCase):
             self.assertIn("✓ 选择这个", html)
             self.assertIn("results-scroll", html)
             self.assertIn("result-card", html)
+            self.assertIn('href="https://github.com/Jayden-X-L/forkprobe"', html)
+            self.assertIn('target="_blank"', html)
+            self.assertNotIn('href="github"', html)
 
     def test_render_artifact_manifest(self):
         from render_artifact_report import render_from_manifest
