@@ -475,15 +475,15 @@
       font-size: 1rem;
     }
 
+    #usecases {
+      order: 2;
+    }
+
     .usecase-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 1rem;
       margin-top: 2rem;
-    }
-
-    #usecases {
-      order: 2;
     }
 
     .usecase {
@@ -522,9 +522,18 @@
       background: #dbe4f0;
     }
 
-    .mini-line.blue { background: #93c5fd; }
-    .mini-line.teal { background: #99f6e4; }
-    .mini-line.amber { background: #fcd34d; }
+    .mini-line.blue {
+      background: #93c5fd;
+    }
+
+    .mini-line.teal {
+      background: #99f6e4;
+    }
+
+    .mini-line.amber {
+      background: #fcd34d;
+    }
+
     .mini-chart {
       display: grid;
       align-items: end;
@@ -539,11 +548,25 @@
       background: var(--blue);
     }
 
-    .mini-chart i:nth-child(2) { background: var(--teal); }
-    .mini-chart i:nth-child(3) { background: var(--amber); }
-    .mini-chart i:nth-child(4) { background: var(--rose); }
-    .mini-chart i:nth-child(5) { background: var(--green); }
-    .mini-chart i:nth-child(6) { background: #64748b; }
+    .mini-chart i:nth-child(2) {
+      background: var(--teal);
+    }
+
+    .mini-chart i:nth-child(3) {
+      background: var(--amber);
+    }
+
+    .mini-chart i:nth-child(4) {
+      background: var(--rose);
+    }
+
+    .mini-chart i:nth-child(5) {
+      background: var(--green);
+    }
+
+    .mini-chart i:nth-child(6) {
+      background: #64748b;
+    }
 
     .usecase-body {
       padding: 1.15rem;
@@ -552,6 +575,7 @@
     .usecase h3 {
       margin: 0;
       font-size: 1.15rem;
+      line-height: 1.3;
       letter-spacing: 0;
     }
 
@@ -579,6 +603,104 @@
       background: #fff;
       font-size: 0.78rem;
       font-weight: 650;
+    }
+
+    .capability-block {
+      margin-top: clamp(3rem, 6vw, 4.5rem);
+    }
+
+    .capability-block .section-lede {
+      max-width: 48rem;
+    }
+
+    .task-matrix-shell {
+      margin-top: 2rem;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 10px 25px rgba(16, 24, 40, 0.06);
+    }
+
+    .task-matrix {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+    }
+
+    .task-matrix th,
+    .task-matrix td {
+      padding: 1rem;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .task-matrix th {
+      color: #344054;
+      background: #f8fbff;
+      font-size: 0.82rem;
+      font-weight: 850;
+    }
+
+    .task-matrix tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .task-matrix tr.is-planned {
+      background: rgba(248, 251, 255, 0.62);
+    }
+
+    .task-scene {
+      min-width: 17rem;
+    }
+
+    .task-scene strong {
+      display: block;
+      color: #101828;
+      font-size: 1rem;
+      line-height: 1.35;
+    }
+
+    .task-scene span {
+      display: block;
+      margin-top: 0.3rem;
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.5;
+    }
+
+    .task-report {
+      color: #344054;
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 1.85rem;
+      min-width: 4.4rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: #fff;
+      font-size: 0.8rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .status-supported {
+      border-color: #a8e7dc;
+      color: #087267;
+      background: #effdf9;
+    }
+
+    .status-planned {
+      border-color: #c9d7eb;
+      color: #475467;
+      background: #f8fafc;
     }
 
     .report-demo-section {
@@ -1044,22 +1166,11 @@
       }
 
       .hero-visual {
-        position: relative;
-        right: auto;
-        top: auto;
-        width: 100%;
-        min-width: 0;
-        margin-top: 2.4rem;
-        transform: none;
-        z-index: 2;
+        display: none;
       }
 
       .hero {
         display: block;
-      }
-
-      .usecase-grid {
-        grid-template-columns: 1fr;
       }
 
       .demo-report-top {
@@ -1104,6 +1215,10 @@
       .candidate-grid {
         grid-template-columns: 1fr;
       }
+
+      .usecase-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 720px) {
@@ -1139,6 +1254,41 @@
       .report-title {
         max-width: 9rem;
         font-size: 0.86rem;
+      }
+
+      .task-matrix-shell {
+        overflow: visible;
+      }
+
+      .task-matrix,
+      .task-matrix tbody,
+      .task-matrix tr,
+      .task-matrix td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .task-matrix thead {
+        display: none;
+      }
+
+      .task-matrix tr {
+        padding: 1rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .task-matrix tr:last-child {
+        border-bottom: 0;
+      }
+
+      .task-matrix td {
+        padding: 0;
+        border-bottom: 0;
+      }
+
+      .task-matrix td + td {
+        margin-top: 0.7rem;
       }
 
       .demo-skill-list {
@@ -1276,84 +1426,162 @@
       <section id="usecases">
         <div class="section-inner">
           <p class="section-kicker">三类高频任务</p>
-          <h2>网络上的skill百花齐放，使用各种skill 之前，先知道哪一个真的帮得上忙。</h2>
+          <h2>网络上的 skill 百花齐放，使用各种 skill 之前，先知道哪一个真的帮得上忙。</h2>
           <p class="section-lede">
             forkprobe 不是再造一个写作助手，而是先读取任务信号、推荐候选 skill，再把这些候选变成可观察、可比较、可选择的工作流。
           </p>
 
           <div class="usecase-grid">
             <article class="usecase">
-              <div class="usecase-media">
-                <div class="mini-screen" aria-hidden="true">
-                  <div class="mini-line blue" style="width: 78%"></div>
-                  <div class="mini-line" style="width: 92%"></div>
-                  <div class="mini-line teal" style="width: 64%"></div>
-                  <div class="mini-line" style="width: 86%"></div>
-                  <div class="mini-line amber" style="width: 70%"></div>
+              <div class="usecase-media" aria-hidden="true">
+                <div class="mini-screen">
+                  <span class="mini-line blue" style="width: 76%"></span>
+                  <span class="mini-line" style="width: 90%"></span>
+                  <span class="mini-line teal" style="width: 62%"></span>
+                  <span class="mini-line" style="width: 84%"></span>
+                  <span class="mini-line amber" style="width: 68%"></span>
                 </div>
               </div>
               <div class="usecase-body">
-                <h3>办公方向</h3>
-                <p>产品方案、GTM、会议纪要、市场分析和汇报 PPT，不再反复试提示词，而是直接比较几条 skill 路线。</p>
+                <h3 data-i18n="usecases.officeTitle">办公方向</h3>
+                <p data-i18n="usecases.officeBody">产品方案、GTM、会议纪要、市场分析和汇报 PPT，不再反复试提示词，而是直接比较几条 skill 路线。</p>
                 <div class="tag-list">
-                  <span class="tag">产品方案</span>
-                  <span class="tag">内部宣传</span>
-                  <span class="tag">PPT</span>
+                  <span class="tag" data-i18n="usecases.officeTag1">产品方案</span>
+                  <span class="tag" data-i18n="usecases.officeTag2">内部宣传</span>
+                  <span class="tag" data-i18n="usecases.officeTag3">PPT</span>
                 </div>
               </div>
             </article>
 
             <article class="usecase">
-              <div class="usecase-media">
-                <div class="mini-screen" aria-hidden="true">
-                  <div class="mini-line teal" style="width: 88%"></div>
-                  <div class="mini-line" style="width: 74%"></div>
+              <div class="usecase-media" aria-hidden="true">
+                <div class="mini-screen">
+                  <span class="mini-line teal" style="width: 86%"></span>
+                  <span class="mini-line" style="width: 72%"></span>
                   <div class="mini-chart">
-                    <i style="height: 45%"></i>
-                    <i style="height: 70%"></i>
+                    <i style="height: 42%"></i>
+                    <i style="height: 66%"></i>
+                    <i style="height: 50%"></i>
+                    <i style="height: 78%"></i>
+                    <i style="height: 58%"></i>
+                    <i style="height: 34%"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="usecase-body">
+                <h3 data-i18n="usecases.researchTitle">科研方向</h3>
+                <p data-i18n="usecases.researchBody">中文 SCI 润色、英文摘要、Nature 风格、审稿回复、figure storyline 和科研 PPT，比较表达效果同时守住技术含义。</p>
+                <div class="tag-list">
+                  <span class="tag" data-i18n="usecases.researchTag1">SCI 写作</span>
+                  <span class="tag" data-i18n="usecases.researchTag2">图表说明</span>
+                  <span class="tag" data-i18n="usecases.researchTag3">组会材料</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="usecase">
+              <div class="usecase-media" aria-hidden="true">
+                <div class="mini-screen">
+                  <div class="mini-chart">
                     <i style="height: 54%"></i>
+                    <i style="height: 46%"></i>
+                    <i style="height: 74%"></i>
+                    <i style="height: 38%"></i>
                     <i style="height: 82%"></i>
                     <i style="height: 62%"></i>
-                    <i style="height: 38%"></i>
                   </div>
+                  <span class="mini-line blue" style="width: 88%"></span>
+                  <span class="mini-line amber" style="width: 66%"></span>
                 </div>
               </div>
               <div class="usecase-body">
-                <h3>科研方向</h3>
-                <p>中文 SCI 润色、英文摘要、Nature 风格、审稿回复、figure storyline 和科研 PPT，比较表达效果同时守住技术含义。</p>
+                <h3 data-i18n="usecases.financeTitle">金融方向</h3>
+                <p data-i18n="usecases.financeBody">持仓数据、行业报告、财报摘要、风险敞口和投委会材料，让多个分析路径并行跑，再选证据链最稳的一版。</p>
                 <div class="tag-list">
-                  <span class="tag">SCI 写作</span>
-                  <span class="tag">图表说明</span>
-                  <span class="tag">组会材料</span>
+                  <span class="tag" data-i18n="usecases.financeTag1">投研分析</span>
+                  <span class="tag" data-i18n="usecases.financeTag2">行业报告</span>
+                  <span class="tag" data-i18n="usecases.financeTag3">风险对比</span>
                 </div>
               </div>
             </article>
+          </div>
 
-            <article class="usecase">
-              <div class="usecase-media">
-                <div class="mini-screen" aria-hidden="true">
-                  <div class="mini-chart">
-                    <i style="height: 60%"></i>
-                    <i style="height: 52%"></i>
-                    <i style="height: 78%"></i>
-                    <i style="height: 42%"></i>
-                    <i style="height: 86%"></i>
-                    <i style="height: 68%"></i>
-                  </div>
-                  <div class="mini-line blue" style="width: 90%"></div>
-                  <div class="mini-line amber" style="width: 67%"></div>
-                </div>
-              </div>
-              <div class="usecase-body">
-                <h3>金融方向</h3>
-                <p>持仓数据、行业报告、财报摘要、风险敞口和投委会材料，让多个分析路径并行跑，再选证据链最稳的一版。</p>
-                <div class="tag-list">
-                  <span class="tag">投研分析</span>
-                  <span class="tag">行业报告</span>
-                  <span class="tag">风险对比</span>
-                </div>
-              </div>
-            </article>
+          <div class="capability-block">
+            <p class="section-kicker" data-i18n="capability.kicker">任务能力矩阵</p>
+            <h2 data-i18n="capability.title">当前支持什么，接下来会覆盖什么。</h2>
+            <p class="section-lede" data-i18n="capability.lede">
+              文本任务看多版本输出；PPTX 这类成品任务看真实文件和预览。规划中的图片、网页和科研作图也会沿用同一套对比报告。
+            </p>
+
+            <div class="task-matrix-shell">
+              <table class="task-matrix">
+                <thead>
+                  <tr>
+                    <th data-i18n="capability.headerScene">场景</th>
+                    <th data-i18n="capability.headerStatus">状态</th>
+                    <th data-i18n="capability.headerReport">Report 里看到什么</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="task-scene">
+                      <strong data-i18n="capability.academic.title">学术润色与 SCI 写作</strong>
+                      <span data-i18n="capability.academic.detail">论文润色、学术表达优化、英文润色、中译英、Nature 风格润色。</span>
+                    </td>
+                    <td><span class="status-pill status-supported" data-i18n="status.supported">已支持</span></td>
+                    <td class="task-report" data-i18n="capability.academic.report">多版本文本、AI 评审、winner 选择。</td>
+                  </tr>
+                  <tr>
+                    <td class="task-scene">
+                      <strong data-i18n="capability.natural.title">自然化与风格改写</strong>
+                      <span data-i18n="capability.natural.detail">降低 AI 味、文稿自然化、内部分享稿、宣传稿、一般文稿改写。</span>
+                    </td>
+                    <td><span class="status-pill status-supported" data-i18n="status.supported">已支持</span></td>
+                    <td class="task-report" data-i18n="capability.natural.report">不同风格稿件并排比较。</td>
+                  </tr>
+                  <tr>
+                    <td class="task-scene">
+                      <strong data-i18n="capability.rebuttal.title">审稿回复与投稿材料</strong>
+                      <span data-i18n="capability.rebuttal.detail">rebuttal、response letter、cover letter、修改说明、投稿沟通材料。</span>
+                    </td>
+                    <td><span class="status-pill status-supported" data-i18n="status.supported">已支持</span></td>
+                    <td class="task-report" data-i18n="capability.rebuttal.report">回复草稿、结构、语气对比。</td>
+                  </tr>
+                  <tr>
+                    <td class="task-scene">
+                      <strong data-i18n="capability.pptx.title">PPTX 成品生成</strong>
+                      <span data-i18n="capability.pptx.detail">生成可打开的 PPTX、比较不同 PPT 生成 pipeline、成品 deck 横向对比。</span>
+                    </td>
+                    <td><span class="status-pill status-supported" data-i18n="status.supported">已支持</span></td>
+                    <td class="task-report" data-i18n="capability.pptx.report">可打开的 PPTX、预览图、候选说明。</td>
+                  </tr>
+                  <tr class="is-planned">
+                    <td class="task-scene">
+                      <strong data-i18n="capability.figure.title">论文作图 / 科研绘图</strong>
+                      <span data-i18n="capability.figure.detail">数据图、机制图、架构图、graphical abstract、投稿级 figure package。</span>
+                    </td>
+                    <td><span class="status-pill status-planned" data-i18n="status.planned">规划中</span></td>
+                    <td class="task-report" data-i18n="capability.figure.report">PNG 预览、SVG/PDF/TIFF、代码、caption、QA。</td>
+                  </tr>
+                  <tr class="is-planned">
+                    <td class="task-scene">
+                      <strong data-i18n="capability.image.title">图片生成 / 生图比较</strong>
+                      <span data-i18n="capability.image.detail">海报、封面图、长图、视觉稿、风格图、通用图片生成。</span>
+                    </td>
+                    <td><span class="status-pill status-planned" data-i18n="status.planned">规划中</span></td>
+                    <td class="task-report" data-i18n="capability.image.report">图片预览、文件链接、候选说明。</td>
+                  </tr>
+                  <tr class="is-planned">
+                    <td class="task-scene">
+                      <strong data-i18n="capability.web.title">网页 / HTML 制作比较</strong>
+                      <span data-i18n="capability.web.detail">落地页、报告页、单页网页、可视化网页、HTML 成品。</span>
+                    </td>
+                    <td><span class="status-pill status-planned" data-i18n="status.planned">规划中</span></td>
+                    <td class="task-report" data-i18n="capability.web.report">页面链接、截图预览、候选说明。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -1528,24 +1756,53 @@
           'heroCard.socialRole': 'Best for distribution',
           'heroCard.socialBody': 'The problem is no longer a lack of skills. The problem is knowing which one actually helps. forkprobe lays the evidence out.',
           'heroCard.socialTokens': 'About 1,110 tokens',
-          'usecases.kicker': 'Three frequent workflows',
-          'usecases.title': 'The skill ecosystem is blooming. Before you use one, see which one truly helps.',
-          'usecases.lede': 'forkprobe is not another writing assistant. It reads the task signal, recommends candidate skills, then turns those skills into an observable, comparable, selectable workflow.',
-          'usecases.officeTitle': 'Office work',
-          'usecases.officeBody': 'Product plans, GTM copy, meeting notes, market analysis, and presentation drafts: compare several skill routes instead of trying prompts one by one.',
+          'usecases.kicker': 'Three frequent task families',
+          'usecases.title': 'Before using one of many online skills, know which one actually helps.',
+          'usecases.lede': 'forkprobe is not another writing assistant. It reads task signals, recommends candidate skills, and turns those candidates into observable, comparable, selectable workflows.',
+          'usecases.officeTitle': 'Office workflows',
+          'usecases.officeBody': 'Product plans, GTM, meeting notes, market analysis, and presentation decks. Compare several skill paths instead of trying prompts again and again.',
           'usecases.officeTag1': 'Product plans',
           'usecases.officeTag2': 'Internal comms',
-          'usecases.officeTag3': 'Slides',
-          'usecases.researchTitle': 'Research',
-          'usecases.researchBody': 'SCI polishing, English abstracts, Nature-style writing, reviewer responses, figure storylines, and research decks: compare expression while preserving technical meaning.',
+          'usecases.officeTag3': 'PPT',
+          'usecases.researchTitle': 'Research workflows',
+          'usecases.researchBody': 'Chinese SCI polishing, English abstracts, Nature style, reviewer responses, figure storylines, and research PPTs. Compare expression while preserving technical meaning.',
           'usecases.researchTag1': 'SCI writing',
-          'usecases.researchTag2': 'Figure captions',
-          'usecases.researchTag3': 'Lab meetings',
-          'usecases.financeTitle': 'Finance',
-          'usecases.financeBody': 'Holdings data, industry reports, earnings summaries, risk exposure, and investment committee materials: run multiple analysis paths and keep the strongest evidence chain.',
+          'usecases.researchTag2': 'Figure notes',
+          'usecases.researchTag3': 'Lab materials',
+          'usecases.financeTitle': 'Finance workflows',
+          'usecases.financeBody': 'Holdings data, industry reports, earnings summaries, risk exposure, and IC materials. Run multiple analysis paths, then keep the one with the strongest evidence chain.',
           'usecases.financeTag1': 'Investment research',
           'usecases.financeTag2': 'Industry reports',
           'usecases.financeTag3': 'Risk comparison',
+          'capability.kicker': 'Task capability matrix',
+          'capability.title': 'What is supported now, and what comes next.',
+          'capability.lede': 'Text tasks compare complete drafts. Deliverable tasks such as PPTX compare real files and previews. Planned image, web, and figure workflows will use the same report pattern.',
+          'capability.headerScene': 'Scenario',
+          'capability.headerStatus': 'Status',
+          'capability.headerReport': 'What you see in the report',
+          'status.supported': 'Supported',
+          'status.planned': 'Planned',
+          'capability.academic.title': 'Academic polishing & SCI writing',
+          'capability.academic.detail': 'Paper polishing, academic expression, English polishing, translation, and Nature-style edits.',
+          'capability.academic.report': 'Draft variants, AI judge notes, and winner selection.',
+          'capability.natural.title': 'Naturalization & style rewriting',
+          'capability.natural.detail': 'Less AI-like writing, internal posts, launch copy, and general style rewrites.',
+          'capability.natural.report': 'Side-by-side versions with different tones and styles.',
+          'capability.rebuttal.title': 'Reviewer response & submission materials',
+          'capability.rebuttal.detail': 'Rebuttals, response letters, cover letters, revision notes, and submission communication.',
+          'capability.rebuttal.report': 'Response drafts, structure, and tone comparison.',
+          'capability.pptx.title': 'PPTX deck generation',
+          'capability.pptx.detail': 'Openable PPTX files, different deck-generation pipelines, and finished deck comparison.',
+          'capability.pptx.report': 'Openable PPTX files, preview images, and candidate notes.',
+          'capability.figure.title': 'Paper figures & scientific graphics',
+          'capability.figure.detail': 'Data plots, mechanism figures, architecture diagrams, graphical abstracts, and submission-ready figure packages.',
+          'capability.figure.report': 'PNG previews, SVG/PDF/TIFF files, code, captions, and QA notes.',
+          'capability.image.title': 'Image generation comparison',
+          'capability.image.detail': 'Posters, cover images, long images, visual drafts, style images, and general image generation.',
+          'capability.image.report': 'Image previews, file links, and candidate notes.',
+          'capability.web.title': 'Web / HTML creation comparison',
+          'capability.web.detail': 'Landing pages, report pages, single-page sites, data visualization pages, and HTML deliverables.',
+          'capability.web.report': 'Page links, screenshot previews, and candidate notes.',
           'demo.kicker': 'In practice',
           'demo.title': 'One task, multiple skills, visible results, and a winner you can continue from.',
           'demo.lede': 'The left panel shows the original task and the skills forkprobe recommended for it. The center shows each complete output. The right panel gives an AI judge recommendation. After you choose a winner, forkprobe creates a continuation handoff so the current Agent session can keep working from the selected result.',
@@ -1690,6 +1947,35 @@
           'usecases.financeTag1': '投研分析',
           'usecases.financeTag2': '行业报告',
           'usecases.financeTag3': '风险对比',
+          'capability.kicker': '任务能力矩阵',
+          'capability.title': '当前支持什么，接下来会覆盖什么。',
+          'capability.lede': '文本任务看多版本输出；PPTX 这类成品任务看真实文件和预览。规划中的图片、网页和科研作图也会沿用同一套对比报告。',
+          'capability.headerScene': '场景',
+          'capability.headerStatus': '状态',
+          'capability.headerReport': 'Report 里看到什么',
+          'status.supported': '已支持',
+          'status.planned': '规划中',
+          'capability.academic.title': '学术润色与 SCI 写作',
+          'capability.academic.detail': '论文润色、学术表达优化、英文润色、中译英、Nature 风格润色。',
+          'capability.academic.report': '多版本文本、AI 评审、winner 选择。',
+          'capability.natural.title': '自然化与风格改写',
+          'capability.natural.detail': '降低 AI 味、文稿自然化、内部分享稿、宣传稿、一般文稿改写。',
+          'capability.natural.report': '不同风格稿件并排比较。',
+          'capability.rebuttal.title': '审稿回复与投稿材料',
+          'capability.rebuttal.detail': 'rebuttal、response letter、cover letter、修改说明、投稿沟通材料。',
+          'capability.rebuttal.report': '回复草稿、结构、语气对比。',
+          'capability.pptx.title': 'PPTX 成品生成',
+          'capability.pptx.detail': '生成可打开的 PPTX、比较不同 PPT 生成 pipeline、成品 deck 横向对比。',
+          'capability.pptx.report': '可打开的 PPTX、预览图、候选说明。',
+          'capability.figure.title': '论文作图 / 科研绘图',
+          'capability.figure.detail': '数据图、机制图、架构图、graphical abstract、投稿级 figure package。',
+          'capability.figure.report': 'PNG 预览、SVG/PDF/TIFF、代码、caption、QA。',
+          'capability.image.title': '图片生成 / 生图比较',
+          'capability.image.detail': '海报、封面图、长图、视觉稿、风格图、通用图片生成。',
+          'capability.image.report': '图片预览、文件链接、候选说明。',
+          'capability.web.title': '网页 / HTML 制作比较',
+          'capability.web.detail': '落地页、报告页、单页网页、可视化网页、HTML 成品。',
+          'capability.web.report': '页面链接、截图预览、候选说明。',
           'demo.kicker': '实际使用时',
           'demo.title': '使用 forkprobe，同一个任务、多个 skill 的结果清晰可见，轻松选择 winner。',
           'demo.lede': '左侧是原始输入和 forkprobe 基于任务推荐的候选 skill，中间展示每一路完整输出，右侧给出 AI 评审建议。选定 winner 后，forkprobe 会生成 continuation handoff，让当前会话沿着你选中的结果继续执行。',
@@ -1806,24 +2092,9 @@
       ['.candidate-grid .candidate:nth-child(3) .candidate-head span', 'heroCard.socialRole'],
       ['.candidate-grid .candidate:nth-child(3) .candidate-body', 'heroCard.socialBody'],
       ['.candidate-grid .candidate:nth-child(3) .candidate-foot span:nth-child(1)', 'heroCard.socialTokens'],
-      ['#usecases .section-kicker', 'usecases.kicker'],
-      ['#usecases h2', 'usecases.title'],
-      ['#usecases .section-lede', 'usecases.lede'],
-      ['#usecases .usecase:nth-child(1) h3', 'usecases.officeTitle'],
-      ['#usecases .usecase:nth-child(1) p', 'usecases.officeBody'],
-      ['#usecases .usecase:nth-child(1) .tag:nth-child(1)', 'usecases.officeTag1'],
-      ['#usecases .usecase:nth-child(1) .tag:nth-child(2)', 'usecases.officeTag2'],
-      ['#usecases .usecase:nth-child(1) .tag:nth-child(3)', 'usecases.officeTag3'],
-      ['#usecases .usecase:nth-child(2) h3', 'usecases.researchTitle'],
-      ['#usecases .usecase:nth-child(2) p', 'usecases.researchBody'],
-      ['#usecases .usecase:nth-child(2) .tag:nth-child(1)', 'usecases.researchTag1'],
-      ['#usecases .usecase:nth-child(2) .tag:nth-child(2)', 'usecases.researchTag2'],
-      ['#usecases .usecase:nth-child(2) .tag:nth-child(3)', 'usecases.researchTag3'],
-      ['#usecases .usecase:nth-child(3) h3', 'usecases.financeTitle'],
-      ['#usecases .usecase:nth-child(3) p', 'usecases.financeBody'],
-      ['#usecases .usecase:nth-child(3) .tag:nth-child(1)', 'usecases.financeTag1'],
-      ['#usecases .usecase:nth-child(3) .tag:nth-child(2)', 'usecases.financeTag2'],
-      ['#usecases .usecase:nth-child(3) .tag:nth-child(3)', 'usecases.financeTag3'],
+      ['#usecases > .section-inner > .section-kicker', 'usecases.kicker'],
+      ['#usecases > .section-inner > h2', 'usecases.title'],
+      ['#usecases > .section-inner > .section-lede', 'usecases.lede'],
       ['#report-demo .section-kicker', 'demo.kicker'],
       ['#report-demo h2', 'demo.title'],
       ['#report-demo .section-lede', 'demo.lede'],
@@ -1952,6 +2223,15 @@
       });
     };
 
+    const setDataBoundText = (locale) => {
+      document.querySelectorAll('[data-i18n]').forEach((element) => {
+        const key = element.dataset.i18n;
+        if (Object.prototype.hasOwnProperty.call(locale.text, key)) {
+          element.textContent = locale.text[key];
+        }
+      });
+    };
+
     const updateUrlLanguage = (lang) => {
       const url = new URL(window.location.href);
       url.searchParams.set('lang', lang);
@@ -2015,6 +2295,8 @@
       textBindings.forEach(([selector, key]) => {
         setText(selector, locale.text[key]);
       });
+
+      setDataBoundText(locale);
 
       htmlBindings.forEach(([selector, key, transform]) => {
         const value = transform ? transform(locale.text[key]) : locale.text[key];
