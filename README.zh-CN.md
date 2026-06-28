@@ -1,11 +1,11 @@
-# forkprobe
+# ForkProbe：AI Skill 选型与试跑工具
 
 <p align="center">
   <img src="./docs/assets/forkprobe-homepage-zh.png" alt="forkprobe 发布页截图" width="960">
 </p>
 
 <p align="center">
-  <strong>别猜哪个 skill 有用，直接并排看结果。</strong>
+  <strong>别猜哪个 AI Skill 有用，直接并排看结果。</strong>
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
-forkprobe 是一个 Agent 时代的 A/B testing skill selector。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
+ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
 当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。forkprobe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
 

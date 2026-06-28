@@ -1,4 +1,4 @@
-# forkprobe
+# ForkProbe: AI Skill Selection and Trial-Run Tool
 
 <p align="center">
   <img src="./docs/assets/forkprobe-homepage-en.png" alt="forkprobe launch page screenshot" width="960">
@@ -22,7 +22,7 @@
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
-forkprobe is an A/B testing skill selector for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
+ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
 It is useful when the skill ecosystem is too crowded to trust descriptions alone: office writing, research polishing, financial analysis, PPT planning, PPTX artifact generation, and other workflows where the right skill changes the final output.
 
