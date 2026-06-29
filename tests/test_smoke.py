@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -243,12 +244,62 @@ class TestRecommendations(unittest.TestCase):
         self.assertIn("https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing", command_args)
         self.assertIn("--judge", rec.suggested_command)
 
-    def test_recommend_figure_notes_text_first_scope(self):
+    def test_recommend_figure_text_only_scope(self):
         from recommend import recommend_candidates
-        rec = recommend_candidates("我想比较几个 skill 来画科研示意图和 figure storyline。", online_discovery=False)
+        rec = recommend_candidates("我只要比较科研图的图注和 figure storyline，不生成图。", online_discovery=False)
+        self.assertEqual(rec.deliverable_type, "text")
+        self.assertEqual(rec.compare_mode, "text")
         command_args = [c.command_arg for c in rec.candidates]
         self.assertIn("https://github.com/Yuan1z0825/nature-skills#skills/nature-figure", command_args)
         self.assertTrue(rec.notes_zh)
+
+    def test_recommend_scientific_figure_routes_to_artifact_mode(self):
+        from recommend import format_text, recommend_candidates
+        rec = recommend_candidates("请比较几个 pipeline，生成论文机制图成品，最终要 PNG、SVG、PDF、caption 和源代码。", online_discovery=False)
+        self.assertEqual(rec.deliverable_type, "visual_artifact")
+        self.assertEqual(rec.compare_mode, "artifact")
+        ids = [c.id for c in rec.candidates]
+        self.assertIn("baseline-python-figure", ids)
+        self.assertIn("nature-figure-python", ids)
+        self.assertIn("schematic-svg", ids)
+        self.assertIn("scripts/figure_artifact.py", rec.suggested_command)
+        self.assertIn("--judge", rec.suggested_command)
+        text = format_text(rec, input_path="figure-task.md", lang="zh")
+        self.assertIn("figure_artifact.py", text)
+        self.assertIn("PNG 预览", "\n".join(rec.notes_zh))
+
+    def test_recommend_visual_artifact_includes_external_skill_source_command(self):
+        from discover_skills import OnlineDiscoveryReport, OnlineSkillCandidate
+        from recommend import recommend_candidates
+
+        fake_report = OnlineDiscoveryReport(
+            deliverable="visual_artifact",
+            queries=["claude skill scientific figure schematic"],
+            candidates=[
+                OnlineSkillCandidate(
+                    id="github:example-figure-skill",
+                    name="example-figure-skill",
+                    source="https://github.com/example/figure-skill",
+                    command_arg="https://github.com/example/figure-skill#skills/scientific-figure",
+                    summary_zh="GitHub 发现的科研绘图 skill。",
+                    summary_en="GitHub-discovered scientific figure skill.",
+                    score=91,
+                    stars=88,
+                    category="github_discovered",
+                    skill_path="skills/scientific-figure/SKILL.md",
+                )
+            ],
+            notes_zh=["已发现外部科研绘图候选。"],
+            notes_en=["Found external scientific figure candidate."],
+        )
+        with patch("recommend.discover_online_skills", return_value=fake_report):
+            rec = recommend_candidates("请比较几个 skill 生成论文机制图成品，输出 SVG 和 caption。", online_discovery=True)
+
+        self.assertEqual(rec.deliverable_type, "visual_artifact")
+        self.assertIn("--pipeline", rec.suggested_command)
+        self.assertIn("--skill-source", rec.suggested_command)
+        self.assertIn("https://github.com/example/figure-skill#skills/scientific-figure", rec.suggested_command)
+        self.assertEqual(rec.discovery_queries, ["claude skill scientific figure schematic"])
 
     def test_recommend_ppt_request_routes_to_artifact_mode(self):
         from recommend import recommend_candidates
@@ -550,6 +601,438 @@ class TestRenderReport(unittest.TestCase):
             self.assertIn("Generated artifacts", html)
             self.assertIn("candidate.pptx", html)
             self.assertIn("baseline-presentations", html)
+
+    def test_render_artifact_manifest_shows_artifacts_when_candidate_has_error(self):
+        from render_artifact_report import render_from_manifest
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            preview = tmp_path / "preview.png"
+            svg = tmp_path / "figure.svg"
+            preview.write_bytes(b"fake png")
+            svg.write_text("<svg></svg>", encoding="utf-8")
+            manifest = tmp_path / "manifest.json"
+            manifest.write_text(json.dumps({
+                "task_input": "make a figure",
+                "candidates": [
+                    {
+                        "id": "schematic-svg",
+                        "name": "schematic SVG",
+                        "summary": "Generated a partial figure package.",
+                        "error": "Codex CLI timeout after 240s.",
+                        "artifacts": [
+                            {
+                                "path": str(svg),
+                                "preview_path": str(preview),
+                                "label": "figure.svg",
+                                "kind": "SVG",
+                            }
+                        ],
+                    }
+                ],
+            }), encoding="utf-8")
+            out = tmp_path / "artifact.html"
+            render_from_manifest(manifest, out, auto_open=False)
+            html = out.read_text(encoding="utf-8")
+            self.assertIn("artifacts available", html)
+            self.assertIn("Codex CLI timeout after 240s.", html)
+            self.assertIn("Generated artifacts", html)
+            self.assertIn("figure.svg", html)
+            self.assertIn("Generated a partial figure package.", html)
+
+    def test_prepare_figure_artifact_workspace_and_report(self):
+        from figure_artifact import create_workspace
+        from render_artifact_report import render_from_manifest
+
+        task = "请基于实验数据做一个科研 plot 成品，输出 PNG、SVG、PDF、caption 和 QA。"
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            result = create_workspace(task_input=task, output_dir=tmp_path)
+            self.assertEqual(result["figure_type"], "plot")
+            self.assertIn("plot-code-python", result["pipelines"])
+
+            plot_dir = tmp_path / "candidates" / "plot-code-python"
+            artifact_dir = plot_dir / "artifacts"
+            (artifact_dir / "preview.png").write_bytes(b"fake png")
+            (artifact_dir / "figure.svg").write_text("<svg></svg>", encoding="utf-8")
+            (artifact_dir / "figure.pdf").write_bytes(b"%PDF-1.4")
+            (artifact_dir / "source.py").write_text("print('plot')\n", encoding="utf-8")
+            (artifact_dir / "caption.md").write_text("Figure 1. A reproducible data plot.", encoding="utf-8")
+            (artifact_dir / "qa.md").write_text("Labels readable; exports present.", encoding="utf-8")
+
+            refreshed = create_workspace(
+                task_input=task,
+                output_dir=tmp_path,
+                pipeline_ids=result["pipelines"],
+            )
+            manifest_path = Path(refreshed["manifest_path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            plot_candidate = next(c for c in manifest["candidates"] if c["id"] == "plot-code-python")
+            labels = {artifact["label"] for artifact in plot_candidate["artifacts"]}
+            self.assertIn("preview.png", labels)
+            self.assertIn("figure.svg", labels)
+            self.assertIn("figure.pdf", labels)
+            self.assertIn("source.py", labels)
+            self.assertIn("Figure 1", plot_candidate["summary"])
+            self.assertGreater(plot_candidate["estimated_tokens_used"], 0)
+            self.assertEqual(plot_candidate["provider_tokens_used"], 0)
+
+            out = tmp_path / "figure-report.html"
+            render_from_manifest(manifest_path, out, auto_open=False)
+            html = out.read_text(encoding="utf-8")
+            self.assertIn("Generated artifacts", html)
+            self.assertIn("figure.svg", html)
+            self.assertIn("plot-code-python", html)
+            self.assertIn("Figure 1", html)
+
+    def test_figure_run_prompt_embeds_local_skill_prompt(self):
+        from figure_artifact import FigurePipeline, build_candidate_run_prompt, build_pipeline_instructions
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            skill_dir = root / "skills" / "demo-figure"
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "SKILL.md").write_text(
+                "---\n"
+                "name: Demo figure skill\n"
+                "description: Demo scientific figure instructions\n"
+                "---\n"
+                "Use exact panel labels and write a concise scientific caption.\n",
+                encoding="utf-8",
+            )
+            candidate_dir = root / "candidate"
+            (candidate_dir / "artifacts").mkdir(parents=True)
+            pipeline = FigurePipeline(
+                id="demo-figure-pipeline",
+                name="demo figure pipeline",
+                role="test",
+                summary_zh="测试 pipeline。",
+                summary_en="Test pipeline.",
+                pipeline_steps=["demo-skill", "svg-render"],
+                best_for=["schematic"],
+                expected_artifacts=["preview.png", "figure.svg", "caption.md"],
+                qa_checks=["labels_readable"],
+                skill_source=f"{root}#skills/demo-figure",
+            )
+            task = "请生成一张机制图。"
+            (candidate_dir / "INSTRUCTIONS.md").write_text(
+                build_pipeline_instructions(task, pipeline, candidate_dir),
+                encoding="utf-8",
+            )
+
+            old = os.environ.get("FORKPROBE_FIGURE_LOAD_SKILL_PROMPTS")
+            os.environ["FORKPROBE_FIGURE_LOAD_SKILL_PROMPTS"] = "1"
+            try:
+                prompt = build_candidate_run_prompt(task, pipeline, candidate_dir)
+            finally:
+                if old is None:
+                    os.environ.pop("FORKPROBE_FIGURE_LOAD_SKILL_PROMPTS", None)
+                else:
+                    os.environ["FORKPROBE_FIGURE_LOAD_SKILL_PROMPTS"] = old
+
+            self.assertIn("External Skill Instructions", prompt)
+            self.assertIn("Demo figure skill", prompt)
+            self.assertIn("Use exact panel labels", prompt)
+            self.assertIn("skills/demo-figure", prompt)
+
+    def test_prepare_figure_artifact_workspace_with_byo_skill_source(self):
+        from figure_artifact import create_workspace
+        from render_artifact_report import render_from_manifest
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            skill_dir = root / "skills" / "demo-figure"
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "SKILL.md").write_text(
+                "---\n"
+                "name: demo-figure\n"
+                "description: Demo figure skill\n"
+                "---\n"
+                "Create clean mechanism diagrams.\n",
+                encoding="utf-8",
+            )
+            task = "请比较外部 skill 生成论文机制图成品。"
+            result = create_workspace(
+                task_input=task,
+                output_dir=root / "run",
+                pipeline_ids=["baseline-python-figure"],
+                skill_sources=[f"{root}#skills/demo-figure"],
+            )
+            self.assertIn("baseline-python-figure", result["pipelines"])
+            dynamic_ids = [pipeline_id for pipeline_id in result["pipelines"] if pipeline_id.startswith("skill-")]
+            self.assertEqual(dynamic_ids, ["skill-demo-figure"])
+
+            candidate_dir = Path(result["output_dir"]) / "candidates" / "skill-demo-figure"
+            instructions = (candidate_dir / "INSTRUCTIONS.md").read_text(encoding="utf-8")
+            self.assertIn("External skill source", instructions)
+            self.assertIn("skills/demo-figure", instructions)
+
+            artifact_dir = candidate_dir / "artifacts"
+            (artifact_dir / "figure.svg").write_text("<svg></svg>", encoding="utf-8")
+            (artifact_dir / "caption.md").write_text("Demo caption.", encoding="utf-8")
+            refreshed = create_workspace(
+                task_input=task,
+                output_dir=Path(result["output_dir"]),
+                pipeline_ids=result["pipelines"],
+                skill_sources=[f"{root}#skills/demo-figure"],
+            )
+            manifest = json.loads(Path(refreshed["manifest_path"]).read_text(encoding="utf-8"))
+            candidate = next(c for c in manifest["candidates"] if c["id"] == "skill-demo-figure")
+            self.assertEqual(candidate["skill_source"], f"{root}#skills/demo-figure")
+            self.assertIn("Demo caption.", candidate["summary"])
+            self.assertIn("figure.svg", {artifact["label"] for artifact in candidate["artifacts"]})
+
+            out = root / "report.html"
+            render_from_manifest(Path(refreshed["manifest_path"]), out, auto_open=False)
+            html = out.read_text(encoding="utf-8")
+            self.assertIn("skill-demo-figure", html)
+            self.assertIn("Demo caption.", html)
+
+    def test_build_artifact_judge_results_includes_files_caption_and_qa(self):
+        from figure_artifact import build_artifact_judge_results
+
+        manifest = {
+            "candidates": [
+                {
+                    "id": "skill-demo-figure",
+                    "name": "demo figure",
+                    "summary": "Summary text.\n\n## Caption\nA caption.\n\n## QA\nQA passed.",
+                    "category": "figure-artifact",
+                    "expected_artifacts": ["preview.png", "figure.svg", "caption.md", "qa.md"],
+                    "qa_checks": ["caption_matches_visual"],
+                    "artifacts": [
+                        {"label": "figure.svg", "kind": "SVG", "preview_path": "figure.svg"},
+                        {"label": "caption.md", "kind": "MD"},
+                    ],
+                    "tokens_used": 12,
+                    "latency_seconds": 1.5,
+                    "error": "Codex CLI timeout after 240s. Partial artifacts are available.",
+                }
+            ]
+        }
+        results = build_artifact_judge_results(manifest)
+        self.assertEqual(results[0].skill_id, "skill-demo-figure")
+        self.assertIn("Summary text.", results[0].output)
+        self.assertIn("A caption.", results[0].output)
+        self.assertIn("figure.svg", results[0].output)
+        self.assertIn("caption_matches_visual", results[0].output)
+        self.assertIn("Runner issue", results[0].output)
+        self.assertIsNone(results[0].error)
+
+    def test_run_figure_pipeline_with_fake_codex(self):
+        from figure_artifact import create_workspace, run_parallel
+        from render_artifact_report import render_from_manifest
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fake_cli = tmp_path / "codex"
+            fake_cli.write_text(
+                "#!/usr/bin/env python3\n"
+                "import pathlib, re, sys\n"
+                "args = sys.argv[1:]\n"
+                "out = pathlib.Path(args[args.index('--output-last-message') + 1])\n"
+                "prompt = sys.stdin.read()\n"
+                "match = re.search(r'generated files under\\s*`([^`]+)`', prompt) or re.search(r'candidate outputs under:\\s*`([^`]+)`', prompt)\n"
+                "artifact_dir = pathlib.Path(match.group(1))\n"
+                "artifact_dir.mkdir(parents=True, exist_ok=True)\n"
+                "(artifact_dir / 'preview.png').write_bytes(b'fake png')\n"
+                "(artifact_dir / 'figure.svg').write_text('<svg></svg>', encoding='utf-8')\n"
+                "(artifact_dir / 'caption.md').write_text('Fake caption.', encoding='utf-8')\n"
+                "(artifact_dir / 'qa.md').write_text('Fake QA passed.', encoding='utf-8')\n"
+                "summary = artifact_dir.parent / 'summary.md'\n"
+                "summary.write_text('Fake runner summary.', encoding='utf-8')\n"
+                "out.write_text('Fake runner completed.', encoding='utf-8')\n"
+                "print('tokens used\\n1,111', file=sys.stderr)\n",
+                encoding="utf-8",
+            )
+            os.chmod(fake_cli, 0o755)
+
+            old_cli = os.environ.get("FORKPROBE_CODEX_CLI")
+            old_sandbox = os.environ.get("FORKPROBE_FIGURE_SANDBOX")
+            os.environ["FORKPROBE_CODEX_CLI"] = str(fake_cli)
+            os.environ["FORKPROBE_FIGURE_SANDBOX"] = "workspace-write"
+            try:
+                task = "请生成一张论文机制图成品，输出 PNG、SVG 和 caption。"
+                result = create_workspace(
+                    task_input=task,
+                    output_dir=tmp_path / "run",
+                    pipeline_ids=["schematic-svg"],
+                )
+                runs = run_parallel(
+                    task_input=task,
+                    output_dir=Path(result["output_dir"]),
+                    pipeline_ids=["schematic-svg"],
+                    max_workers=1,
+                    timeout=30,
+                )
+                self.assertIsNone(runs[0].error)
+                self.assertEqual(runs[0].tokens_used, 1111)
+
+                refreshed = create_workspace(
+                    task_input=task,
+                    output_dir=Path(result["output_dir"]),
+                    pipeline_ids=["schematic-svg"],
+                )
+                manifest_path = Path(refreshed["manifest_path"])
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                candidate = manifest["candidates"][0]
+                labels = {artifact["label"] for artifact in candidate["artifacts"]}
+                self.assertIn("preview.png", labels)
+                self.assertIn("figure.svg", labels)
+                self.assertEqual(candidate["tokens_used"], 1111)
+                self.assertIn("Fake runner summary.", candidate["summary"])
+                self.assertIn("Fake runner completed.", candidate["summary"])
+
+                out = tmp_path / "figure-run-report.html"
+                render_from_manifest(manifest_path, out, auto_open=False)
+                html = out.read_text(encoding="utf-8")
+                self.assertIn("Fake runner summary.", html)
+                self.assertIn("figure.svg", html)
+            finally:
+                if old_cli is None:
+                    os.environ.pop("FORKPROBE_CODEX_CLI", None)
+                else:
+                    os.environ["FORKPROBE_CODEX_CLI"] = old_cli
+                if old_sandbox is None:
+                    os.environ.pop("FORKPROBE_FIGURE_SANDBOX", None)
+                else:
+                    os.environ["FORKPROBE_FIGURE_SANDBOX"] = old_sandbox
+
+    def test_figure_pipeline_timeout_keeps_partial_artifacts(self):
+        from figure_artifact import create_workspace, run_parallel
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fake_cli = tmp_path / "codex"
+            fake_cli.write_text(
+                "#!/usr/bin/env python3\n"
+                "import pathlib, re, sys, time\n"
+                "prompt = sys.stdin.read()\n"
+                "match = re.search(r'generated files under\\s*`([^`]+)`', prompt) or re.search(r'candidate outputs under:\\s*`([^`]+)`', prompt)\n"
+                "artifact_dir = pathlib.Path(match.group(1))\n"
+                "artifact_dir.mkdir(parents=True, exist_ok=True)\n"
+                "(artifact_dir / 'figure.svg').write_text('<svg></svg>', encoding='utf-8')\n"
+                "time.sleep(5)\n",
+                encoding="utf-8",
+            )
+            os.chmod(fake_cli, 0o755)
+
+            old_cli = os.environ.get("FORKPROBE_CODEX_CLI")
+            os.environ["FORKPROBE_CODEX_CLI"] = str(fake_cli)
+            try:
+                task = "请生成一张论文机制图成品，输出 SVG。"
+                result = create_workspace(
+                    task_input=task,
+                    output_dir=tmp_path / "run",
+                    pipeline_ids=["schematic-svg"],
+                )
+                runs = run_parallel(
+                    task_input=task,
+                    output_dir=Path(result["output_dir"]),
+                    pipeline_ids=["schematic-svg"],
+                    max_workers=1,
+                    timeout=1,
+                )
+                self.assertIsNotNone(runs[0].error)
+                self.assertIn("Partial artifacts are available", runs[0].error)
+
+                refreshed = create_workspace(
+                    task_input=task,
+                    output_dir=Path(result["output_dir"]),
+                    pipeline_ids=["schematic-svg"],
+                )
+                manifest = json.loads(Path(refreshed["manifest_path"]).read_text(encoding="utf-8"))
+                labels = {artifact["label"] for artifact in manifest["candidates"][0]["artifacts"]}
+                self.assertIn("figure.svg", labels)
+            finally:
+                if old_cli is None:
+                    os.environ.pop("FORKPROBE_CODEX_CLI", None)
+                else:
+                    os.environ["FORKPROBE_CODEX_CLI"] = old_cli
+
+    def test_figure_artifact_cli_json_run_is_clean(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fake_cli = tmp_path / "codex"
+            fake_cli.write_text(
+                "#!/usr/bin/env python3\n"
+                "import pathlib, re, sys\n"
+                "args = sys.argv[1:]\n"
+                "out = pathlib.Path(args[args.index('--output-last-message') + 1])\n"
+                "prompt = sys.stdin.read()\n"
+                "match = re.search(r'generated files under\\s*`([^`]+)`', prompt) or re.search(r'candidate outputs under:\\s*`([^`]+)`', prompt)\n"
+                "artifact_dir = pathlib.Path(match.group(1))\n"
+                "artifact_dir.mkdir(parents=True, exist_ok=True)\n"
+                "(artifact_dir / 'preview.png').write_bytes(b'fake png')\n"
+                "(artifact_dir / 'figure.svg').write_text('<svg></svg>', encoding='utf-8')\n"
+                "out.write_text('CLI fake completed.', encoding='utf-8')\n"
+                "print('tokens used\\n2,222', file=sys.stderr)\n",
+                encoding="utf-8",
+            )
+            os.chmod(fake_cli, 0o755)
+            env = dict(os.environ)
+            env["FORKPROBE_CODEX_CLI"] = str(fake_cli)
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(PROJECT_DIR / "scripts" / "figure_artifact.py"),
+                    "--text",
+                    "请生成一张论文机制图成品，输出 PNG 和 SVG。",
+                    "--output-dir",
+                    str(tmp_path / "run"),
+                    "--pipeline",
+                    "schematic-svg",
+                    "--run",
+                    "--render-report",
+                    "--no-open",
+                    "--json",
+                ],
+                text=True,
+                capture_output=True,
+                check=True,
+                env=env,
+            )
+            payload = json.loads(proc.stdout)
+            self.assertIn("figure pipeline schematic-svg: ok", proc.stderr)
+            self.assertTrue(Path(payload["report_path"]).exists())
+            manifest = json.loads(Path(payload["manifest_path"]).read_text(encoding="utf-8"))
+            candidate = manifest["candidates"][0]
+            self.assertEqual(candidate["tokens_used"], 2222)
+            self.assertIn("figure.svg", {artifact["label"] for artifact in candidate["artifacts"]})
+
+    def test_figure_artifact_cli_accepts_skill_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            skill_dir = tmp_path / "skills" / "demo-figure"
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "SKILL.md").write_text(
+                "---\n"
+                "name: demo-figure\n"
+                "description: Demo figure skill\n"
+                "---\n"
+                "Render a concise figure package.\n",
+                encoding="utf-8",
+            )
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(PROJECT_DIR / "scripts" / "figure_artifact.py"),
+                    "--text",
+                    "请生成一张论文机制图成品。",
+                    "--output-dir",
+                    str(tmp_path / "run"),
+                    "--pipeline",
+                    "baseline-python-figure",
+                    "--skill-source",
+                    f"{tmp_path}#skills/demo-figure",
+                    "--json",
+                ],
+                text=True,
+                capture_output=True,
+                check=True,
+            )
+            payload = json.loads(proc.stdout)
+            self.assertIn("skill-demo-figure", payload["pipelines"])
+            self.assertIn(f"{tmp_path}#skills/demo-figure", payload["skill_sources"])
 
 
 class TestJudgeParsing(unittest.TestCase):

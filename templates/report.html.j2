@@ -25,9 +25,10 @@
             total: 'total',
             connected: 'connected to local server',
             noServer: 'Demo mode: your choice stays on this page only',
-            preference: 'Pick the output you prefer · v0.1 prototype',
+            preference: 'Pick the output you prefer · v0.2',
             originalInput: 'Original input',
             error: 'error',
+            partial: 'artifacts available',
             tokens: 'tokens',
             approx: 'approx.',
             totalTokens: 'total tokens:',
@@ -58,7 +59,7 @@
             closeTab: 'You can close this tab. Latest verdict is in',
             serverError: 'Could not reach forkprobe server',
             serverErrorHint: 'The server may have timed out. Your selection is in the browser console; you can also re-run forkprobe.',
-            privacy: 'Privacy: 100% local in v0.1',
+            privacy: 'Privacy: 100% local in v0.2',
             judgeTitle: 'AI judge recommendation',
             judgeRecommended: 'Recommended',
             judgeConfidence: 'confidence',
@@ -84,9 +85,10 @@
             total: '总耗时',
             connected: '已连接本地记录服务',
             noServer: '演示模式：你的选择只会保留在当前页面',
-            preference: '请选择你更认可的结果 · v0.1 原型',
+            preference: '请选择你更认可的结果 · v0.2',
             originalInput: '原始输入',
             error: '错误',
+            partial: '产物已生成',
             tokens: 'tokens',
             approx: '约',
             totalTokens: '总 tokens：',
@@ -117,7 +119,7 @@
             closeTab: '你可以关闭这个页面。最新选择位置:',
             serverError: '无法连接 forkprobe 本地服务',
             serverErrorHint: '本地服务可能已经超时。你的选择仍在浏览器控制台里; 也可以重新运行 forkprobe。',
-            privacy: '隐私:v0.1 完全本地保存',
+            privacy: '隐私:v0.2 完全本地保存',
             judgeTitle: 'AI 评审推荐',
             judgeRecommended: '推荐',
             judgeConfidence: '置信度',
@@ -457,7 +459,7 @@
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-        <span x-text="t('preference')">Pick the output you prefer · v0.1 prototype</span>
+        <span x-text="t('preference')">Pick the output you prefer · v0.2</span>
         <div class="inline-flex overflow-hidden rounded border border-slate-300 bg-white">
           <button type="button"
                   @click="setLang('zh')"
@@ -576,14 +578,49 @@
         </div>
       </div>
 
+      <!-- Metrics -->
+      <div class="px-4 py-3 border-b border-slate-200 bg-white">
+        <div class="flex justify-between gap-3 text-xs text-slate-500 mb-2">
+          <div>
+            <div class="font-medium text-slate-600">
+              <span x-text="t('approx')">approx.</span>
+              {% set display_tokens = r.estimated_tokens_used if r.estimated_tokens_used is defined and r.estimated_tokens_used else r.tokens_used %}
+              {{ "{:,}".format(display_tokens|int) }}
+              <span x-text="t('tokens')">tokens</span>
+            </div>
+            <div class="mt-0.5 text-[11px] text-slate-400">
+              <span x-text="t('estimatedTokens')">estimated context</span> ·
+              <span x-text="t('estimatedTokenHint')">includes skill instructions, input, and output</span>
+            </div>
+          </div>
+          <span>{{ "%.1f"|format(r.latency_seconds) }}s</span>
+        </div>
+        {% if r.provider_tokens_used is defined and r.provider_tokens_used %}
+        <details class="mb-2 text-[11px] text-slate-400">
+          <summary class="cursor-pointer hover:text-slate-600" x-text="t('rawStats')">Raw model stats</summary>
+          <div class="mt-1">
+            <span x-text="t('providerTokens')">model raw count, for reference</span>:
+            {{ r.provider_tokens_used }} <span x-text="t('tokens')">tokens</span>
+          </div>
+        </details>
+        {% endif %}
+        <div class="latency-bar"
+             style="--pct: {{ (r.latency_seconds / 10 * 100)|round }}%"></div>
+      </div>
+
       <!-- Output -->
       <div class="flex-1 p-4 overflow-y-auto" style="max-height: 32rem;">
+        {% if r.output %}
+        <div class="academic mb-4 text-sm text-slate-900 whitespace-pre-wrap">{{ r.output|e }}</div>
+        {% endif %}
         {% if r.error %}
-        <div class="text-amber-700 text-sm">
-          <span class="font-mono text-xs uppercase tracking-wider" x-text="t('error')">error</span>
+        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800 text-sm">
+          <span class="font-mono text-xs uppercase tracking-wider" x-text="{% if r.artifacts is defined and r.artifacts %}t('partial'){% else %}t('error'){% endif %}">
+            {% if r.artifacts is defined and r.artifacts %}artifacts available{% else %}error{% endif %}
+          </span>
           <p class="mt-2">{{ r.error|e }}</p>
         </div>
-        {% else %}
+        {% endif %}
         {% if r.artifacts is defined and r.artifacts %}
         <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
           <p class="text-xs font-semibold uppercase tracking-wide text-slate-500" x-text="t('artifactsTitle')">Generated artifacts</p>
@@ -617,37 +654,6 @@
           </div>
         </div>
         {% endif %}
-        <div class="academic text-sm text-slate-900 whitespace-pre-wrap">{{ r.output|e }}</div>
-        {% endif %}
-      </div>
-
-      <!-- Metrics -->
-      <div class="px-4 py-3 border-t border-slate-200 bg-slate-50">
-        <div class="flex justify-between gap-3 text-xs text-slate-500 mb-2">
-          <div>
-            <div class="font-medium text-slate-600">
-              <span x-text="t('approx')">approx.</span>
-              {{ r.estimated_tokens_used if r.estimated_tokens_used is defined and r.estimated_tokens_used else r.tokens_used }}
-              <span x-text="t('tokens')">tokens</span>
-            </div>
-            <div class="mt-0.5 text-[11px] text-slate-400">
-              <span x-text="t('estimatedTokens')">estimated context</span> ·
-              <span x-text="t('estimatedTokenHint')">includes skill instructions, input, and output</span>
-            </div>
-          </div>
-          <span>{{ "%.1f"|format(r.latency_seconds) }}s</span>
-        </div>
-        {% if r.provider_tokens_used is defined and r.provider_tokens_used %}
-        <details class="mb-2 text-[11px] text-slate-400">
-          <summary class="cursor-pointer hover:text-slate-600" x-text="t('rawStats')">Raw model stats</summary>
-          <div class="mt-1">
-            <span x-text="t('providerTokens')">model raw count, for reference</span>:
-            {{ r.provider_tokens_used }} <span x-text="t('tokens')">tokens</span>
-          </div>
-        </details>
-        {% endif %}
-        <div class="latency-bar"
-             style="--pct: {{ (r.latency_seconds / 10 * 100)|round }}%"></div>
       </div>
 
       <!-- Pick button -->
@@ -768,7 +774,7 @@
   <footer class="mt-12 pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
     forkprobe · MIT ·
     <a href="https://github.com/Jayden-X-L/forkprobe" target="_blank" rel="noopener noreferrer" class="hover:text-slate-800 transition">github</a> ·
-    <span x-text="t('privacy')">Privacy: 100% local in v0.1</span>
+    <span x-text="t('privacy')">Privacy: 100% local in v0.2</span>
   </footer>
 
 </body>

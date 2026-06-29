@@ -18,13 +18,16 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
+  <img alt="Version v0.2" src="https://img.shields.io/badge/version-v0.2-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-It is useful when the skill ecosystem is too crowded to trust descriptions alone: office writing, research polishing, financial analysis, PPT planning, PPTX artifact generation, and other workflows where the right skill changes the final output.
+**v0.2 adds paper figure and scientific graphics comparison:** figure pipelines can now generate and compare PNG previews, SVG/PDF/TIFF exports, source files, captions, QA notes, and AI judge recommendations.
+
+It is useful when the skill ecosystem is too crowded to trust descriptions alone: office writing, research polishing, financial analysis, PPT planning, PPTX artifact generation, scientific figure generation, and other workflows where the right skill changes the final output.
 
 ## How It Works
 
@@ -71,7 +74,7 @@ Chinese trigger:
 - Claude Code / Claude-style skill sessions
 - Codex native execution, with fallback to the OpenAI API
 - Natural-language Agent surfaces such as OpenClaw, WorkBuddy, OpenCode, and similar platforms
-- Artifact comparisons for generated PPTX and other file outputs
+- Artifact comparisons for generated PPTX, scientific figure packages, and other file outputs
 
 ## Installation
 
@@ -149,6 +152,23 @@ python3 scripts/render_artifact_report.py \
   --manifest /tmp/forkprobe-ppt-artifacts.json \
   --output /tmp/forkprobe-ppt-report.html
 ```
+
+For paper figures or scientific graphics, forkprobe can compare figure-generation pipelines and external figure skills. Each candidate writes a figure package with previews, editable/source files, captions, and QA notes:
+
+```bash
+python3 scripts/figure_artifact.py \
+  --input /tmp/forkprobe-figure-task.txt \
+  --pipeline baseline-python-figure \
+  --pipeline nature-figure-python \
+  --pipeline schematic-svg \
+  --skill-source https://github.com/example/figure-skill#skills/scientific-figure \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-figure-report.html
+```
+
+Expected outputs include `preview.png`, `figure.svg`, `figure.pdf` or `figure.tiff`, source code or vector files, `caption.md`, and `qa.md`.
 
 ## Privacy
 

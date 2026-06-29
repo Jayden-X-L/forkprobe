@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="ForkProbe 是 AI Skill 选型与试跑工具，帮你并排比较真实输出后再选择路径。">
-  <title>ForkProbe：AI Skill 选型与试跑工具</title>
+  <meta name="description" content="ForkProbe v0.2 是 AI Skill 选型与试跑工具，新增支持论文作图 / 科研绘图对比，帮你并排比较真实输出后再选择路径。">
+  <title>ForkProbe v0.2：AI Skill 选型与试跑工具</title>
   <style>
     :root {
       color-scheme: light;
@@ -1353,11 +1353,11 @@
 
     <header class="hero" id="top">
       <div class="hero-copy">
-        <p class="eyebrow">ForkProbe：AI Skill 选型与试跑工具。</p>
+        <p class="eyebrow">ForkProbe v0.2：AI Skill 选型与试跑工具。</p>
         <h1>ForkProbe</h1>
         <p class="hero-subtitle">别猜哪个 AI Skill 有用，直接并排看结果。</p>
         <p class="hero-lede">
-          ForkProbe 是一个 AI Skill 选型与试跑工具。面向办公、科研、金融任务，它会先基于你的任务推荐多个候选 AI skill，再把同一个需求交给它们并行处理，生成本地报告，横向比较输出质量、耗时、消耗量和 AI 评审建议，再用胜出的路径继续工作。
+          ForkProbe 是一个 AI Skill 选型与试跑工具。v0.2 新增支持论文作图 / 科研绘图对比。面向办公、科研、金融任务，它会先基于你的任务推荐多个候选 AI skill，再把同一个需求交给它们并行处理，生成本地报告，横向比较输出质量、耗时、消耗量和 AI 评审建议，再用胜出的路径继续工作。
         </p>
         <div class="hero-actions">
           <a class="button button-primary" href="#report-demo">查看预览</a>
@@ -1472,10 +1472,10 @@
               </div>
               <div class="usecase-body">
                 <h3 data-i18n="usecases.researchTitle">科研方向</h3>
-                <p data-i18n="usecases.researchBody">中文 SCI 润色、英文摘要、Nature 风格、审稿回复、figure storyline 和科研 PPT，比较表达效果同时守住技术含义。</p>
+                <p data-i18n="usecases.researchBody">中文 SCI 润色、英文摘要、Nature 风格、审稿回复、论文作图 / 科研绘图和科研 PPT，比较表达效果与成品质量，同时守住技术含义。</p>
                 <div class="tag-list">
                   <span class="tag" data-i18n="usecases.researchTag1">SCI 写作</span>
-                  <span class="tag" data-i18n="usecases.researchTag2">图表说明</span>
+                  <span class="tag" data-i18n="usecases.researchTag2">科研绘图</span>
                   <span class="tag" data-i18n="usecases.researchTag3">组会材料</span>
                 </div>
               </div>
@@ -1512,7 +1512,7 @@
             <p class="section-kicker" data-i18n="capability.kicker">任务能力矩阵</p>
             <h2 data-i18n="capability.title">当前支持什么，接下来会覆盖什么。</h2>
             <p class="section-lede" data-i18n="capability.lede">
-              文本任务看多版本输出；PPTX 这类成品任务看真实文件和预览。规划中的图片、网页和科研作图也会沿用同一套对比报告。
+              文本任务看多版本输出；PPTX 和科研作图这类成品任务看真实文件和预览。规划中的图片、网页制作也会沿用同一套对比报告。
             </p>
 
             <div class="task-matrix-shell">
@@ -1557,12 +1557,12 @@
                     <td><span class="status-pill status-supported" data-i18n="status.supported">已支持</span></td>
                     <td class="task-report" data-i18n="capability.pptx.report">可打开的 PPTX、预览图、候选说明。</td>
                   </tr>
-                  <tr class="is-planned">
+                  <tr>
                     <td class="task-scene">
                       <strong data-i18n="capability.figure.title">论文作图 / 科研绘图</strong>
                       <span data-i18n="capability.figure.detail">数据图、机制图、架构图、graphical abstract、投稿级 figure package。</span>
                     </td>
-                    <td><span class="status-pill status-planned" data-i18n="status.planned">规划中</span></td>
+                    <td><span class="status-pill status-supported" data-i18n="status.supported">已支持</span></td>
                     <td class="task-report" data-i18n="capability.figure.report">PNG 预览、SVG/PDF/TIFF、代码、caption、QA。</td>
                   </tr>
                   <tr class="is-planned">
@@ -1715,7 +1715,7 @@
 
     <footer class="footer">
       <div class="footer-inner">
-        <span>ForkProbe · AI Skill 选型与试跑工具</span>
+        <span>ForkProbe v0.2 · AI Skill 选型与试跑工具</span>
         <span>GitHub Pages ready · Local-first comparison reports</span>
       </div>
     </footer>
@@ -1736,9 +1736,9 @@
           'nav.preview': 'Preview',
           'nav.usecases': 'Use cases',
           'nav.start': 'Start',
-          'hero.eyebrow': 'AI Skill selection and trial-run tool.',
+          'hero.eyebrow': 'ForkProbe v0.2: AI Skill selection and trial-run tool.',
           'hero.subtitle': 'Stop guessing which AI Skill works. Compare the real outputs side by side.',
-          'hero.lede': 'ForkProbe is an AI Skill selection and trial-run tool for Agent workflows. It recommends multiple candidate AI skills based on your task, gives the same task to those skills and the base model, runs them in parallel, and generates a local report with output quality, latency, token estimates, and an AI judge recommendation. You pick the winning path and continue from there.',
+          'hero.lede': 'ForkProbe is an AI Skill selection and trial-run tool for Agent workflows. v0.2 adds paper figure and scientific graphics comparison. It recommends multiple candidate AI skills based on your task, gives the same task to those skills and the base model, runs them in parallel, and generates a local report with output quality, latency, token estimates, and an AI judge recommendation. You pick the winning path and continue from there.',
           'hero.previewButton': 'View preview',
           'hero.usecasesButton': 'Use cases',
           'hero.visualAria': 'Preview of a forkprobe comparison report',
@@ -1767,9 +1767,9 @@
           'usecases.officeTag2': 'Internal comms',
           'usecases.officeTag3': 'PPT',
           'usecases.researchTitle': 'Research workflows',
-          'usecases.researchBody': 'Chinese SCI polishing, English abstracts, Nature style, reviewer responses, figure storylines, and research PPTs. Compare expression while preserving technical meaning.',
+          'usecases.researchBody': 'Chinese SCI polishing, English abstracts, Nature style, reviewer responses, paper figures, scientific graphics, and research PPTs. Compare expression and artifact quality while preserving technical meaning.',
           'usecases.researchTag1': 'SCI writing',
-          'usecases.researchTag2': 'Figure notes',
+          'usecases.researchTag2': 'Scientific figures',
           'usecases.researchTag3': 'Lab materials',
           'usecases.financeTitle': 'Finance workflows',
           'usecases.financeBody': 'Holdings data, industry reports, earnings summaries, risk exposure, and IC materials. Run multiple analysis paths, then keep the one with the strongest evidence chain.',
@@ -1778,7 +1778,7 @@
           'usecases.financeTag3': 'Risk comparison',
           'capability.kicker': 'Task capability matrix',
           'capability.title': 'What is supported now, and what comes next.',
-          'capability.lede': 'Text tasks compare complete drafts. Deliverable tasks such as PPTX compare real files and previews. Planned image, web, and figure workflows will use the same report pattern.',
+          'capability.lede': 'Text tasks compare complete drafts. Deliverable tasks such as PPTX and scientific figures compare real files and previews. Planned image and web workflows will use the same report pattern.',
           'capability.headerScene': 'Scenario',
           'capability.headerStatus': 'Status',
           'capability.headerReport': 'What you see in the report',
@@ -1839,7 +1839,7 @@
           'cta.lede': 'Whether you use Claude Code, Codex, OpenClaw, WorkBuddy, OpenCode, or another Agent surface, forkprobe can recommend candidates, run comparisons, generate a report, and let you decide which skill to continue with.',
           'cta.prompt': 'Compare a few skills first and see which one fits the current task better. Or: use forkprobe to recommend candidates, wait for my confirmation, run them side by side, generate a report, and let me choose the winner.',
           'cta.copy': 'Copy',
-          'footer.left': 'ForkProbe · AI Skill selection and trial-run tool',
+          'footer.left': 'ForkProbe v0.2 · AI Skill selection and trial-run tool',
           'footer.right': 'GitHub Pages ready · Local-first comparison reports',
           'toast.downloaded': 'Skill download started.',
           'ui.copied': 'Copied',
@@ -1902,16 +1902,16 @@
       zh: {
         langCode: 'zh-CN',
         text: {
-          'meta.title': 'ForkProbe：AI Skill 选型与试跑工具',
+          'meta.title': 'ForkProbe v0.2：AI Skill 选型与试跑工具',
           'meta.description': 'ForkProbe 是 AI Skill 选型与试跑工具，帮你并排比较真实输出后再选择路径。',
           'nav.aria': '主导航',
           'nav.brandAria': 'forkprobe 首页',
           'nav.preview': '预览',
           'nav.usecases': '场景',
           'nav.start': '开始',
-          'hero.eyebrow': 'ForkProbe：AI Skill 选型与试跑工具。',
+          'hero.eyebrow': 'ForkProbe v0.2：AI Skill 选型与试跑工具。',
           'hero.subtitle': '别猜哪个 AI Skill 有用，直接并排看结果。',
-          'hero.lede': 'ForkProbe 是一个 AI Skill 选型与试跑工具。面向办公、科研、金融任务，它会先基于你的任务推荐多个候选 AI skill，再把同一个需求交给它们并行处理，生成本地报告，横向比较输出质量、耗时、消耗量和 AI 评审建议，再用胜出的路径继续工作。',
+          'hero.lede': 'ForkProbe 是一个 AI Skill 选型与试跑工具。v0.2 新增支持论文作图 / 科研绘图对比。面向办公、科研、金融任务，它会先基于你的任务推荐多个候选 AI skill，再把同一个需求交给它们并行处理，生成本地报告，横向比较输出质量、耗时、消耗量和 AI 评审建议，再用胜出的路径继续工作。',
           'hero.previewButton': '查看预览',
           'hero.usecasesButton': '适用场景',
           'hero.visualAria': 'forkprobe 对比报告界面预览',
@@ -1940,9 +1940,9 @@
           'usecases.officeTag2': '内部宣传',
           'usecases.officeTag3': 'PPT',
           'usecases.researchTitle': '科研方向',
-          'usecases.researchBody': '中文 SCI 润色、英文摘要、Nature 风格、审稿回复、figure storyline 和科研 PPT，比较表达效果同时守住技术含义。',
+          'usecases.researchBody': '中文 SCI 润色、英文摘要、Nature 风格、审稿回复、论文作图 / 科研绘图和科研 PPT，比较表达效果与成品质量，同时守住技术含义。',
           'usecases.researchTag1': 'SCI 写作',
-          'usecases.researchTag2': '图表说明',
+          'usecases.researchTag2': '科研绘图',
           'usecases.researchTag3': '组会材料',
           'usecases.financeTitle': '金融方向',
           'usecases.financeBody': '持仓数据、行业报告、财报摘要、风险敞口和投委会材料，让多个分析路径并行跑，再选证据链最稳的一版。',
@@ -1951,7 +1951,7 @@
           'usecases.financeTag3': '风险对比',
           'capability.kicker': '任务能力矩阵',
           'capability.title': '当前支持什么，接下来会覆盖什么。',
-          'capability.lede': '文本任务看多版本输出；PPTX 这类成品任务看真实文件和预览。规划中的图片、网页和科研作图也会沿用同一套对比报告。',
+          'capability.lede': '文本任务看多版本输出；PPTX 和科研作图这类成品任务看真实文件和预览。规划中的图片、网页制作也会沿用同一套对比报告。',
           'capability.headerScene': '场景',
           'capability.headerStatus': '状态',
           'capability.headerReport': 'Report 里看到什么',
@@ -2012,7 +2012,7 @@
           'cta.lede': '不管你用 Claude Code、Codex、OpenClaw、WorkBuddy 还是 OpenCode，都可以先让 forkprobe 找候选、跑对比、给评审，再由你决定继续哪一个 skill。',
           'cta.prompt': '先帮我比较几个 skill，看看哪个更适合当前任务。或者：请用 forkprobe 推荐候选，等我确认后再并排执行并生成 report，让我选择 winner。',
           'cta.copy': '复制',
-          'footer.left': 'ForkProbe · AI Skill 选型与试跑工具',
+          'footer.left': 'ForkProbe v0.2 · AI Skill 选型与试跑工具',
           'footer.right': 'GitHub Pages ready · Local-first comparison reports',
           'toast.downloaded': '已为你下载 Skill。',
           'ui.copied': '已复制',

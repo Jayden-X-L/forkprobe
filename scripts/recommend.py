@@ -119,10 +119,10 @@ BYO_COPY = {
         author="Yuan1z",
         kind="byo",
         command_arg=f"{NATURE_SKILLS_REPO}#skills/nature-figure",
-        reason_zh="适合 Nature 风格科研图、figure storyline 和图注构思。",
-        reason_en="Useful for Nature-style figures, figure storyline, and caption planning.",
-        caution_zh="当前 forkprobe 报告以文本对比为主；如果需要直接生成图片/文件，后续需要扩展报告页。",
-        caution_en="Current forkprobe reports are text-first; direct image/file outputs need a future report upgrade.",
+        reason_zh="适合 Nature 风格科研图、figure storyline、panel 结构和图注构思。",
+        reason_en="Useful for Nature-style figures, figure storyline, panel structure, and caption planning.",
+        caution_zh="如果最终要科研图成品，请走 figure artifact pipeline；这里仅用于明确只要图注/说明文字的任务。",
+        caution_en="Use the figure artifact pipeline for finished scientific figures; keep this only for caption or planning-only tasks.",
     ),
     "nature-paper2ppt": RecommendedSkill(
         id="byo:nature-paper2ppt",
@@ -190,6 +190,78 @@ ARTIFACT_PIPELINES = {
 }
 
 
+FIGURE_ARTIFACT_PIPELINES = {
+    "baseline-python-figure": RecommendedSkill(
+        id="baseline-python-figure",
+        name="baseline + Python figure package",
+        author="",
+        kind="pipeline",
+        command_arg="baseline-python-figure",
+        reason_zh="不使用专门科研作图 skill，直接生成可复现的 Python/SVG 图包，作为成品基线。",
+        reason_en="No specialized figure skill; produces a reproducible Python/SVG figure package as the baseline.",
+        runnable=False,
+        produces="figure_package",
+        pipeline_steps=["baseline", "python/matplotlib-or-svg", "artifact-qa"],
+        score=82,
+    ),
+    "nature-figure-python": RecommendedSkill(
+        id="nature-figure-python",
+        name="nature-figure + Python/SVG renderer",
+        author="Yuan1z",
+        kind="pipeline",
+        command_arg=f"{NATURE_SKILLS_REPO}#skills/nature-figure+python-svg-renderer",
+        reason_zh="先用 nature-figure 做科学设计、storyline、panel 结构和图注，再生成投稿级图包。",
+        reason_en="Uses nature-figure for scientific design, storyline, panel structure, and caption before rendering a submission-oriented package.",
+        runnable=False,
+        produces="figure_package",
+        pipeline_steps=[f"{NATURE_SKILLS_REPO}#skills/nature-figure", "python/svg-renderer", "artifact-qa"],
+        caution_zh="这是科研图成品 pipeline，执行时应输出 PNG 预览、SVG/PDF/TIFF、源代码或矢量源文件、caption 和 QA。",
+        caution_en="This is a scientific figure artifact pipeline; execution should output PNG preview, SVG/PDF/TIFF, source code or vector source, caption, and QA notes.",
+        source_kind="known_github",
+        score=88,
+    ),
+    "plot-code-python": RecommendedSkill(
+        id="plot-code-python",
+        name="data plot code pipeline",
+        author="",
+        kind="pipeline",
+        command_arg="plot-code-python",
+        reason_zh="面向真实数据作图：读取数据、生成绘图代码、导出 PNG/SVG/PDF/TIFF 和简短图注。",
+        reason_en="For real data plots: load data, generate plotting code, export PNG/SVG/PDF/TIFF, and write a short caption.",
+        runnable=False,
+        produces="figure_package",
+        pipeline_steps=["data-understanding", "python/matplotlib-or-seaborn", "export", "artifact-qa"],
+        score=85,
+    ),
+    "schematic-svg": RecommendedSkill(
+        id="schematic-svg",
+        name="schematic SVG / draw.io pipeline",
+        author="",
+        kind="pipeline",
+        command_arg="schematic-svg",
+        reason_zh="面向机制图、架构图和流程图：先设计布局，再生成 SVG/draw.io 友好的矢量图包。",
+        reason_en="For mechanism, architecture, and workflow diagrams: design layout first, then produce an SVG/draw.io-friendly vector package.",
+        runnable=False,
+        produces="figure_package",
+        pipeline_steps=["brief-to-layout", "svg-or-drawio", "export", "artifact-qa"],
+        score=84,
+    ),
+    "graphical-abstract-svg": RecommendedSkill(
+        id="graphical-abstract-svg",
+        name="graphical abstract SVG pipeline",
+        author="",
+        kind="pipeline",
+        command_arg="graphical-abstract-svg",
+        reason_zh="面向 graphical abstract：把论文 brief 转成单幅摘要图、导出预览和矢量源文件。",
+        reason_en="For graphical abstracts: turn a paper brief into a single visual abstract with preview and vector source files.",
+        runnable=False,
+        produces="figure_package",
+        pipeline_steps=["paper-brief", "visual-storyboard", "svg-render", "artifact-qa"],
+        score=80,
+    ),
+}
+
+
 def _pipeline_from_discovery(pipeline) -> RecommendedSkill:
     """Convert discover_skills.PipelineCandidate into recommend.py's UI model."""
     return RecommendedSkill(
@@ -218,7 +290,12 @@ def _pipeline_from_discovery(pipeline) -> RecommendedSkill:
 
 
 def _skill_from_online_discovery(candidate, deliverable_type: str) -> RecommendedSkill:
-    produces = "pptx" if deliverable_type == "pptx" else "text"
+    if deliverable_type == "pptx":
+        produces = "pptx"
+    elif deliverable_type == "visual_artifact":
+        produces = "figure_package"
+    else:
+        produces = "text"
     return RecommendedSkill(
         id=candidate.id,
         name=candidate.name,
@@ -259,6 +336,7 @@ KEYWORDS = {
     ],
     "figure": [
         "figure", "fig.", "图", "示意图", "画图", "作图", "绘图", "流程图", "图表",
+        "机制图", "架构图", "graphical abstract", "schematic", "diagram",
         "plot", "graph", "visualization", "可视化",
     ],
     "slides": ["ppt", "slide", "slides", "汇报", "presentation", "deck", "答辩"],
@@ -274,6 +352,18 @@ TEXT_ONLY_HINTS = [
 PPT_ARTIFACT_HINTS = [
     "做一个ppt", "做ppt", "做成ppt", "生成ppt", "正式ppt", "pptx", "powerpoint",
     "slide deck", "deck", "生成 slide", "生成slide",
+]
+
+FIGURE_TEXT_ONLY_HINTS = [
+    "只要图注", "只给图注", "只要caption", "只给caption", "只要说明", "只给说明",
+    "只要storyline", "只给storyline", "只看storyline", "不要生成图片", "不生成图片",
+    "不要生成图", "不生成图", "不要生成文件", "只要代码草案", "只给代码草案",
+]
+
+FIGURE_ARTIFACT_HINTS = [
+    "成品", "投稿", "最终图", "最终figure", "生成图片", "生成图", "生成示意图",
+    "画图", "作图", "绘图", "png", "svg", "pdf", "tiff", "draw.io", "drawio",
+    "源文件", "矢量", "可编辑", "figure package", "artifact",
 ]
 
 LOCAL_ONLY_HINTS = [
@@ -326,7 +416,9 @@ def detect_deliverable_type(task_text: str, signals: Optional[list[str]] = None)
         if "ppt" in task_text.lower():
             return "pptx"
         return "ppt_outline"
-    if "figure" in signal_set and not _has_compact_any(task_text, ["图注", "storyline", "说明", "prompt", "代码"]):
+    if "figure" in signal_set:
+        if _has_compact_any(task_text, FIGURE_TEXT_ONLY_HINTS):
+            return "text"
         return "visual_artifact"
     return "text"
 
@@ -386,6 +478,10 @@ def _artifact_pipeline(pipeline_id: str) -> RecommendedSkill:
     return ARTIFACT_PIPELINES[pipeline_id]
 
 
+def _figure_artifact_pipeline(pipeline_id: str) -> RecommendedSkill:
+    return FIGURE_ARTIFACT_PIPELINES[pipeline_id]
+
+
 def _candidate_key(candidate: RecommendedSkill) -> str:
     raw = (candidate.command_arg if "#" in (candidate.command_arg or "") else candidate.source) or candidate.command_arg or candidate.id
     source = raw.lower().strip()
@@ -408,7 +504,10 @@ def _rank_and_limit(candidates: list[RecommendedSkill], max_candidates: int) -> 
         seen.add(key)
         deduped.append(candidate)
 
-    baseline = [candidate for candidate in deduped if candidate.id == "baseline" or candidate.kind == "baseline"]
+    baseline = [
+        candidate for candidate in deduped
+        if candidate.id == "baseline" or candidate.id.startswith("baseline") or candidate.kind == "baseline"
+    ]
     others = [candidate for candidate in deduped if candidate not in baseline]
     others.sort(key=lambda candidate: (candidate.score, candidate.stars), reverse=True)
 
@@ -420,6 +519,28 @@ def _rank_and_limit(candidates: list[RecommendedSkill], max_candidates: int) -> 
     elif online and not has_online:
         selected.append(online[0])
     return selected[:max_candidates]
+
+
+def _detect_figure_family(task_text: str) -> str:
+    compact = _compact(task_text)
+    if any(word in compact for word in ["graphicalabstract", "图文摘要", "视觉摘要"]):
+        return "graphical_abstract"
+    if any(word in compact for word in ["csv", "excel", "数据", "data", "plot", "曲线", "柱状图", "散点", "箱线", "热图"]):
+        return "plot"
+    if any(word in compact for word in ["机制图", "架构图", "示意图", "流程图", "schematic", "diagram", "architecture", "workflow"]):
+        return "schematic"
+    return "mixed"
+
+
+def _figure_artifact_command(candidates: list[RecommendedSkill]) -> list[str]:
+    command = ["python3", "scripts/figure_artifact.py", "--input", "<input.txt>"]
+    for candidate in candidates:
+        if candidate.id in FIGURE_ARTIFACT_PIPELINES:
+            command.extend(["--pipeline", candidate.id])
+        elif candidate.command_arg.startswith(("http://", "https://", "/", "./", "~/")):
+            command.extend(["--skill-source", candidate.command_arg])
+    command.extend(["--run", "--judge", "--render-report", "--report-output", "./figure-artifact-report.html"])
+    return command
 
 
 def _note_if_no_new_external(candidates: list[RecommendedSkill], notes_zh: list[str], notes_en: list[str]) -> None:
@@ -466,6 +587,11 @@ def recommend_candidates(
 
     def add_pipeline(pipeline_id: str) -> None:
         candidate = _artifact_pipeline(pipeline_id)
+        candidate.score = candidate.score or 76
+        _append_unique(candidates, candidate, pool_limit)
+
+    def add_figure_pipeline(pipeline_id: str) -> None:
+        candidate = _figure_artifact_pipeline(pipeline_id)
         candidate.score = candidate.score or 76
         _append_unique(candidates, candidate, pool_limit)
 
@@ -527,14 +653,48 @@ def recommend_candidates(
             discovery_queries=discovery_queries,
         )
 
+    if deliverable_type == "visual_artifact":
+        figure_family = _detect_figure_family(task_text)
+        if figure_family == "plot":
+            for pipeline_id in ["baseline-python-figure", "plot-code-python", "nature-figure-python", "schematic-svg"]:
+                add_figure_pipeline(pipeline_id)
+        elif figure_family == "schematic":
+            for pipeline_id in ["baseline-python-figure", "schematic-svg", "nature-figure-python", "graphical-abstract-svg"]:
+                add_figure_pipeline(pipeline_id)
+        elif figure_family == "graphical_abstract":
+            for pipeline_id in ["baseline-python-figure", "graphical-abstract-svg", "nature-figure-python", "schematic-svg"]:
+                add_figure_pipeline(pipeline_id)
+        else:
+            for pipeline_id in ["baseline-python-figure", "nature-figure-python", "plot-code-python", "schematic-svg"]:
+                add_figure_pipeline(pipeline_id)
+        add_online_candidates()
+        candidates = _rank_and_limit(candidates, max_candidates)
+        _note_if_no_new_external(candidates, notes_zh, notes_en)
+        notes_zh.append("这是论文作图/科研绘图成品对比模式：确认后应让每条 pipeline 各生成一个 figure package，再用 artifact report 展示 PNG 预览、SVG/PDF/TIFF、代码、caption 和 QA。")
+        notes_zh.append("如果用户明确只想比较图注、storyline 或说明文字，应切回 text 模式。")
+        notes_en.append("This is scientific figure artifact comparison mode: each pipeline should generate its own figure package, then compare PNG previews, SVG/PDF/TIFF, code, caption, and QA notes in the artifact report.")
+        notes_en.append("If the user explicitly wants only captions, storyline, or explanatory text, switch back to text mode.")
+        return Recommendation(
+            deliverable_type=deliverable_type,
+            compare_mode=compare_mode,
+            task_signals=signals,
+            candidates=candidates,
+            notes_zh=notes_zh,
+            notes_en=notes_en,
+            suggested_command=_figure_artifact_command(candidates),
+            mode_explanation_zh="识别到最终交付物是科研图/论文 figure 成品，应比较 figure 生成 pipeline，而不是只比较图注或说明文字。",
+            mode_explanation_en="Detected a scientific figure deliverable. Compare figure-generation pipelines, not just captions or explanatory text.",
+            discovery_queries=discovery_queries,
+        )
+
     add_catalog("baseline")
 
     if "figure" in signal_set:
         add_byo("nature-figure")
         add_catalog("paper-writer-skill", "适合先梳理 figure narrative、结果逻辑和图注表达。")
         add_catalog("research-paper-writing-skills", "适合中文科研图注、结果描述和论文语境表达。")
-        notes_zh.append("图像/文件型输出目前不是 forkprobe 报告页的强项；优先比较图注、figure storyline、绘图说明或代码草案。")
-        notes_en.append("Image/file outputs are not the report's strongest path yet; compare captions, figure storyline, drawing instructions, or code drafts first.")
+        notes_zh.append("当前识别为图注/storyline/说明文字对比；如果最终要科研图成品，请切换到 figure artifact 模式。")
+        notes_en.append("This is recognized as caption/storyline/explanatory text comparison; switch to figure artifact mode for finished scientific figures.")
     elif "slides" in signal_set:
         add_byo("nature-paper2ppt")
         add_catalog("paper-writer-skill", "适合把论文结构转成正式汇报逻辑。")
@@ -626,7 +786,14 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
             lines.extend(f"Note: {note}" for note in recommendation.notes_en)
         lines.append("")
         if recommendation.compare_mode == "artifact":
-            lines.append("After confirmation: generate one artifact per pipeline, then render an artifact comparison report with file links/previews.")
+            lines.append("After confirmation:")
+            if recommendation.suggested_command:
+                lines.append(command_text)
+                lines.append("This creates one workspace per figure pipeline, runs candidates, judges the artifact summaries, and renders the report. You can also add files to a candidate's artifacts folder and re-render.")
+            elif recommendation.deliverable_type == "pptx":
+                lines.append("Generate one PPTX per pipeline, then render an artifact comparison report with file links/previews.")
+            else:
+                lines.append("Generate one artifact package per pipeline, then render an artifact comparison report with file links/previews.")
         else:
             lines.append("Suggested command after confirmation:")
             lines.append(command_text)
@@ -661,7 +828,13 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
     lines.append("")
     if recommendation.compare_mode == "artifact":
         lines.append("确认后执行方式:")
-        lines.append("让每条 pipeline 各生成一个 PPTX，再用 artifact report 展示文件链接、关键页预览和 AI 评审。")
+        if recommendation.suggested_command:
+            lines.append(command_text)
+            lines.append("这会为每条科研图 pipeline 创建独立 workspace、试跑候选、评审 artifact 摘要并渲染 report；也可以手动补充某个候选的 artifacts 后重新渲染。")
+        elif recommendation.deliverable_type == "pptx":
+            lines.append("让每条 pipeline 各生成一个 PPTX，再用 artifact report 展示文件链接、关键页预览和 AI 评审。")
+        else:
+            lines.append("让每条 pipeline 各生成一个 artifact package，再用 artifact report 展示文件链接、预览和 AI 评审。")
     else:
         lines.append("确认后可运行:")
         lines.append(command_text)

@@ -4,8 +4,8 @@ forkprobe main orchestration: run a task in parallel with and without skill(s).
 Usage:
     python compare.py --input task.txt --skill baseline --skill humanizer --output report.html
 
-Phase 1 status: complete prototype with catalog/BYO skill loading, parallel
-execution, HTML report rendering, and local verdict capture.
+v0.2 status: catalog/BYO skill loading, parallel execution, HTML report
+rendering, local verdict capture, and first artifact comparison flows.
 """
 from __future__ import annotations
 
@@ -520,7 +520,7 @@ def main():
         print(f"Error resolving skill: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[forkprobe] v0.1 (Phase 1 prototype)")
+    print(f"[forkprobe] v0.2")
     print(f"[forkprobe] Task input: {len(task_input)} chars from {input_path}")
     print(f"[forkprobe] Skills to compare: {[s.id for s in skills]}")
     print()

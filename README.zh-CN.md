@@ -18,11 +18,14 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
+  <img alt="Version v0.2" src="https://img.shields.io/badge/version-v0.2-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/report-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
+
+**v0.2 新增支持论文作图 / 科研绘图对比：** figure pipeline 可以生成并横向比较 PNG 预览、SVG/PDF/TIFF 导出、源文件、caption、QA 和 AI 评审建议。
 
 当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。forkprobe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
 
@@ -69,16 +72,16 @@ Compare a few skills first and see which one fits the current task better.
 ## 适合什么场景
 
 - 办公方向：产品方案、GTM、会议纪要、市场分析、内部宣传、汇报 PPT
-- 科研方向：SCI 润色、英文摘要、Nature 风格、审稿回复、figure storyline、科研 PPT
+- 科研方向：SCI 润色、英文摘要、Nature 风格、审稿回复、论文作图 / 科研绘图、科研 PPT
 - 金融方向：持仓数据、行业报告、财报摘要、风险敞口、投委会材料
-- 成品对比：PPTX、文档、长图等生成型 artifact 的横向比较
+- 成品对比：PPTX、科研 figure package、文档、长图等生成型 artifact 的横向比较
 
 ## 支持的 Agent 工作流
 
 - Claude Code / Claude 风格 skill 会话
 - Codex 原生执行路径，并在失败时 fallback 到 OpenAI API
 - OpenClaw、WorkBuddy、OpenCode 等自然语言 Agent 工作流
-- “做一个 PPT”这类成品生成任务的 artifact comparison
+- “做一个 PPT”和“生成论文 figure”这类成品生成任务的 artifact comparison
 
 ## 安装
 
@@ -158,6 +161,23 @@ python3 scripts/render_artifact_report.py \
   --manifest /tmp/forkprobe-ppt-artifacts.json \
   --output /tmp/forkprobe-ppt-report.html
 ```
+
+如果目标是论文作图或科研绘图，forkprobe 可以比较 figure 生成 pipeline 和外部 figure skill。每条候选路径会生成一个 figure package，用 report 展示预览、源文件、caption 和 QA：
+
+```bash
+python3 scripts/figure_artifact.py \
+  --input /tmp/forkprobe-figure-task.txt \
+  --pipeline baseline-python-figure \
+  --pipeline nature-figure-python \
+  --pipeline schematic-svg \
+  --skill-source https://github.com/example/figure-skill#skills/scientific-figure \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-figure-report.html
+```
+
+推荐产物包括 `preview.png`、`figure.svg`、`figure.pdf` 或 `figure.tiff`、源代码或矢量源文件、`caption.md` 和 `qa.md`。
 
 ## 隐私
 
