@@ -29,13 +29,21 @@ ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交
 
 **v0.2 新增支持论文作图 / 科研绘图对比：** figure pipeline 可以生成并横向比较 PNG 预览、SVG/PDF/TIFF 导出、源文件、caption、QA 和 AI 评审建议。
 
-当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。forkprobe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
+当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。ForkProbe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
+
+## 什么时候该用 ForkProbe
+
+- 你不确定当前任务该用哪个 skill，想先看真实输出再决定。
+- 你想比较 baseline 和多个 skill，而不是只相信 skill 的描述。
+- 你的交付物是 PPTX、科研 figure package 这类文件成品，需要看文件、预览和 QA。
+- 你想引入 GitHub 或本地自带的 BYO skill，但希望先做一次小规模试跑。
+- 不适合简单确定性任务：如果答案或工具路径已经很明确，直接执行会更快。
 
 ## 它怎么工作
 
 ```mermaid
 flowchart LR
-  A["你的任务"] --> B["候选 skills"]
+  A["你的任务"] --> B["候选 skills / pipelines"]
   B --> C["并行试跑"]
   C --> D["本地 report"]
   D --> E["AI 评审建议"]
@@ -43,11 +51,11 @@ flowchart LR
   F --> G["Continuation handoff"]
 ```
 
-forkprobe 把 skill 选择变成一个可观察的流程：
+ForkProbe 把 skill 选择变成一个可观察的流程：
 
-1. 根据当前任务推荐少量候选 skill。
-2. 用同一份输入跑 baseline 和多个 skill。
-3. 展示每一路完整输出、耗时、token 估算和 AI 评审建议。
+1. 根据当前任务推荐少量候选 skill 或 artifact pipeline。
+2. 用同一份输入跑 baseline 和多个候选。
+3. 展示每一路完整输出、耗时、token 估算、文件预览和 AI 评审建议。
 4. 由你选择 winner。
 5. 生成 continuation handoff，让 Agent 继续执行正式任务。
 
@@ -71,12 +79,74 @@ forkprobe 把 skill 选择变成一个可观察的流程：
 Compare a few skills first and see which one fits the current task better.
 ```
 
-## 适合什么场景
+## 能力矩阵与候选推荐
 
-- 办公方向：产品方案、GTM、会议纪要、市场分析、内部宣传、汇报 PPT
-- 科研方向：SCI 润色、英文摘要、Nature 风格、审稿回复、论文作图 / 科研绘图、科研 PPT
-- 金融方向：持仓数据、行业报告、财报摘要、风险敞口、投委会材料
-- 成品对比：PPTX、科研 figure package、文档、长图等生成型 artifact 的横向比较
+候选推荐严格跟当前 README 能力矩阵对齐。`baseline` 表示不使用额外 skill 的参照组；`+ presentations`、`+ Python/SVG renderer` 表示策略 skill 需要搭配生成器形成完整成品 pipeline。外部 GitHub 候选进入执行前仍建议检查 license、依赖和最终产物路径。
+
+| 场景 | 状态 | Report 里看到什么 | 推荐候选 |
+|---|---|---|---|
+| 学术润色与 SCI 写作 | 已支持 | 多版本文本、AI 评审、winner 选择 | `baseline`, `research-paper-writing-skills`, `paper-writer-skill`, [`nature-polishing`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-polishing), `humanizer` |
+| 自然化与风格改写 | 已支持 | 不同风格稿件并排比较 | `baseline`, `writing-anti-ai`, `humanizer`, `research-paper-writing-skills` |
+| 审稿回复与投稿材料 | 已支持 | 回复草稿、结构、语气对比 | `baseline`, [`nature-response`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-response), `paper-writer-skill`, `writing-anti-ai`, `research-paper-writing-skills` |
+| PPTX 成品生成 | 已支持 | 可打开的 PPTX、预览图、候选说明 | `baseline + presentations`, [`nature-paper2ppt`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-paper2ppt) `+ presentations`, [`academic-pptx-skill`](https://github.com/Gabberflast/academic-pptx-skill) `+ presentations`, [`ppt-master`](https://github.com/hugohe3/ppt-master), [`md-slides`](https://github.com/zl190/md-slides) |
+| 论文作图 / 科研绘图 | 已支持 | PNG 预览、SVG/PDF/TIFF、代码、caption、QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
+| 图片生成 / 生图比较 | 规划中 | 图片预览、文件链接、候选说明 | 暂不放固定候选；未来支持 image-generation pipelines |
+| 网页 / HTML 制作比较 | 规划中 | 页面链接、截图预览、候选说明 | 暂不放固定候选；未来支持 web/HTML artifact pipelines |
+
+## 三种工作模式
+
+### 1. Text comparison
+
+适合学术润色、自然化改写、审稿回复、投稿材料、PPT 方案/大纲等文本产物。
+
+```bash
+python3 scripts/compare.py \
+  --input /tmp/forkprobe-input.txt \
+  --skill baseline \
+  --skill writing-anti-ai \
+  --skill research-paper-writing-skills \
+  --judge \
+  --output /tmp/forkprobe-report.html
+```
+
+### 2. PPTX artifact comparison
+
+如果用户目标是“做一个 PPT”或“生成 PPTX”，ForkProbe 会倾向比较成品生成 pipeline，而不是只比较文字大纲。策略 skill 必须搭配 `presentations` 或 `pptx` 这类生成器，完整 pipeline 才进入成品对比。
+
+典型 shortlist：
+
+- `baseline + presentations`
+- `academic-pptx-skill + presentations`
+- `nature-paper2ppt + presentations`
+- `ppt-master`
+- `md-slides`
+
+生成每条 pipeline 的 PPTX 后，用 artifact report 展示文件链接、关键页预览和 AI 评审：
+
+```bash
+python3 scripts/render_artifact_report.py \
+  --manifest /tmp/forkprobe-ppt-artifacts.json \
+  --output /tmp/forkprobe-ppt-report.html
+```
+
+### 3. Figure artifact comparison
+
+如果目标是论文作图、科研绘图、机制图、数据图或 graphical abstract，ForkProbe 会比较 figure 生成 pipeline。每条候选路径会生成一个 figure package，用 report 展示预览、源文件、caption 和 QA。
+
+```bash
+python3 scripts/figure_artifact.py \
+  --input /tmp/forkprobe-figure-task.txt \
+  --pipeline baseline-python-figure \
+  --pipeline nature-figure-python \
+  --pipeline plot-code-python \
+  --skill-source 'https://github.com/K-Dense-AI/scientific-agent-skills#skills/scientific-visualization' \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-figure-report.html
+```
+
+推荐产物包括 `preview.png`、`figure.svg`、`figure.pdf` 或 `figure.tiff`、源代码或矢量源文件、`caption.md` 和 `qa.md`。
 
 ## 支持的 Agent 工作流
 
@@ -84,18 +154,6 @@ Compare a few skills first and see which one fits the current task better.
 - Codex 原生执行路径，并在失败时 fallback 到 OpenAI API
 - OpenClaw、WorkBuddy、OpenCode 等自然语言 Agent 工作流
 - “做一个 PPT”和“生成论文 figure”这类成品生成任务的 artifact comparison
-
-## 能力矩阵
-
-| 场景 | 状态 | Report 里看到什么 |
-|---|---|---|
-| 学术润色与 SCI 写作 | 已支持 | 多版本文本、AI 评审、winner 选择 |
-| 自然化与风格改写 | 已支持 | 不同风格稿件并排比较 |
-| 审稿回复与投稿材料 | 已支持 | 回复草稿、结构、语气对比 |
-| PPTX 成品生成 | 已支持 | 可打开的 PPTX、预览图、候选说明 |
-| 论文作图 / 科研绘图 | 已支持 | PNG 预览、SVG/PDF/TIFF、代码、caption、QA |
-| 图片生成 / 生图比较 | 规划中 | 图片预览、文件链接、候选说明 |
-| 网页 / HTML 制作比较 | 规划中 | 页面链接、截图预览、候选说明 |
 
 ## 安装
 
@@ -133,7 +191,13 @@ pip3 install claude-agent-sdk
 echo "请润色这段文字，并保留原意。" > /tmp/forkprobe-input.txt
 ```
 
-运行一次本地对比：
+先让 ForkProbe 推荐候选：
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-input.txt
+```
+
+确认候选后运行一次本地文本对比：
 
 ```bash
 python3 scripts/compare.py \
@@ -150,15 +214,13 @@ python3 scripts/compare.py \
 open /tmp/forkprobe-report.html
 ```
 
-## 候选 Skill 推荐
+## BYO、GitHub discovery 与 local-only
 
-在正式对比前，forkprobe 可以先推荐候选：
+在正式对比前，`scripts/recommend.py` 可以先推荐候选。默认情况下，它会合并本地 curated 候选和 GitHub / 网络发现结果。网络搜索只使用经过清洗的任务信号，不会直接拿你的原始文档做搜索词。
 
 ```bash
 python3 scripts/recommend.py --input /tmp/forkprobe-input.txt
 ```
-
-默认情况下，它会合并本地 curated 候选和 GitHub / 网络发现结果。网络搜索只使用经过清洗的任务信号，不会直接拿你的原始文档做搜索词。
 
 如果只想使用本地候选：
 
@@ -166,32 +228,17 @@ python3 scripts/recommend.py --input /tmp/forkprobe-input.txt
 python3 scripts/recommend.py --input /tmp/forkprobe-input.txt --local-only
 ```
 
-## PPTX / Artifact 对比
+BYO skill 支持本地路径、GitHub URL、`repo#subdir` 和 raw `SKILL.md` URL，例如：
 
-如果用户目标是“做一个 PPT”或“生成 PPTX”，forkprobe 会倾向比较成品生成 pipeline，而不是只比较文字大纲。它可以发现策略 skill、生成器和完整 pipeline，并从生成文件渲染 artifact report：
-
-```bash
-python3 scripts/render_artifact_report.py \
-  --manifest /tmp/forkprobe-ppt-artifacts.json \
-  --output /tmp/forkprobe-ppt-report.html
+```text
+https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing
 ```
 
-如果目标是论文作图或科研绘图，forkprobe 可以比较 figure 生成 pipeline 和外部 figure skill。每条候选路径会生成一个 figure package，用 report 展示预览、源文件、caption 和 QA：
+## Report、winner 与 handoff
 
-```bash
-python3 scripts/figure_artifact.py \
-  --input /tmp/forkprobe-figure-task.txt \
-  --pipeline baseline-python-figure \
-  --pipeline nature-figure-python \
-  --pipeline schematic-svg \
-  --skill-source https://github.com/example/figure-skill#skills/scientific-figure \
-  --run \
-  --judge \
-  --render-report \
-  --report-output /tmp/forkprobe-figure-report.html
-```
+ForkProbe 的核心产物是本地 HTML report。文本模式展示每一路完整输出、耗时、token 估算和 AI 评审；artifact 模式展示 PPTX 或 figure package 的文件链接、预览、候选说明、caption、QA 和评审建议。
 
-推荐产物包括 `preview.png`、`figure.svg`、`figure.pdf` 或 `figure.tiff`、源代码或矢量源文件、`caption.md` 和 `qa.md`。
+当用户在 report 中选择 winner 后，ForkProbe 会记录本地 verdict，并生成 continuation handoff。当前 Agent 可以沿用 winner 的风格、结构或文件产物继续完成正式任务。
 
 ## 隐私
 

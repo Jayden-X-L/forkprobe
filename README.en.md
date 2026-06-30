@@ -29,13 +29,21 @@ ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gi
 
 **v0.2 adds paper figure and scientific graphics comparison:** figure pipelines can now generate and compare PNG previews, SVG/PDF/TIFF exports, source files, captions, QA notes, and AI judge recommendations.
 
-It is useful when the skill ecosystem is too crowded to trust descriptions alone: office writing, research polishing, financial analysis, PPT planning, PPTX artifact generation, scientific figure generation, and other workflows where the right skill changes the final output.
+When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe makes the choice visible: compare the real outputs first, then continue with the path you picked.
+
+## When To Use ForkProbe
+
+- You are not sure which skill fits the current task and want to see real outputs first.
+- You want to compare the baseline against several skills instead of trusting skill descriptions.
+- Your deliverable is a file artifact such as a PPTX deck or a scientific figure package.
+- You want to try a GitHub or bring-your-own skill with a small preflight run.
+- It is not meant for simple deterministic tasks where the best tool path is already obvious.
 
 ## How It Works
 
 ```mermaid
 flowchart LR
-  A["Your task"] --> B["Candidate skills"]
+  A["Your task"] --> B["Candidate skills / pipelines"]
   B --> C["Parallel runs"]
   C --> D["Local report"]
   D --> E["AI judge recommendation"]
@@ -43,11 +51,11 @@ flowchart LR
   F --> G["Continuation handoff"]
 ```
 
-forkprobe turns skill choice into a visible workflow:
+ForkProbe turns skill choice into a visible workflow:
 
-1. Recommend a small candidate set.
-2. Run the same task through baseline and several skills.
-3. Show full outputs, latency, token estimates, and AI judge notes.
+1. Recommend a small set of candidate skills or artifact pipelines.
+2. Run the same input through the baseline and each candidate.
+3. Show full outputs, latency, token estimates, file previews, and AI judge notes.
 4. Let you pick the best path.
 5. Generate a continuation handoff so the Agent can keep working from the selected result.
 
@@ -71,24 +79,81 @@ Chinese trigger:
 先帮我比较几个 skill，看看哪个更适合当前任务。
 ```
 
-## Supported Workflows
+## Capability Matrix And Candidate Shortlist
+
+The shortlist below follows the current README capability matrix. `baseline` means no extra skill. `+ presentations` and `+ Python/SVG renderer` mean a strategy skill must be paired with a generator to become a complete artifact pipeline. External GitHub candidates should still be checked for license, dependencies, and output paths before execution.
+
+| Scenario | Status | What you see in the report | Recommended candidates |
+|---|---|---|---|
+| Academic polishing & SCI writing | Supported | Draft variants, AI judge notes, winner selection | `baseline`, `research-paper-writing-skills`, `paper-writer-skill`, [`nature-polishing`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-polishing), `humanizer` |
+| Naturalization & style rewriting | Supported | Side-by-side drafts in different tones and styles | `baseline`, `writing-anti-ai`, `humanizer`, `research-paper-writing-skills` |
+| Reviewer response & submission materials | Supported | Response drafts, structure, and tone comparison | `baseline`, [`nature-response`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-response), `paper-writer-skill`, `writing-anti-ai`, `research-paper-writing-skills` |
+| PPTX deck generation | Supported | Openable PPTX files, preview images, candidate notes | `baseline + presentations`, [`nature-paper2ppt`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-paper2ppt) `+ presentations`, [`academic-pptx-skill`](https://github.com/Gabberflast/academic-pptx-skill) `+ presentations`, [`ppt-master`](https://github.com/hugohe3/ppt-master), [`md-slides`](https://github.com/zl190/md-slides) |
+| Paper figures & scientific graphics | Supported | PNG previews, SVG/PDF/TIFF exports, code, captions, QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
+| Image generation comparison | Planned | Image previews, file links, candidate notes | No fixed shortlist yet; planned support for image-generation pipelines |
+| Web / HTML creation comparison | Planned | Page links, screenshot previews, candidate notes | No fixed shortlist yet; planned support for web/HTML artifact pipelines |
+
+## Three Work Modes
+
+### 1. Text comparison
+
+Use this for academic polishing, naturalization, reviewer responses, submission materials, and PPT plans or outlines.
+
+```bash
+python3 scripts/compare.py \
+  --input /tmp/forkprobe-input.txt \
+  --skill baseline \
+  --skill writing-anti-ai \
+  --skill research-paper-writing-skills \
+  --judge \
+  --output /tmp/forkprobe-report.html
+```
+
+### 2. PPTX artifact comparison
+
+For "make a PPT" or "generate a PPTX" tasks, ForkProbe should compare finished deck-generation pipelines instead of text-only outlines. Strategy skills must be paired with a generator such as `presentations` or `pptx` before they enter artifact comparison.
+
+Typical shortlist:
+
+- `baseline + presentations`
+- `academic-pptx-skill + presentations`
+- `nature-paper2ppt + presentations`
+- `ppt-master`
+- `md-slides`
+
+After each pipeline generates a PPTX, render an artifact report with file links, representative slide previews, and AI judge notes:
+
+```bash
+python3 scripts/render_artifact_report.py \
+  --manifest /tmp/forkprobe-ppt-artifacts.json \
+  --output /tmp/forkprobe-ppt-report.html
+```
+
+### 3. Figure artifact comparison
+
+For paper figures, scientific graphics, mechanism diagrams, data plots, or graphical abstracts, ForkProbe compares figure-generation pipelines. Each candidate writes a figure package that the report can show with previews, source files, captions, and QA notes.
+
+```bash
+python3 scripts/figure_artifact.py \
+  --input /tmp/forkprobe-figure-task.txt \
+  --pipeline baseline-python-figure \
+  --pipeline nature-figure-python \
+  --pipeline plot-code-python \
+  --skill-source 'https://github.com/K-Dense-AI/scientific-agent-skills#skills/scientific-visualization' \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-figure-report.html
+```
+
+Expected outputs include `preview.png`, `figure.svg`, `figure.pdf` or `figure.tiff`, source code or vector files, `caption.md`, and `qa.md`.
+
+## Supported Agent Workflows
 
 - Claude Code / Claude-style skill sessions
 - Codex native execution, with fallback to the OpenAI API
 - Natural-language Agent surfaces such as OpenClaw, WorkBuddy, OpenCode, and similar platforms
-- Artifact comparisons for generated PPTX, scientific figure packages, and other file outputs
-
-## Capability Matrix
-
-| Scenario | Status | What you see in the report |
-|---|---|---|
-| Academic polishing & SCI writing | Supported | Draft variants, AI judge notes, winner selection |
-| Naturalization & style rewriting | Supported | Side-by-side drafts in different tones and styles |
-| Reviewer response & submission materials | Supported | Response drafts, structure, and tone comparison |
-| PPTX deck generation | Supported | Openable PPTX files, preview images, candidate notes |
-| Paper figures & scientific graphics | Supported | PNG previews, SVG/PDF/TIFF exports, code, captions, QA |
-| Image generation comparison | Planned | Image previews, file links, candidate notes |
-| Web / HTML creation comparison | Planned | Page links, screenshot previews, candidate notes |
+- Artifact comparisons for generated PPTX decks and scientific figure packages
 
 ## Installation
 
@@ -124,7 +189,13 @@ Create an input file:
 echo "Polish this paragraph and keep the meaning unchanged." > /tmp/forkprobe-input.txt
 ```
 
-Run a comparison:
+Ask ForkProbe to recommend candidates:
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-input.txt
+```
+
+After confirming the candidates, run a local text comparison:
 
 ```bash
 python3 scripts/compare.py \
@@ -141,15 +212,13 @@ Open the local report:
 open /tmp/forkprobe-report.html
 ```
 
-## Candidate Recommendation
+## BYO, GitHub Discovery, And Local-Only
 
-Before running a comparison, forkprobe can recommend candidates:
+Before running a comparison, `scripts/recommend.py` can recommend candidates. By default, it combines local curated candidates with GitHub/network discovery using sanitized task signals. It does not send the raw task text as a search query.
 
 ```bash
 python3 scripts/recommend.py --input /tmp/forkprobe-input.txt
 ```
-
-By default, recommendation combines local curated candidates with GitHub/network discovery using sanitized task signals. It does not send the raw task text as a search query.
 
 For local-only discovery:
 
@@ -157,32 +226,17 @@ For local-only discovery:
 python3 scripts/recommend.py --input /tmp/forkprobe-input.txt --local-only
 ```
 
-## Artifact Comparison
+Bring-your-own skills can be local paths, GitHub URLs, `repo#subdir` references, or raw `SKILL.md` URLs, for example:
 
-For "make a PPT" tasks, forkprobe can route to artifact comparison instead of text-only outline comparison. It can discover strategy skills, generators, and full pipelines, then render a report from generated files:
-
-```bash
-python3 scripts/render_artifact_report.py \
-  --manifest /tmp/forkprobe-ppt-artifacts.json \
-  --output /tmp/forkprobe-ppt-report.html
+```text
+https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing
 ```
 
-For paper figures or scientific graphics, forkprobe can compare figure-generation pipelines and external figure skills. Each candidate writes a figure package with previews, editable/source files, captions, and QA notes:
+## Reports, Winners, And Handoffs
 
-```bash
-python3 scripts/figure_artifact.py \
-  --input /tmp/forkprobe-figure-task.txt \
-  --pipeline baseline-python-figure \
-  --pipeline nature-figure-python \
-  --pipeline schematic-svg \
-  --skill-source https://github.com/example/figure-skill#skills/scientific-figure \
-  --run \
-  --judge \
-  --render-report \
-  --report-output /tmp/forkprobe-figure-report.html
-```
+ForkProbe's main output is a local HTML report. Text mode shows each complete output, latency, token estimates, and AI judge notes. Artifact mode shows PPTX or figure-package links, previews, candidate notes, captions, QA, and judge recommendations.
 
-Expected outputs include `preview.png`, `figure.svg`, `figure.pdf` or `figure.tiff`, source code or vector files, `caption.md`, and `qa.md`.
+After you choose a winner in the report, ForkProbe records a local verdict and creates a continuation handoff. The current Agent can then keep working from the selected style, structure, or artifact path.
 
 ## Privacy
 
