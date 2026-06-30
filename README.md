@@ -76,6 +76,18 @@ Chinese trigger:
 - Natural-language Agent surfaces such as OpenClaw, WorkBuddy, OpenCode, and similar platforms
 - Artifact comparisons for generated PPTX, scientific figure packages, and other file outputs
 
+## Capability Matrix
+
+| Scenario | Status | What you see in the report |
+|---|---|---|
+| Academic polishing & SCI writing | Supported | Draft variants, AI judge notes, winner selection |
+| Naturalization & style rewriting | Supported | Side-by-side drafts in different tones and styles |
+| Reviewer response & submission materials | Supported | Response drafts, structure, and tone comparison |
+| PPTX deck generation | Supported | Openable PPTX files, preview images, candidate notes |
+| Paper figures & scientific graphics | Supported | PNG previews, SVG/PDF/TIFF exports, code, captions, QA |
+| Image generation comparison | Planned | Image previews, file links, candidate notes |
+| Web / HTML creation comparison | Planned | Page links, screenshot previews, candidate notes |
+
 ## Installation
 
 Install as a local skill by copying this folder into your Agent skill directory:

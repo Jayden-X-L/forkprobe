@@ -83,6 +83,18 @@ Compare a few skills first and see which one fits the current task better.
 - OpenClaw、WorkBuddy、OpenCode 等自然语言 Agent 工作流
 - “做一个 PPT”和“生成论文 figure”这类成品生成任务的 artifact comparison
 
+## 能力矩阵
+
+| 场景 | 状态 | Report 里看到什么 |
+|---|---|---|
+| 学术润色与 SCI 写作 | 已支持 | 多版本文本、AI 评审、winner 选择 |
+| 自然化与风格改写 | 已支持 | 不同风格稿件并排比较 |
+| 审稿回复与投稿材料 | 已支持 | 回复草稿、结构、语气对比 |
+| PPTX 成品生成 | 已支持 | 可打开的 PPTX、预览图、候选说明 |
+| 论文作图 / 科研绘图 | 已支持 | PNG 预览、SVG/PDF/TIFF、代码、caption、QA |
+| 图片生成 / 生图比较 | 规划中 | 图片预览、文件链接、候选说明 |
+| 网页 / HTML 制作比较 | 规划中 | 页面链接、截图预览、候选说明 |
+
 ## 安装
 
 将本项目复制到你的 Agent skill 目录即可。
