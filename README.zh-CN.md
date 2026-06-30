@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://jayden-x-l.github.io/forkprobe/?lang=zh">发布页</a>
   ·
-  <a href="./README.md">English README</a>
+  <a href="./README.en.md">English README</a>
   ·
   <a href="https://jayden-x-l.github.io/forkprobe/downloads/forkprobe-skill.zip">下载 skill zip</a>
 </p>
