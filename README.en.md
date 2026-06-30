@@ -169,17 +169,22 @@ For Codex or local Agent skill setups:
 cp -r forkprobe ~/.agents/skills/
 ```
 
-Install dependencies:
+Install the core dependency:
 
 ```bash
-pip3 install jinja2 anthropic openai
+pip3 install jinja2
 ```
 
-Optional for Claude SDK execution:
+The Codex App / Codex CLI path uses local `codex exec` first, inheriting your Codex login and model configuration. It does not require `OPENAI_API_KEY`.
+
+Optional dependencies for Claude SDK or API fallback paths:
 
 ```bash
 pip3 install claude-agent-sdk
+pip3 install anthropic openai
 ```
+
+The `openai` SDK and `OPENAI_API_KEY` are only used when Codex native CLI is unavailable or disabled and ForkProbe falls back to the OpenAI API.
 
 ## Quick Start
 

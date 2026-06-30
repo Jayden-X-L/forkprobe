@@ -171,17 +171,22 @@ Codex / 本地 Agent skill 目录：
 cp -r forkprobe ~/.agents/skills/
 ```
 
-安装依赖：
+安装核心依赖：
 
 ```bash
-pip3 install jinja2 anthropic openai
+pip3 install jinja2
 ```
 
-如果要走 Claude SDK 执行路径，可选安装：
+Codex App / Codex CLI 路径会优先使用本地 `codex exec`，继承你的 Codex 登录和模型配置，不需要 `OPENAI_API_KEY`。
+
+如果要走 Claude SDK 或 API fallback，可选安装：
 
 ```bash
 pip3 install claude-agent-sdk
+pip3 install anthropic openai
 ```
+
+其中 `openai` SDK 和 `OPENAI_API_KEY` 只用于 Codex native CLI 不可用或被关闭时的 OpenAI API fallback。
 
 ## 快速开始
 

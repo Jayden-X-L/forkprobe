@@ -372,20 +372,21 @@ def _spawn_codex_via_openai_api(task_input: str, system_prompt: str, skill_id: s
     """
     Call OpenAI Chat Completions API directly.
 
-    Uses OPENAI_API_KEY (and OPENAI_BASE_URL if set). Codex environments typically have these set.
+    Uses OPENAI_API_KEY (and OPENAI_BASE_URL if set). This is only a fallback
+    for environments without Codex native CLI auth/config.
     """
+    if not os.environ.get("OPENAI_API_KEY"):
+        return SubagentResult(
+            output="", tokens_used=0, latency_seconds=0.0,
+            error="OPENAI_API_KEY not set in environment. (OpenAI API fallback requires it.)",
+        )
+
     try:
         import openai
     except ImportError:
         return SubagentResult(
             output="", tokens_used=0, latency_seconds=0.0,
             error="openai SDK not installed. Run: pip3 install --break-system-packages openai",
-        )
-
-    if not os.environ.get("OPENAI_API_KEY"):
-        return SubagentResult(
-            output="", tokens_used=0, latency_seconds=0.0,
-            error="OPENAI_API_KEY not set in environment. (OpenAI API fallback requires it.)",
         )
 
     model = os.environ.get("FORKPROBE_MODEL_OPENAI", "gpt-4o")
