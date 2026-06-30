@@ -531,7 +531,7 @@
         <div class="rounded border border-blue-100 bg-white p-3 text-sm">
           <div class="font-medium text-slate-900">{{ candidate_id }}</div>
           <div class="mt-1 text-slate-600">
-            {% if score.score is defined %}{{ score.score|e }}/100 · {% endif %}{{ (score.note if score.note is defined else score)|e }}
+            {% if score.score is defined %}{{ score.score|e }}/10 · {% endif %}{{ (score.note if score.note is defined else score)|e }}
           </div>
         </div>
         {% endfor %}

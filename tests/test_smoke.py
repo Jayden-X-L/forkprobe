@@ -531,8 +531,8 @@ class TestRenderReport(unittest.TestCase):
                        "summary": "Test is clearer.",
                        "reasoning": "It preserves the task and reads better.",
                        "scores": {
-                           "baseline": {"score": 70, "note": "usable"},
-                           "test-skill": {"score": 88, "note": "clearer"},
+                           "baseline": {"score": 7, "note": "usable"},
+                           "test-skill": {"score": 9, "note": "clearer"},
                        },
                        "tokens_used": 120,
                        "latency_seconds": 2.5,
@@ -564,6 +564,8 @@ class TestRenderReport(unittest.TestCase):
             self.assertIn("✓ 选择这个", html)
             self.assertIn("results-scroll", html)
             self.assertIn("result-card", html)
+            self.assertIn("9/10", html)
+            self.assertNotIn("/100", html)
             self.assertIn('href="https://github.com/Jayden-X-L/forkprobe"', html)
             self.assertIn('target="_blank"', html)
             self.assertNotIn('href="github"', html)

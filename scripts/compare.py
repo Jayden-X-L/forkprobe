@@ -283,6 +283,8 @@ Evaluate candidates on:
 - for academic writing tasks: natural scholarly tone, reduced AI-like boilerplate,
   and preservation of meaning
 
+Use a 0-10 scale for every candidate score, where 10 is best.
+
 Return JSON only, with this exact shape:
 {
   "winner_skill_id": "one candidate id, __tie__, or __none__",
