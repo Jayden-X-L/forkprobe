@@ -1,7 +1,9 @@
 # ForkProbe：AI Skill 选型与试跑工具
 
 <p align="center">
-  <img src="./docs/assets/forkprobe-homepage-zh.png" alt="forkprobe 发布页截图" width="960">
+  <a href="https://jayden-x-l.github.io/forkprobe/?lang=zh">
+    <img src="./docs/assets/forkprobe-homepage-zh.png" alt="forkprobe 发布页截图" width="760">
+  </a>
 </p>
 
 <p align="center">

@@ -1,7 +1,9 @@
 # ForkProbe: AI Skill Selection and Trial-Run Tool
 
 <p align="center">
-  <img src="./docs/assets/forkprobe-homepage-en.png" alt="forkprobe launch page screenshot" width="960">
+  <a href="https://jayden-x-l.github.io/forkprobe/?lang=en">
+    <img src="./docs/assets/forkprobe-homepage-en.png" alt="forkprobe launch page screenshot" width="760">
+  </a>
 </p>
 
 <p align="center">
