@@ -27,7 +27,7 @@
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.2 adds paper figure and scientific graphics comparison:** figure pipelines can now generate and compare PNG previews, SVG/PDF/TIFF exports, source files, captions, QA notes, and AI judge recommendations.
+**v0.2 adds paper figure and scientific graphics comparison:** figure pipelines can now generate and compare PNG previews, SVG/PDF/TIFF exports, source files, captions, QA notes, and AI judge recommendations. ForkProbe also supports finished research report packages with report previews, sources, evidence tables, claim checks, and limitations.
 
 When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe makes the choice visible: compare the real outputs first, then continue with the path you picked.
 
@@ -35,7 +35,7 @@ When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe m
 
 - You are not sure which skill fits the current task and want to see real outputs first.
 - You want to compare the baseline against several skills instead of trusting skill descriptions.
-- Your deliverable is a file artifact such as a PPTX deck or a scientific figure package.
+- Your deliverable is a file artifact such as a PPTX deck, scientific figure package, or research report package.
 - You want to try a GitHub or bring-your-own skill with a small preflight run.
 - It is not meant for simple deterministic tasks where the best tool path is already obvious.
 
@@ -90,10 +90,11 @@ The shortlist below follows the current README capability matrix. `baseline` mea
 | Reviewer response & submission materials | Supported | Response drafts, structure, and tone comparison | `baseline`, [`nature-response`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-response), `paper-writer-skill`, `writing-anti-ai`, `research-paper-writing-skills` |
 | PPTX deck generation | Supported | Openable PPTX files, preview images, candidate notes | `baseline + presentations`, [`nature-paper2ppt`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-paper2ppt) `+ presentations`, [`academic-pptx-skill`](https://github.com/Gabberflast/academic-pptx-skill) `+ presentations`, [`ppt-master`](https://github.com/hugohe3/ppt-master), [`md-slides`](https://github.com/zl190/md-slides) |
 | Paper figures & scientific graphics | Supported | PNG previews, SVG/PDF/TIFF exports, code, captions, QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
+| Research reports | Supported | Report previews, sources.json, evidence tables, claim checks, limitations, AI judge notes | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
 | Image generation comparison | Planned | Image previews, file links, candidate notes | No fixed shortlist yet; planned support for image-generation pipelines |
 | Web / HTML creation comparison | Planned | Page links, screenshot previews, candidate notes | No fixed shortlist yet; planned support for web/HTML artifact pipelines |
 
-## Three Work Modes
+## Four Work Modes
 
 ### 1. Text comparison
 
@@ -148,12 +149,31 @@ python3 scripts/figure_artifact.py \
 
 Expected outputs include `preview.png`, `figure.svg`, `figure.pdf` or `figure.tiff`, source code or vector files, `caption.md`, and `qa.md`.
 
+### 4. Research report artifact comparison
+
+For market research, company research, competitive analysis, user research, literature reviews, or investment research reports, ForkProbe compares research-report pipelines. Each candidate writes a research package, and the report shows report previews, sources, evidence tables, claim checks, limitations, and AI judge notes.
+
+```bash
+python3 scripts/research_artifact.py \
+  --input /tmp/forkprobe-research-task.txt \
+  --pipeline baseline-research-report \
+  --pipeline source-first-research \
+  --pipeline analyst-style-report \
+  --pipeline evidence-table-report \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-research-report.html
+```
+
+Expected outputs include `candidate-report.md`, `candidate-report.html`, `sources.json`, `evidence-table.md`, `claim-checks.md`, `limitations.md`, and `summary.md`.
+
 ## Supported Agent Workflows
 
 - Claude Code / Claude-style skill sessions
 - Codex native execution, with fallback to the OpenAI API
 - Natural-language Agent surfaces such as OpenClaw, WorkBuddy, OpenCode, and similar platforms
-- Artifact comparisons for generated PPTX decks and scientific figure packages
+- Artifact comparisons for generated PPTX, scientific figure packages, research report packages, and other file outputs
 
 ## Installation
 
@@ -242,6 +262,23 @@ https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing
 ForkProbe's main output is a local HTML report. Text mode shows each complete output, latency, token estimates, and AI judge notes. Artifact mode shows PPTX or figure-package links, previews, candidate notes, captions, QA, and judge recommendations.
 
 After you choose a winner in the report, ForkProbe records a local verdict and creates a continuation handoff. The current Agent can then keep working from the selected style, structure, or artifact path.
+
+For market research, company research, competitive analysis, user research, literature reviews, or investment research reports, forkprobe can compare research-report pipelines. Each candidate writes a research package, and the report shows report previews, sources, evidence tables, claim checks, limitations, and AI judge notes:
+
+```bash
+python3 scripts/research_artifact.py \
+  --input /tmp/forkprobe-research-task.txt \
+  --pipeline baseline-research-report \
+  --pipeline source-first-research \
+  --pipeline analyst-style-report \
+  --pipeline evidence-table-report \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-research-report.html
+```
+
+Expected outputs include `candidate-report.md`, `candidate-report.html`, `sources.json`, `evidence-table.md`, `claim-checks.md`, `limitations.md`, and `summary.md`.
 
 ## Privacy
 

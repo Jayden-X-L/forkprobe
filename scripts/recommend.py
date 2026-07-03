@@ -23,6 +23,10 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_DIR = SCRIPT_DIR.parent
 CATALOG_DIR = PROJECT_DIR / "catalog"
 NATURE_SKILLS_REPO = "https://github.com/Yuan1z0825/nature-skills"
+COMPANY_RESEARCH_SOURCE = "https://github.com/deanpeters/Product-Manager-Skills#skills/company-research"
+USER_RESEARCH_SOURCE = "https://github.com/cookiy-ai/user-research-skill"
+LITERATURE_REVIEW_SOURCE = "https://github.com/davila7/claude-code-templates#cli-tool/components/skills/scientific/literature-review"
+INVESTMENT_RESEARCH_SOURCE = "https://github.com/CaiJichang212/investment-research"
 
 # Sibling import works when scripts/ is on sys.path (normal compare/recommend usage).
 try:
@@ -262,6 +266,122 @@ FIGURE_ARTIFACT_PIPELINES = {
 }
 
 
+RESEARCH_ARTIFACT_PIPELINES = {
+    "baseline-research-report": RecommendedSkill(
+        id="baseline-research-report",
+        name="baseline + research report package",
+        author="",
+        kind="pipeline",
+        command_arg="baseline-research-report",
+        reason_zh="不使用专门调研 skill，直接生成完整调研报告包，作为成品基线。",
+        reason_en="No specialized research skill; produces a complete research report package as the baseline.",
+        runnable=False,
+        produces="research_report",
+        pipeline_steps=["baseline", "research-report", "source-and-claim-qa"],
+        score=82,
+    ),
+    "source-first-research": RecommendedSkill(
+        id="source-first-research",
+        name="source-first research report",
+        author="",
+        kind="pipeline",
+        command_arg="source-first-research",
+        reason_zh="先收集和筛选来源，再从证据表生成调研报告，强调引用可靠性和可追溯结论。",
+        reason_en="Collects and screens sources first, then builds the report from an evidence table with traceable claims.",
+        runnable=False,
+        produces="research_report",
+        pipeline_steps=["source-discovery", "evidence-table", "report-synthesis", "claim-qa"],
+        score=86,
+    ),
+    "analyst-style-report": RecommendedSkill(
+        id="analyst-style-report",
+        name="analyst-style research report",
+        author="",
+        kind="pipeline",
+        command_arg="analyst-style-report",
+        reason_zh="咨询/投研风格报告：强调 executive summary、结构化洞察、判断、风险和下一步建议。",
+        reason_en="Consulting/analyst-style report focused on executive summary, structured insights, judgement, risks, and next steps.",
+        runnable=False,
+        produces="research_report",
+        pipeline_steps=["research-scope", "analyst-framework", "insight-synthesis", "recommendations"],
+        score=84,
+    ),
+    "evidence-table-report": RecommendedSkill(
+        id="evidence-table-report",
+        name="evidence-table research report",
+        author="",
+        kind="pipeline",
+        command_arg="evidence-table-report",
+        reason_zh="先建立 claim-evidence 表，再生成报告，适合严肃调研和需要审计证据链的任务。",
+        reason_en="Builds a claim-evidence table before the report, suitable for rigorous research and auditable evidence chains.",
+        runnable=False,
+        produces="research_report",
+        pipeline_steps=["claim-map", "evidence-table", "claim-checks", "report-synthesis"],
+        score=85,
+    ),
+    "company-research-report": RecommendedSkill(
+        id="company-research-report",
+        name="company-research + report package",
+        author="deanpeters",
+        kind="pipeline",
+        command_arg=COMPANY_RESEARCH_SOURCE,
+        reason_zh="使用真实 company-research skill 做公司、竞品、产品策略和组织背景调研，再输出可比较报告包。",
+        reason_en="Uses a real company-research skill for company, competitor, product strategy, and org-context research.",
+        source=COMPANY_RESEARCH_SOURCE,
+        runnable=False,
+        produces="research_report",
+        pipeline_steps=[COMPANY_RESEARCH_SOURCE, "report-package", "source-and-claim-qa"],
+        source_kind="known_github",
+        score=88,
+    ),
+    "user-research-cookiy-report": RecommendedSkill(
+        id="user-research-cookiy-report",
+        name="user-research-cookiy + report package",
+        author="cookiy-ai",
+        kind="pipeline",
+        command_arg=USER_RESEARCH_SOURCE,
+        reason_zh="使用真实 user-research-cookiy skill 做用户研究计划、访谈/问卷设计或访谈资料综合报告。",
+        reason_en="Uses the real user-research-cookiy skill for study plans, interview/survey design, or transcript synthesis reports.",
+        source=USER_RESEARCH_SOURCE,
+        runnable=False,
+        produces="research_report",
+        pipeline_steps=[USER_RESEARCH_SOURCE, "research-synthesis-package", "source-and-claim-qa"],
+        source_kind="known_github",
+        score=88,
+    ),
+    "literature-review-report": RecommendedSkill(
+        id="literature-review-report",
+        name="literature-review + report package",
+        author="davila7",
+        kind="pipeline",
+        command_arg=LITERATURE_REVIEW_SOURCE,
+        reason_zh="使用真实 literature-review skill 做学术/技术文献调研，输出结构化综述报告和证据表。",
+        reason_en="Uses a real literature-review skill for academic or technical literature reviews with an evidence table.",
+        source=LITERATURE_REVIEW_SOURCE,
+        runnable=False,
+        produces="research_report",
+        pipeline_steps=[LITERATURE_REVIEW_SOURCE, "literature-synthesis-package", "source-and-claim-qa"],
+        source_kind="known_github",
+        score=87,
+    ),
+    "investment-research-report": RecommendedSkill(
+        id="investment-research-report",
+        name="investment-research + report package",
+        author="CaiJichang212",
+        kind="pipeline",
+        command_arg=INVESTMENT_RESEARCH_SOURCE,
+        reason_zh="使用真实 investment-research skill 做投研/行业机会分析，并明确风险、假设和非投资建议边界。",
+        reason_en="Uses a real investment-research skill for investment or sector opportunity research with risk and assumption boundaries.",
+        source=INVESTMENT_RESEARCH_SOURCE,
+        runnable=False,
+        produces="research_report",
+        pipeline_steps=[INVESTMENT_RESEARCH_SOURCE, "investment-report-package", "risk-qa"],
+        source_kind="known_github",
+        score=86,
+    ),
+}
+
+
 def _pipeline_from_discovery(pipeline) -> RecommendedSkill:
     """Convert discover_skills.PipelineCandidate into recommend.py's UI model."""
     return RecommendedSkill(
@@ -294,6 +414,8 @@ def _skill_from_online_discovery(candidate, deliverable_type: str) -> Recommende
         produces = "pptx"
     elif deliverable_type == "visual_artifact":
         produces = "figure_package"
+    elif deliverable_type == "research_report":
+        produces = "research_report"
     else:
         produces = "text"
     return RecommendedSkill(
@@ -305,9 +427,9 @@ def _skill_from_online_discovery(candidate, deliverable_type: str) -> Recommende
         reason_zh=candidate.summary_zh,
         reason_en=candidate.summary_en,
         source=candidate.source,
-        runnable=bool(candidate.runnable and deliverable_type not in {"pptx", "visual_artifact"}),
+        runnable=bool(candidate.runnable and deliverable_type not in {"pptx", "visual_artifact", "research_report"}),
         produces=produces,
-        pipeline_steps=[candidate.command_arg] if deliverable_type in {"pptx", "visual_artifact"} else [],
+        pipeline_steps=[candidate.command_arg] if deliverable_type in {"pptx", "visual_artifact", "research_report"} else [],
         caution_zh=candidate.risk_zh,
         caution_en=candidate.risk_en,
         source_kind=candidate.category or "github_discovered",
@@ -340,6 +462,13 @@ KEYWORDS = {
         "plot", "graph", "visualization", "可视化",
     ],
     "slides": ["ppt", "slide", "slides", "汇报", "presentation", "deck", "答辩"],
+    "research_report": [
+        "调研", "调研报告", "研究报告", "行业调研", "市场调研", "用户调研", "用户研究",
+        "公司调研", "公司研究", "竞品分析", "竞对分析", "投研报告", "深度调研",
+        "research report", "market research", "industry research", "company research",
+        "competitive analysis", "user research", "customer research", "literature review",
+        "investment research", "analyst report",
+    ],
 }
 
 
@@ -364,6 +493,14 @@ FIGURE_ARTIFACT_HINTS = [
     "成品", "投稿", "最终图", "最终figure", "生成图片", "生成图", "生成示意图",
     "画图", "作图", "绘图", "png", "svg", "pdf", "tiff", "draw.io", "drawio",
     "源文件", "矢量", "可编辑", "figure package", "artifact",
+]
+
+RESEARCH_REPORT_HINTS = [
+    "调研报告", "研究报告", "行业调研", "市场调研", "用户调研", "用户研究", "公司调研",
+    "公司研究", "竞品分析", "竞对分析", "投研报告", "深度调研", "research report",
+    "market research", "industry research", "company research", "competitive analysis",
+    "user research", "customer research", "literature review", "investment research",
+    "analyst report",
 ]
 
 LOCAL_ONLY_HINTS = [
@@ -407,6 +544,8 @@ def detect_deliverable_type(task_text: str, signals: Optional[list[str]] = None)
     """Classify the requested output so artifact tasks do not get routed as text-only comparisons."""
     signals = signals or detect_task_signals(task_text)
     signal_set = set(signals)
+    if "research_report" in signal_set and _has_compact_any(task_text, RESEARCH_REPORT_HINTS):
+        return "research_report"
     if "slides" in signal_set:
         if _has_compact_any(task_text, TEXT_ONLY_HINTS):
             return "ppt_outline"
@@ -482,6 +621,10 @@ def _figure_artifact_pipeline(pipeline_id: str) -> RecommendedSkill:
     return FIGURE_ARTIFACT_PIPELINES[pipeline_id]
 
 
+def _research_artifact_pipeline(pipeline_id: str) -> RecommendedSkill:
+    return RESEARCH_ARTIFACT_PIPELINES[pipeline_id]
+
+
 def _candidate_key(candidate: RecommendedSkill) -> str:
     raw = (candidate.command_arg if "#" in (candidate.command_arg or "") else candidate.source) or candidate.command_arg or candidate.id
     source = raw.lower().strip()
@@ -532,6 +675,21 @@ def _detect_figure_family(task_text: str) -> str:
     return "mixed"
 
 
+def _detect_research_family(task_text: str) -> str:
+    compact = _compact(task_text)
+    if any(word in compact for word in ["用户研究", "用户调研", "访谈", "问卷", "userresearch", "customerresearch", "interview", "survey", "persona"]):
+        return "user"
+    if any(word in compact for word in ["文献", "综述", "literaturereview", "paperreview", "academicreview", "技术调研"]):
+        return "literature"
+    if any(word in compact for word in ["投研", "投资", "股票", "财报", "investment", "equity", "valuation", "financial"]):
+        return "investment"
+    if any(word in compact for word in ["公司调研", "公司研究", "竞品", "竞对", "competitive", "competitor", "companyresearch"]):
+        return "company"
+    if any(word in compact for word in ["行业", "市场", "market", "industry", "tam", "sam", "som"]):
+        return "market"
+    return "general"
+
+
 def _figure_artifact_command(candidates: list[RecommendedSkill]) -> list[str]:
     command = ["python3", "scripts/figure_artifact.py", "--input", "<input.txt>"]
     for candidate in candidates:
@@ -540,6 +698,17 @@ def _figure_artifact_command(candidates: list[RecommendedSkill]) -> list[str]:
         elif candidate.command_arg.startswith(("http://", "https://", "/", "./", "~/")):
             command.extend(["--skill-source", candidate.command_arg])
     command.extend(["--run", "--judge", "--render-report", "--report-output", "./figure-artifact-report.html"])
+    return command
+
+
+def _research_artifact_command(candidates: list[RecommendedSkill]) -> list[str]:
+    command = ["python3", "scripts/research_artifact.py", "--input", "<input.txt>"]
+    for candidate in candidates:
+        if candidate.id in RESEARCH_ARTIFACT_PIPELINES:
+            command.extend(["--pipeline", candidate.id])
+        elif candidate.command_arg.startswith(("http://", "https://", "/", "./", "~/")):
+            command.extend(["--skill-source", candidate.command_arg])
+    command.extend(["--run", "--judge", "--render-report", "--report-output", "./research-artifact-report.html"])
     return command
 
 
@@ -560,7 +729,7 @@ def recommend_candidates(
     catalog = load_catalog(domain)
     signals = detect_task_signals(task_text)
     deliverable_type = detect_deliverable_type(task_text, signals)
-    compare_mode = "artifact" if deliverable_type in {"pptx", "visual_artifact"} else "text"
+    compare_mode = "artifact" if deliverable_type in {"pptx", "visual_artifact", "research_report"} else "text"
     signal_set = set(signals)
     candidates: list[RecommendedSkill] = []
     notes_zh: list[str] = []
@@ -595,6 +764,11 @@ def recommend_candidates(
         candidate.score = candidate.score or 76
         _append_unique(candidates, candidate, pool_limit)
 
+    def add_research_pipeline(pipeline_id: str) -> None:
+        candidate = _research_artifact_pipeline(pipeline_id)
+        candidate.score = candidate.score or 76
+        _append_unique(candidates, candidate, pool_limit)
+
     def add_online_candidates() -> None:
         nonlocal discovery_queries
         if local_only:
@@ -615,6 +789,41 @@ def recommend_candidates(
             _append_unique(candidates, _skill_from_online_discovery(candidate, deliverable_type), pool_limit)
         notes_zh.extend(getattr(discovery, "notes_zh", []))
         notes_en.extend(getattr(discovery, "notes_en", []))
+
+    if deliverable_type == "research_report":
+        research_family = _detect_research_family(task_text)
+        if research_family == "user":
+            for pipeline_id in ["baseline-research-report", "user-research-cookiy-report", "evidence-table-report", "source-first-research"]:
+                add_research_pipeline(pipeline_id)
+        elif research_family == "company":
+            for pipeline_id in ["baseline-research-report", "company-research-report", "source-first-research", "analyst-style-report"]:
+                add_research_pipeline(pipeline_id)
+        elif research_family == "literature":
+            for pipeline_id in ["baseline-research-report", "literature-review-report", "source-first-research", "evidence-table-report"]:
+                add_research_pipeline(pipeline_id)
+        elif research_family == "investment":
+            for pipeline_id in ["baseline-research-report", "investment-research-report", "analyst-style-report", "source-first-research"]:
+                add_research_pipeline(pipeline_id)
+        else:
+            for pipeline_id in ["baseline-research-report", "source-first-research", "analyst-style-report", "evidence-table-report"]:
+                add_research_pipeline(pipeline_id)
+        candidates = _rank_and_limit(candidates, max_candidates)
+        notes_zh.append("这是调研报告成品对比模式：确认后应让每条 pipeline 各生成一个 research package，再用 artifact report 展示报告预览、sources.json、evidence table、claim checks、limitations 和 AI 评审。")
+        notes_zh.append("如果用户只是想比较调研提纲、问题清单或访谈大纲，应切回 text 模式。")
+        notes_en.append("This is research report artifact comparison mode: each pipeline should generate its own research package, then compare report preview, sources.json, evidence table, claim checks, limitations, and AI judge notes.")
+        notes_en.append("If the user only wants a research outline, question list, or interview guide, switch back to text mode.")
+        return Recommendation(
+            deliverable_type=deliverable_type,
+            compare_mode=compare_mode,
+            task_signals=signals,
+            candidates=candidates,
+            notes_zh=notes_zh,
+            notes_en=notes_en,
+            suggested_command=_research_artifact_command(candidates),
+            mode_explanation_zh="识别到最终交付物是调研报告成品，应比较 research report 生成 pipeline，而不是只比较提纲或短回答。",
+            mode_explanation_en="Detected a finished research report deliverable. Compare research-report generation pipelines, not just outlines or short answers.",
+            discovery_queries=discovery_queries,
+        )
 
     if deliverable_type == "pptx":
         if discover_skill_pipelines:
@@ -789,7 +998,12 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
             lines.append("After confirmation:")
             if recommendation.suggested_command:
                 lines.append(command_text)
-                lines.append("This creates one workspace per figure pipeline, runs candidates, judges the artifact summaries, and renders the report. You can also add files to a candidate's artifacts folder and re-render.")
+                if recommendation.deliverable_type == "visual_artifact":
+                    lines.append("This creates one workspace per figure pipeline, runs candidates, judges the artifact summaries, and renders the report. You can also add files to a candidate's artifacts folder and re-render.")
+                elif recommendation.deliverable_type == "research_report":
+                    lines.append("This creates one workspace per research-report pipeline, runs candidates, judges the artifact summaries, and renders the report. You can also add files to a candidate's artifacts folder and re-render.")
+                else:
+                    lines.append("This creates one workspace per artifact pipeline, runs candidates, judges the artifact summaries, and renders the report. You can also add files to a candidate's artifacts folder and re-render.")
             elif recommendation.deliverable_type == "pptx":
                 lines.append("Generate one PPTX per pipeline, then render an artifact comparison report with file links/previews.")
             else:
@@ -830,7 +1044,12 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
         lines.append("确认后执行方式:")
         if recommendation.suggested_command:
             lines.append(command_text)
-            lines.append("这会为每条科研图 pipeline 创建独立 workspace、试跑候选、评审 artifact 摘要并渲染 report；也可以手动补充某个候选的 artifacts 后重新渲染。")
+            if recommendation.deliverable_type == "visual_artifact":
+                lines.append("这会为每条科研图 pipeline 创建独立 workspace、试跑候选、评审 artifact 摘要并渲染 report；也可以手动补充某个候选的 artifacts 后重新渲染。")
+            elif recommendation.deliverable_type == "research_report":
+                lines.append("这会为每条调研报告 pipeline 创建独立 workspace、试跑候选、评审 artifact 摘要并渲染 report；也可以手动补充某个候选的 artifacts 后重新渲染。")
+            else:
+                lines.append("这会为每条文件生成 pipeline 创建独立 workspace、试跑候选、评审 artifact 摘要并渲染 report；也可以手动补充某个候选的 artifacts 后重新渲染。")
         elif recommendation.deliverable_type == "pptx":
             lines.append("让每条 pipeline 各生成一个 PPTX，再用 artifact report 展示文件链接、关键页预览和 AI 评审。")
         else:

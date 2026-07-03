@@ -27,7 +27,7 @@
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
-**v0.2 新增支持论文作图 / 科研绘图对比：** figure pipeline 可以生成并横向比较 PNG 预览、SVG/PDF/TIFF 导出、源文件、caption、QA 和 AI 评审建议。
+**v0.2 新增支持论文作图 / 科研绘图对比：** figure pipeline 可以生成并横向比较 PNG 预览、SVG/PDF/TIFF 导出、源文件、caption、QA 和 AI 评审建议。现在也支持调研报告成品包对比，包含报告预览、来源、证据表、claim checks 和局限说明。
 
 当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。ForkProbe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
 
@@ -35,7 +35,7 @@ ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交
 
 - 你不确定当前任务该用哪个 skill，想先看真实输出再决定。
 - 你想比较 baseline 和多个 skill，而不是只相信 skill 的描述。
-- 你的交付物是 PPTX、科研 figure package 这类文件成品，需要看文件、预览和 QA。
+- 你的交付物是 PPTX、科研 figure package、调研报告 package 这类文件成品，需要看文件、预览和 QA。
 - 你想引入 GitHub 或本地自带的 BYO skill，但希望先做一次小规模试跑。
 - 不适合简单确定性任务：如果答案或工具路径已经很明确，直接执行会更快。
 
@@ -90,10 +90,11 @@ Compare a few skills first and see which one fits the current task better.
 | 审稿回复与投稿材料 | 已支持 | 回复草稿、结构、语气对比 | `baseline`, [`nature-response`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-response), `paper-writer-skill`, `writing-anti-ai`, `research-paper-writing-skills` |
 | PPTX 成品生成 | 已支持 | 可打开的 PPTX、预览图、候选说明 | `baseline + presentations`, [`nature-paper2ppt`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-paper2ppt) `+ presentations`, [`academic-pptx-skill`](https://github.com/Gabberflast/academic-pptx-skill) `+ presentations`, [`ppt-master`](https://github.com/hugohe3/ppt-master), [`md-slides`](https://github.com/zl190/md-slides) |
 | 论文作图 / 科研绘图 | 已支持 | PNG 预览、SVG/PDF/TIFF、代码、caption、QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
+| 调研报告 / Research report | 已支持 | 报告预览、sources.json、evidence table、claim checks、limitations、AI 评审 | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
 | 图片生成 / 生图比较 | 规划中 | 图片预览、文件链接、候选说明 | 暂不放固定候选；未来支持 image-generation pipelines |
 | 网页 / HTML 制作比较 | 规划中 | 页面链接、截图预览、候选说明 | 暂不放固定候选；未来支持 web/HTML artifact pipelines |
 
-## 三种工作模式
+## 四种工作模式
 
 ### 1. Text comparison
 
@@ -148,12 +149,31 @@ python3 scripts/figure_artifact.py \
 
 推荐产物包括 `preview.png`、`figure.svg`、`figure.pdf` 或 `figure.tiff`、源代码或矢量源文件、`caption.md` 和 `qa.md`。
 
+### 4. Research report artifact comparison
+
+如果目标是市场调研、公司调研、竞品分析、用户研究、文献综述或投研报告，ForkProbe 会比较 research report pipeline。每条候选路径会生成一个 research package，用 report 展示报告预览、来源、证据表、claim checks、limitations 和 AI 评审。
+
+```bash
+python3 scripts/research_artifact.py \
+  --input /tmp/forkprobe-research-task.txt \
+  --pipeline baseline-research-report \
+  --pipeline source-first-research \
+  --pipeline analyst-style-report \
+  --pipeline evidence-table-report \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-research-report.html
+```
+
+推荐产物包括 `candidate-report.md`、`candidate-report.html`、`sources.json`、`evidence-table.md`、`claim-checks.md`、`limitations.md` 和 `summary.md`。
+
 ## 支持的 Agent 工作流
 
 - Claude Code / Claude 风格 skill 会话
 - Codex 原生执行路径，并在失败时 fallback 到 OpenAI API
 - OpenClaw、WorkBuddy、OpenCode 等自然语言 Agent 工作流
-- “做一个 PPT”和“生成论文 figure”这类成品生成任务的 artifact comparison
+- “做一个 PPT”、“生成论文 figure”和“生成调研报告”这类成品生成任务的 artifact comparison
 
 ## 安装
 
@@ -244,6 +264,23 @@ https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing
 ForkProbe 的核心产物是本地 HTML report。文本模式展示每一路完整输出、耗时、token 估算和 AI 评审；artifact 模式展示 PPTX 或 figure package 的文件链接、预览、候选说明、caption、QA 和评审建议。
 
 当用户在 report 中选择 winner 后，ForkProbe 会记录本地 verdict，并生成 continuation handoff。当前 Agent 可以沿用 winner 的风格、结构或文件产物继续完成正式任务。
+
+如果目标是市场调研、公司调研、竞品分析、用户研究、文献综述或投研报告，forkprobe 会比较 research report pipeline。每条候选路径会生成一个 research package，用 report 展示报告预览、来源、证据表、claim checks、limitations 和 AI 评审：
+
+```bash
+python3 scripts/research_artifact.py \
+  --input /tmp/forkprobe-research-task.txt \
+  --pipeline baseline-research-report \
+  --pipeline source-first-research \
+  --pipeline analyst-style-report \
+  --pipeline evidence-table-report \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-research-report.html
+```
+
+推荐产物包括 `candidate-report.md`、`candidate-report.html`、`sources.json`、`evidence-table.md`、`claim-checks.md`、`limitations.md` 和 `summary.md`。
 
 ## 隐私
 

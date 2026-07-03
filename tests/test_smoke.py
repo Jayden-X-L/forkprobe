@@ -301,6 +301,39 @@ class TestRecommendations(unittest.TestCase):
         self.assertIn("https://github.com/example/figure-skill#skills/scientific-figure", rec.suggested_command)
         self.assertEqual(rec.discovery_queries, ["claude skill scientific figure schematic"])
 
+    def test_recommend_research_report_routes_to_artifact_mode(self):
+        from recommend import format_text, recommend_candidates
+
+        rec = recommend_candidates(
+            "请并行比较几个调研报告 skill，生成一份 AI 教育市场调研报告，要求 sources.json 和 evidence table。",
+            online_discovery=False,
+        )
+        self.assertEqual(rec.deliverable_type, "research_report")
+        self.assertEqual(rec.compare_mode, "artifact")
+        ids = [c.id for c in rec.candidates]
+        self.assertIn("baseline-research-report", ids)
+        self.assertIn("source-first-research", ids)
+        self.assertIn("evidence-table-report", ids)
+        self.assertIn("scripts/research_artifact.py", rec.suggested_command)
+        self.assertIn("--judge", rec.suggested_command)
+        text = format_text(rec, input_path="research-task.md", lang="zh")
+        self.assertIn("research_artifact.py", text)
+        self.assertIn("调研报告 pipeline", text)
+        self.assertIn("sources.json", "\n".join(rec.notes_zh))
+
+    def test_recommend_user_research_report_includes_cookiy_pipeline(self):
+        from recommend import recommend_candidates
+
+        rec = recommend_candidates(
+            "请比较几个用户研究 skill，基于访谈和问卷材料生成用户调研报告。",
+            online_discovery=False,
+        )
+        self.assertEqual(rec.deliverable_type, "research_report")
+        ids = [c.id for c in rec.candidates]
+        self.assertIn("user-research-cookiy-report", ids)
+        command_args = [c.command_arg for c in rec.candidates]
+        self.assertIn("https://github.com/cookiy-ai/user-research-skill", command_args)
+
     def test_recommend_ppt_request_routes_to_artifact_mode(self):
         from recommend import recommend_candidates
         rec = recommend_candidates("基于一个文档，我想做一个PPT，但是我想多对比几个skill的效果。", online_discovery=False)
@@ -1035,6 +1068,130 @@ class TestRenderReport(unittest.TestCase):
             payload = json.loads(proc.stdout)
             self.assertIn("skill-demo-figure", payload["pipelines"])
             self.assertIn(f"{tmp_path}#skills/demo-figure", payload["skill_sources"])
+
+    def test_prepare_research_artifact_workspace_and_report(self):
+        from render_artifact_report import render_from_manifest
+        from research_artifact import create_workspace
+
+        task = "请生成一份 AI 教育行业调研报告，输出 sources.json、evidence table、claim checks 和 limitations。"
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            result = create_workspace(task_input=task, output_dir=tmp_path)
+            self.assertEqual(result["research_type"], "market")
+            self.assertIn("source-first-research", result["pipelines"])
+
+            candidate_dir = tmp_path / "candidates" / "source-first-research"
+            artifact_dir = candidate_dir / "artifacts"
+            (artifact_dir / "candidate-report.md").write_text("# AI education market\n\nClear report.", encoding="utf-8")
+            (artifact_dir / "candidate-report.html").write_text("<h1>AI education market</h1>", encoding="utf-8")
+            (artifact_dir / "sources.json").write_text(json.dumps([{"title": "Source", "url": "https://example.com"}]), encoding="utf-8")
+            (artifact_dir / "evidence-table.md").write_text("| Claim | Evidence |\n|---|---|\n| A | B |\n", encoding="utf-8")
+            (artifact_dir / "claim-checks.md").write_text("No unsupported claims found.", encoding="utf-8")
+            (artifact_dir / "limitations.md").write_text("Needs fresher market size data.", encoding="utf-8")
+
+            refreshed = create_workspace(
+                task_input=task,
+                output_dir=tmp_path,
+                pipeline_ids=result["pipelines"],
+            )
+            manifest_path = Path(refreshed["manifest_path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            candidate = next(c for c in manifest["candidates"] if c["id"] == "source-first-research")
+            labels = {artifact["label"] for artifact in candidate["artifacts"]}
+            self.assertIn("candidate-report.md", labels)
+            self.assertIn("sources.json", labels)
+            self.assertIn("evidence-table.md", labels)
+            self.assertIn("AI education market", candidate["summary"])
+            self.assertGreater(candidate["estimated_tokens_used"], 0)
+            self.assertEqual(candidate["provider_tokens_used"], 0)
+
+            out = tmp_path / "research-report.html"
+            render_from_manifest(manifest_path, out, auto_open=False)
+            html = out.read_text(encoding="utf-8")
+            self.assertIn("Generated artifacts", html)
+            self.assertIn("source-first-research", html)
+            self.assertIn("sources.json", html)
+            self.assertIn("AI education market", html)
+
+    def test_run_research_pipeline_with_fake_codex(self):
+        from render_artifact_report import render_from_manifest
+        from research_artifact import create_workspace, run_parallel
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fake_cli = tmp_path / "codex"
+            fake_cli.write_text(
+                "#!/usr/bin/env python3\n"
+                "import json, pathlib, re, sys\n"
+                "args = sys.argv[1:]\n"
+                "out = pathlib.Path(args[args.index('--output-last-message') + 1])\n"
+                "prompt = sys.stdin.read()\n"
+                "match = re.search(r'candidate outputs under:\\s*\\n\\n`([^`]+)`', prompt)\n"
+                "artifact_dir = pathlib.Path(match.group(1))\n"
+                "artifact_dir.mkdir(parents=True, exist_ok=True)\n"
+                "(artifact_dir / 'candidate-report.md').write_text('# Fake research report\\n\\nEvidence-backed finding.', encoding='utf-8')\n"
+                "(artifact_dir / 'candidate-report.html').write_text('<h1>Fake research report</h1>', encoding='utf-8')\n"
+                "(artifact_dir / 'sources.json').write_text(json.dumps([{'title': 'Fake source', 'url': 'https://example.com'}]), encoding='utf-8')\n"
+                "(artifact_dir / 'evidence-table.md').write_text('| Claim | Evidence |\\n|---|---|\\n| A | B |\\n', encoding='utf-8')\n"
+                "(artifact_dir / 'claim-checks.md').write_text('Fake claim checks.', encoding='utf-8')\n"
+                "(artifact_dir / 'limitations.md').write_text('Fake limitations.', encoding='utf-8')\n"
+                "summary = artifact_dir.parent / 'summary.md'\n"
+                "summary.write_text('Fake research runner summary.', encoding='utf-8')\n"
+                "out.write_text('Fake research runner completed.', encoding='utf-8')\n"
+                "print('tokens used\\n3,333', file=sys.stderr)\n",
+                encoding="utf-8",
+            )
+            os.chmod(fake_cli, 0o755)
+
+            old_cli = os.environ.get("FORKPROBE_CODEX_CLI")
+            old_sandbox = os.environ.get("FORKPROBE_RESEARCH_SANDBOX")
+            os.environ["FORKPROBE_CODEX_CLI"] = str(fake_cli)
+            os.environ["FORKPROBE_RESEARCH_SANDBOX"] = "workspace-write"
+            try:
+                task = "请生成一份 AI 教育市场调研报告。"
+                result = create_workspace(
+                    task_input=task,
+                    output_dir=tmp_path / "run",
+                    pipeline_ids=["source-first-research"],
+                )
+                runs = run_parallel(
+                    task_input=task,
+                    output_dir=Path(result["output_dir"]),
+                    pipeline_ids=["source-first-research"],
+                    max_workers=1,
+                    timeout=30,
+                )
+                self.assertIsNone(runs[0].error)
+                self.assertEqual(runs[0].tokens_used, 3333)
+
+                refreshed = create_workspace(
+                    task_input=task,
+                    output_dir=Path(result["output_dir"]),
+                    pipeline_ids=["source-first-research"],
+                )
+                manifest_path = Path(refreshed["manifest_path"])
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                candidate = manifest["candidates"][0]
+                labels = {artifact["label"] for artifact in candidate["artifacts"]}
+                self.assertIn("candidate-report.md", labels)
+                self.assertIn("sources.json", labels)
+                self.assertEqual(candidate["tokens_used"], 3333)
+                self.assertIn("Fake research runner summary.", candidate["summary"])
+
+                out = tmp_path / "research-run-report.html"
+                render_from_manifest(manifest_path, out, auto_open=False)
+                html = out.read_text(encoding="utf-8")
+                self.assertIn("Fake research runner summary.", html)
+                self.assertIn("sources.json", html)
+            finally:
+                if old_cli is None:
+                    os.environ.pop("FORKPROBE_CODEX_CLI", None)
+                else:
+                    os.environ["FORKPROBE_CODEX_CLI"] = old_cli
+                if old_sandbox is None:
+                    os.environ.pop("FORKPROBE_RESEARCH_SANDBOX", None)
+                else:
+                    os.environ["FORKPROBE_RESEARCH_SANDBOX"] = old_sandbox
 
 
 class TestJudgeParsing(unittest.TestCase):
