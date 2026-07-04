@@ -304,9 +304,6 @@ def _preview_for(path: Path, artifact_dir: Path, output_dir: Path) -> str:
     suffix = path.suffix.lower()
     if suffix in PREVIEW_SUFFIXES:
         return _relative(path, output_dir)
-    report_html = artifact_dir / "candidate-report.html"
-    if report_html.exists():
-        return _relative(report_html, output_dir)
     return ""
 
 

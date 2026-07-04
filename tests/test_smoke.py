@@ -1126,6 +1126,9 @@ class TestRenderReport(unittest.TestCase):
             self.assertIn("candidate-report.md", labels)
             self.assertIn("sources.json", labels)
             self.assertIn("evidence-table.md", labels)
+            artifacts_by_label = {artifact["label"]: artifact for artifact in candidate["artifacts"]}
+            self.assertNotIn("preview_path", artifacts_by_label["candidate-report.md"])
+            self.assertIn("preview_path", artifacts_by_label["candidate-report.html"])
             self.assertIn("AI education market", candidate["summary"])
             self.assertGreater(candidate["estimated_tokens_used"], 0)
             self.assertEqual(candidate["provider_tokens_used"], 0)
@@ -1137,6 +1140,9 @@ class TestRenderReport(unittest.TestCase):
             self.assertIn("source-first-research", html)
             self.assertIn("sources.json", html)
             self.assertIn("AI education market", html)
+            self.assertIn("<iframe", html)
+            self.assertIn("candidate-report.html", html)
+            self.assertNotIn("<img src=\"file://", html)
 
     def test_run_research_pipeline_with_fake_codex(self):
         from render_artifact_report import render_from_manifest

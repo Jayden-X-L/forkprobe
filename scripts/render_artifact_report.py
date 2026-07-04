@@ -44,6 +44,17 @@ def _href_for_path(value: str, base_dir: Path) -> str:
         return value
 
 
+def _preview_kind(value: str) -> str:
+    suffix = Path(value.split("?", 1)[0].split("#", 1)[0]).suffix.lower()
+    if suffix in {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}:
+        return "image"
+    if suffix in {".html", ".htm"}:
+        return "html"
+    if suffix == ".pdf":
+        return "pdf"
+    return "file"
+
+
 def _normalize_artifact(artifact: dict[str, Any], manifest_dir: Path) -> dict[str, Any]:
     path_value = str(artifact.get("path") or artifact.get("href") or "")
     preview_value = str(artifact.get("preview_path") or artifact.get("preview_href") or "")
@@ -56,6 +67,7 @@ def _normalize_artifact(artifact: dict[str, Any], manifest_dir: Path) -> dict[st
     if preview_value:
         normalized["preview_path"] = preview_value
         normalized["preview_href"] = artifact.get("preview_href") or _href_for_path(preview_value, manifest_dir)
+        normalized["preview_kind"] = artifact.get("preview_kind") or _preview_kind(preview_value)
     return normalized
 
 

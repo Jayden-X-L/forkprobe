@@ -628,13 +628,17 @@
             {% for artifact in r.artifacts %}
             <div class="rounded border border-slate-200 bg-white p-3">
               {% if artifact.preview_href is defined and artifact.preview_href %}
-              <a href="{{ artifact.preview_href }}" target="_blank" rel="noreferrer">
-                <img src="{{ artifact.preview_href }}" alt="{{ artifact.label if artifact.label is defined else artifact.path }}" class="mb-3 max-h-56 w-full rounded border border-slate-100 object-contain bg-white">
-              </a>
-              {% elif artifact.preview_path is defined and artifact.preview_path %}
-              <a href="{{ artifact.preview_path }}" target="_blank" rel="noreferrer">
-                <img src="{{ artifact.preview_path }}" alt="{{ artifact.label if artifact.label is defined else artifact.path }}" class="mb-3 max-h-56 w-full rounded border border-slate-100 object-contain bg-white">
-              </a>
+                {% if artifact.preview_kind is not defined or artifact.preview_kind == 'image' %}
+                <a href="{{ artifact.preview_href }}" target="_blank" rel="noreferrer">
+                  <img src="{{ artifact.preview_href }}" alt="{{ artifact.label if artifact.label is defined else artifact.path }}" class="mb-3 max-h-56 w-full rounded border border-slate-100 object-contain bg-white">
+                </a>
+                {% elif artifact.preview_kind == 'html' or artifact.preview_kind == 'pdf' %}
+                <div class="mb-3 overflow-hidden rounded border border-slate-100 bg-white">
+                  <iframe src="{{ artifact.preview_href }}" title="{{ artifact.label if artifact.label is defined else artifact.path }}" class="h-56 w-full" loading="lazy"></iframe>
+                </div>
+                {% else %}
+                <a href="{{ artifact.preview_href }}" target="_blank" rel="noreferrer" class="mb-3 block rounded border border-slate-100 bg-slate-50 px-3 py-2 text-xs font-medium text-blue-700 hover:bg-blue-50" x-text="t('artifactPreview')">Preview</a>
+                {% endif %}
               {% endif %}
               <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
