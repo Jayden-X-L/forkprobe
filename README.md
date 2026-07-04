@@ -1,12 +1,6 @@
 # ForkProbe：AI Skill 选型与试跑工具
 
 <p align="center">
-  <a href="https://jayden-x-l.github.io/forkprobe/?lang=zh">
-    <img src="./docs/assets/forkprobe-homepage-zh.png" alt="forkprobe 发布页截图" width="760">
-  </a>
-</p>
-
-<p align="center">
   <strong>别猜哪个 AI Skill 有用，直接并排看结果。</strong>
 </p>
 
