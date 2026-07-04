@@ -856,6 +856,7 @@ def main() -> int:
     parser.add_argument("--skill-source", action="append", default=[], help="External research skill source to run as a BYO pipeline. Repeat for multiple skills")
     parser.add_argument("--max-candidates", type=int, default=4, help="Maximum default pipelines when --pipeline is omitted")
     parser.add_argument("--run", action="store_true", help="Run selected pipelines in parallel with Codex native CLI")
+    parser.add_argument("--confirmed", action="store_true", help="Acknowledge the user has confirmed the research pipeline shortlist before --run")
     parser.add_argument("--timeout", type=int, default=900, help="Seconds to wait for each candidate run (default: 900)")
     parser.add_argument("--max-workers", type=int, default=2, help="Maximum concurrent candidate runs for --run")
     parser.add_argument("--render-report", action="store_true", help="Render an initial artifact report from the manifest")
@@ -870,6 +871,12 @@ def main() -> int:
     task_input = _read_task(args)
     if not task_input.strip():
         raise SystemExit("Task input is empty.")
+    if args.run and not args.confirmed:
+        raise SystemExit(
+            "Refusing to run research pipelines before candidate confirmation. "
+            "First run `python3 scripts/recommend.py --input <input.txt>`, show the shortlist to the user, "
+            "then rerun research_artifact.py with --confirmed after the user confirms."
+        )
 
     timestamp = time.strftime("%Y%m%d-%H%M%S", time.localtime())
     default_name = f"{timestamp}-{_slugify(task_input[:48])}"

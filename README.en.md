@@ -20,14 +20,14 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.2" src="https://img.shields.io/badge/version-v0.2-2563eb">
+  <img alt="Version v0.3" src="https://img.shields.io/badge/version-v0.3-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.2 adds paper figure and scientific graphics comparison:** figure pipelines can now generate and compare PNG previews, SVG/PDF/TIFF exports, source files, captions, QA notes, and AI judge recommendations. ForkProbe also supports finished research report packages with report previews, sources, evidence tables, claim checks, and limitations.
+**v0.3 adds market research and research report comparison:** research-report pipelines can now generate and compare report previews, sources.json, evidence tables, claim checks, limitations, and AI judge recommendations. v0.2 paper figure and scientific graphics support remains available for PNG previews, SVG/PDF/TIFF exports, source files, captions, and QA notes.
 
 When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe makes the choice visible: compare the real outputs first, then continue with the path you picked.
 
@@ -153,6 +153,14 @@ Expected outputs include `preview.png`, `figure.svg`, `figure.pdf` or `figure.ti
 
 For market research, company research, competitive analysis, user research, literature reviews, or investment research reports, ForkProbe compares research-report pipelines. Each candidate writes a research package, and the report shows report previews, sources, evidence tables, claim checks, limitations, and AI judge notes.
 
+First recommend candidates and wait for user confirmation:
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-research-task.txt
+```
+
+After the user confirms the shortlist, run the research artifact pipelines:
+
 ```bash
 python3 scripts/research_artifact.py \
   --input /tmp/forkprobe-research-task.txt \
@@ -160,6 +168,7 @@ python3 scripts/research_artifact.py \
   --pipeline source-first-research \
   --pipeline analyst-style-report \
   --pipeline evidence-table-report \
+  --confirmed \
   --run \
   --judge \
   --render-report \
@@ -263,7 +272,13 @@ ForkProbe's main output is a local HTML report. Text mode shows each complete ou
 
 After you choose a winner in the report, ForkProbe records a local verdict and creates a continuation handoff. The current Agent can then keep working from the selected style, structure, or artifact path.
 
-For market research, company research, competitive analysis, user research, literature reviews, or investment research reports, forkprobe can compare research-report pipelines. Each candidate writes a research package, and the report shows report previews, sources, evidence tables, claim checks, limitations, and AI judge notes:
+For market research, company research, competitive analysis, user research, literature reviews, or investment research reports, forkprobe can compare research-report pipelines. Important: first use the recommender to show candidates and wait for user confirmation; do not run `research_artifact.py --run` directly.
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-research-task.txt
+```
+
+After the user confirms, each candidate writes a research package, and the report shows report previews, sources, evidence tables, claim checks, limitations, and AI judge notes:
 
 ```bash
 python3 scripts/research_artifact.py \
@@ -272,6 +287,7 @@ python3 scripts/research_artifact.py \
   --pipeline source-first-research \
   --pipeline analyst-style-report \
   --pipeline evidence-table-report \
+  --confirmed \
   --run \
   --judge \
   --render-report \

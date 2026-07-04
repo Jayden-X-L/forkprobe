@@ -708,7 +708,7 @@ def _research_artifact_command(candidates: list[RecommendedSkill]) -> list[str]:
             command.extend(["--pipeline", candidate.id])
         elif candidate.command_arg.startswith(("http://", "https://", "/", "./", "~/")):
             command.extend(["--skill-source", candidate.command_arg])
-    command.extend(["--run", "--judge", "--render-report", "--report-output", "./research-artifact-report.html"])
+    command.extend(["--confirmed", "--run", "--judge", "--render-report", "--report-output", "./research-artifact-report.html"])
     return command
 
 
@@ -808,8 +808,10 @@ def recommend_candidates(
             for pipeline_id in ["baseline-research-report", "source-first-research", "analyst-style-report", "evidence-table-report"]:
                 add_research_pipeline(pipeline_id)
         candidates = _rank_and_limit(candidates, max_candidates)
+        notes_zh.append("交互式使用时，必须先把这组调研报告候选展示给用户并等待确认；用户确认后再运行 suggested command。")
         notes_zh.append("这是调研报告成品对比模式：确认后应让每条 pipeline 各生成一个 research package，再用 artifact report 展示报告预览、sources.json、evidence table、claim checks、limitations 和 AI 评审。")
         notes_zh.append("如果用户只是想比较调研提纲、问题清单或访谈大纲，应切回 text 模式。")
+        notes_en.append("In interactive use, first show this research-report shortlist to the user and wait for confirmation; only then run the suggested command.")
         notes_en.append("This is research report artifact comparison mode: each pipeline should generate its own research package, then compare report preview, sources.json, evidence table, claim checks, limitations, and AI judge notes.")
         notes_en.append("If the user only wants a research outline, question list, or interview guide, switch back to text mode.")
         return Recommendation(

@@ -6,7 +6,7 @@ expose slightly different APIs for spawning sub-tasks. Claude Code is reached
 through claude-agent-sdk when available. Codex is reached through the native
 `codex exec` CLI first, then the OpenAI API fallback when needed.
 
-For v0.2 we use the official Python SDKs to call those APIs directly. This
+For v0.3 we use the official Python SDKs to call those APIs directly. This
 keeps the "subagent" abstraction simple and platform-agnostic at the call site.
 """
 from __future__ import annotations
@@ -103,7 +103,7 @@ def spawn_subagent(
             output="",
             tokens_used=0,
             latency_seconds=0.0,
-            error=f"Unknown platform: {platform}. forkprobe v0.2 supports Claude Code and Codex only.",
+            error=f"Unknown platform: {platform}. forkprobe v0.3 supports Claude Code and Codex only.",
         )
 
 

@@ -315,11 +315,36 @@ class TestRecommendations(unittest.TestCase):
         self.assertIn("source-first-research", ids)
         self.assertIn("evidence-table-report", ids)
         self.assertIn("scripts/research_artifact.py", rec.suggested_command)
+        self.assertIn("--confirmed", rec.suggested_command)
         self.assertIn("--judge", rec.suggested_command)
         text = format_text(rec, input_path="research-task.md", lang="zh")
         self.assertIn("research_artifact.py", text)
+        self.assertIn("--confirmed", text)
         self.assertIn("调研报告 pipeline", text)
         self.assertIn("sources.json", "\n".join(rec.notes_zh))
+
+    def test_research_artifact_cli_run_requires_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(PROJECT_DIR / "scripts" / "research_artifact.py"),
+                    "--text",
+                    "请生成一份市场调研报告。",
+                    "--output-dir",
+                    str(Path(tmp) / "run"),
+                    "--pipeline",
+                    "source-first-research",
+                    "--run",
+                    "--no-open",
+                    "--json",
+                ],
+                text=True,
+                capture_output=True,
+            )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("candidate confirmation", proc.stderr)
+        self.assertIn("scripts/recommend.py", proc.stderr)
 
     def test_recommend_user_research_report_includes_cookiy_pipeline(self):
         from recommend import recommend_candidates
