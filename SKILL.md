@@ -1,6 +1,6 @@
 ---
 name: forkprobe
-description: Recommend a small set of candidate skills or artifact-generation pipelines for an open-ended task, then compare their outputs so the user can decide what actually helps. Use when the user is unsure if a particular skill would improve their output, when comparing 2+ skills for the same task, when they naturally ask to compare skills without saying forkprobe, or when explicitly invoked with /forkprobe. Chinese examples include "我想比较几个科研写作 skill", "帮我看看哪个 skill 更适合这段", "先别直接改，并排试几个 skill", "哪个 skill 改出来更自然", "基于文档做一个 PPT，想比较几个 skill 效果", "比较几个论文作图 skill", and "比较几个市场调研/调研报告 skill". Especially valuable for academic paragraph polishing, anti-AI text rewriting, scientific writing, reviewer response, Nature-style polishing, PPT planning, PPTX artifact comparison, scientific figure artifact comparison, market research comparison, and research report artifact comparison. Do NOT use for simple deterministic tasks where skill choice is obvious or for casual conversation.
+description: Recommend a small set of candidate skills or artifact-generation pipelines for an open-ended task, then compare their outputs so the user can decide what actually helps. Use when the user is unsure if a particular skill would improve their output, when comparing 2+ skills for the same task, when they naturally ask to compare skills without saying forkprobe, or when explicitly invoked with /forkprobe. Chinese examples include "我想比较几个科研写作 skill", "帮我看看哪个 skill 更适合这段", "先别直接改，并排试几个 skill", "哪个 skill 改出来更自然", "比较几个去 AI 味写作 skill", "基于文档做一个 PPT，想比较几个 skill 效果", "比较几个论文作图 skill", and "比较几个市场调研/调研报告 skill". Especially valuable for academic paragraph polishing, anti-AI text rewriting, Chinese AI-flavor removal, scientific writing, reviewer response, Nature-style polishing, PPT planning, PPTX artifact comparison, scientific figure artifact comparison, market research comparison, and research report artifact comparison. Do NOT use for simple deterministic tasks where skill choice is obvious or for casual conversation.
 ---
 
 # forkprobe
@@ -11,7 +11,7 @@ description: Recommend a small set of candidate skills or artifact-generation pi
 
 Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines local curated candidates with GitHub/network skill discovery by default, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code or Codex), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, and research reports, it compares artifact-generation pipelines and renders a report with file links/previews.
 
-**v0.3 scope:** Text-first academic workflows, PPTX artifact comparison, scientific figure artifact comparison, and market research / research report artifact comparison. Text flows cover paragraph polishing, anti-AI text rewriting, SCI/Nature-style writing, translation/polishing, reviewer-response drafting, and PPT outline comparison. Artifact flows cover PPTX pipeline recommendation, paper figure/scientific graphics pipelines that generate PNG previews, SVG/PDF/TIFF exports, source files, captions, and QA notes, plus research report pipelines that generate report previews, sources, evidence tables, claim checks, limitations, and summaries for artifact report comparison. Candidate discovery merges local curated candidates with sanitized GitHub/network discovery unless the user explicitly asks for local-only/offline mode.
+**v0.4 scope:** Text-first academic workflows, expanded anti-AI / humanizer writing comparisons, PPTX artifact comparison, scientific figure artifact comparison, and market research / research report artifact comparison. Text flows cover paragraph polishing, anti-AI text rewriting, Chinese AI-flavor removal, SCI/Nature-style writing, translation/polishing, reviewer-response drafting, and PPT outline comparison. Artifact flows cover PPTX pipeline recommendation, paper figure/scientific graphics pipelines that generate PNG previews, SVG/PDF/TIFF exports, source files, captions, and QA notes, plus research report pipelines that generate report previews, sources, evidence tables, claim checks, limitations, and summaries for artifact report comparison. Candidate discovery merges local curated candidates with sanitized GitHub/network discovery unless the user explicitly asks for local-only/offline mode.
 
 ## When to invoke
 
@@ -28,6 +28,7 @@ Chinese trigger examples:
 - "先别直接改，并排试几个 skill"
 - "用几个不同 skill 跑一下看看差别"
 - "哪个 skill 改出来更自然"
+- "比较几个去 AI 味写作 skill"
 - "帮我评估一下这些 skill 哪个更好"
 - "先跑 baseline 和几个写作 skill 对比一下"
 - "基于一个文档，我想做一个 PPT，但是想多对比几个 skill 的效果"
@@ -109,10 +110,10 @@ Then present the recommendation in plain language:
 根据你的任务，我建议先跑这组：
 
 1. baseline：原始模型输出，作为参照
-2. writing-anti-ai：适合降低机器感、让表达更自然
-3. research-paper-writing-skills：适合中文科研表达优化
-4. paper-writer-skill：适合正式论文语气、IMRAD 结构或审稿回复
-5. [GitHub discovered] xxx-writing-skill：社区候选，已发现 SKILL.md，执行前需要确认 license/依赖
+2. writing-anti-ai：适合降低机器感、让中英文表达更自然
+3. humanizer-zh：适合中文去 AI 痕迹
+4. remove-ai-flavor-writing-skill：适合中文去模板句、假互动结尾和过度圆滑表达
+5. humanizer / stop-slop / avoid-ai-writing：适合英文 anti-AI / humanizer 对比
 
 确认按这组跑吗？你也可以删掉或加入别的 skill。
 ```
@@ -121,7 +122,8 @@ Recommendation rules:
 - If the user already named exact skills, respect that list and only add `baseline` unless they ask for suggestions.
 - If the user asks generally to compare skills, recommend first and do not start the run until they confirm.
 - If the user does not say local-only/offline, include GitHub/network discovery alongside local candidates.
-- For Chinese SCI writing, default toward `baseline`, `writing-anti-ai`, `research-paper-writing-skills`, and `paper-writer-skill`.
+- For Chinese SCI writing, default toward `baseline`, `writing-anti-ai`, `humanizer-zh`, `remove-ai-flavor-writing-skill`, `research-paper-writing-skills`, and `paper-writer-skill`.
+- For explicit anti-AI / humanizer writing tasks, prioritize dedicated anti-AI candidates before generic polishing: `writing-anti-ai`, `humanizer-zh`, `humanizer`, `stop-slop`, `avoid-ai-writing`, `remove-ai-flavor-writing-skill`, and academic variants when relevant.
 - For English/Nature-style polishing or translation, also consider BYO `https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing`.
 - For reviewer response/rebuttal tasks, consider `paper-writer-skill` and BYO `https://github.com/Yuan1z0825/nature-skills#skills/nature-response`.
 - For PPT outline tasks, compare text plans with `nature-paper2ppt`, `paper-writer-skill`, and relevant writing skills.

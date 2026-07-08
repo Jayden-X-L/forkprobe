@@ -237,6 +237,31 @@ class TestRecommendations(unittest.TestCase):
         self.assertIn("writing-anti-ai", ids)
         self.assertIn("research-paper-writing-skills", ids)
 
+    def test_recommend_chinese_anti_ai_writing_uses_v04_pool(self):
+        from recommend import recommend_candidates
+
+        rec = recommend_candidates("请比较几个去AI味 skill，让中文 SCI 论文表达更自然。", online_discovery=False)
+        ids = [c.id for c in rec.candidates]
+        self.assertIn("baseline", ids)
+        self.assertIn("writing-anti-ai", ids)
+        self.assertIn("humanizer-zh", ids)
+        self.assertIn("remove-ai-flavor-writing-skill", ids)
+        self.assertTrue(any("v0.4" in note for note in rec.notes_zh))
+
+    def test_recommend_english_anti_ai_writing_uses_humanizer_pool(self):
+        from recommend import recommend_candidates
+
+        rec = recommend_candidates(
+            "Please compare skills to humanize English academic writing and reduce AI-like wording.",
+            online_discovery=False,
+        )
+        ids = [c.id for c in rec.candidates]
+        self.assertIn("baseline", ids)
+        self.assertIn("humanizer", ids)
+        self.assertIn("stop-slop", ids)
+        self.assertIn("avoid-ai-writing", ids)
+        self.assertIn("academic-humanizer", ids)
+
     def test_recommend_nature_polishing_byo(self):
         from recommend import recommend_candidates
         rec = recommend_candidates("请比较几个 skill 做英文摘要润色，偏 Nature 风格，中译英。", online_discovery=False)

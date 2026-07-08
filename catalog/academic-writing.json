@@ -1,13 +1,13 @@
 {
   "domain": "academic-writing",
-  "version": "v0.1",
-  "last_updated": "2026-05-28",
-  "description": "Skills for academic paragraph polishing, anti-AI text patterns, and SCI-style scientific writing. Targeted at Chinese SCI Q1 authors as primary user persona.",
+  "version": "v0.4",
+  "last_updated": "2026-07-08",
+  "description": "Skills for academic paragraph polishing, anti-AI text patterns, Chinese AI-flavor removal, and SCI-style scientific writing. Targeted at Chinese SCI Q1 authors as primary user persona.",
   "selection_criteria": [
     "Active commit/issue in last 90 days",
     "Compatible with Anthropic SKILL.md format (or trivially adaptable)",
-    "License compatible with MIT",
-    "At least one of: 100+ stars, clear academic identity, Chinese first-class support",
+    "License compatible with MIT for packaged recommendations, or explicitly marked license-review-needed for remote comparison only",
+    "At least one of: 100+ stars, clear academic identity, Chinese first-class support, or rapidly emerging anti-AI writing skill",
     "Diversity: covers anti-AI + academic-style across zh + en (2x2 matrix, each cell ≥ 1)"
   ],
   "skills": [
@@ -18,7 +18,7 @@
       "language": "en",
       "category": "anti-AI",
       "source": "https://github.com/blader/humanizer",
-      "approx_stars": 800,
+      "approx_stars": 27900,
       "license": "MIT",
       "approach": "Names 20+ specific AI writing patterns, does two-pass detection",
       "load_via": "git_clone",
@@ -32,11 +32,115 @@
       "category": "anti-AI",
       "source": "https://github.com/Galaxy-Dawn/claude-scholar",
       "subdir": "skills/writing-anti-ai",
-      "approx_stars": 400,
+      "approx_stars": 4500,
       "license": "MIT",
       "approach": "Bilingual anti-AI patterns: inflated symbolism, em dash overuse, rule of three, AI vocab, etc.",
       "load_via": "git_clone",
       "notes": "Only catalog entry with first-class Chinese support. Critical for primary user persona. Lives in a multi-skill repo; subdir required."
+    },
+    {
+      "id": "humanizer-zh",
+      "name": "Humanizer-zh",
+      "author": "op7418",
+      "language": "zh",
+      "category": "anti-AI",
+      "source": "https://github.com/op7418/Humanizer-zh",
+      "approx_stars": 12600,
+      "license": "MIT",
+      "approach": "Chinese adaptation of humanizer-style rules for removing signs of AI-generated writing.",
+      "load_via": "git_clone",
+      "notes": "High-star Chinese Claude Code Skills project focused on eliminating AI-generated traces in Chinese text."
+    },
+    {
+      "id": "stop-slop",
+      "name": "stop-slop",
+      "author": "hardikpandya",
+      "language": "en",
+      "category": "anti-AI",
+      "source": "https://github.com/hardikpandya/stop-slop",
+      "approx_stars": 13500,
+      "license": "MIT",
+      "approach": "Rule file for removing AI tells from prose and reducing generic slop.",
+      "load_via": "git_clone",
+      "notes": "Very popular SKILL.md-style candidate for English prose with strong anti-slop positioning."
+    },
+    {
+      "id": "avoid-ai-writing",
+      "name": "avoid-ai-writing",
+      "author": "conorbronsdon",
+      "language": "en",
+      "category": "anti-AI",
+      "source": "https://github.com/conorbronsdon/avoid-ai-writing",
+      "approx_stars": 2200,
+      "license": "MIT",
+      "approach": "Audits and rewrites content to remove AI writing patterns across agent surfaces.",
+      "load_via": "git_clone",
+      "notes": "Clear SKILL.md repo for audit plus rewrite workflows; useful as an English anti-AI comparison path."
+    },
+    {
+      "id": "remove-ai-flavor-writing-skill",
+      "name": "remove-ai-flavor-writing-skill",
+      "author": "B1lli",
+      "language": "zh",
+      "category": "anti-AI",
+      "source": "https://github.com/B1lli/remove-ai-flavor-writing-skill",
+      "approx_stars": 154,
+      "license": "MIT",
+      "approach": "Compact Chinese AI-flavor removal for template sentence shells, fake engagement endings, and over-polished copy.",
+      "load_via": "git_clone",
+      "notes": "Codex-oriented Chinese 去 AI 味 skill; fits social copy, public writing, and naturalization tasks."
+    },
+    {
+      "id": "academic-humanizer",
+      "name": "academic-humanizer",
+      "author": "AIScientists-Dev",
+      "language": "en",
+      "category": "anti-AI-academic",
+      "source": "https://github.com/AIScientists-Dev/academic-humanizer",
+      "approx_stars": 145,
+      "license": "license-review-needed",
+      "approach": "Removes AI-writing tells from papers and grant proposals while preserving scholarly voice and evidence ties.",
+      "load_via": "git_clone",
+      "notes": "Academic-specific humanizer for papers and grants. License needs review before redistribution, but remote BYO comparison is supported."
+    },
+    {
+      "id": "humanizer-academic-medical",
+      "name": "humanizer_academic",
+      "author": "matsuikentaro1",
+      "language": "en",
+      "category": "anti-AI-academic",
+      "source": "https://github.com/matsuikentaro1/humanizer_academic",
+      "approx_stars": 124,
+      "license": "license-review-needed",
+      "approach": "Removes signs of AI-generated writing from academic medical papers.",
+      "load_via": "git_clone",
+      "notes": "Medical academic writing candidate; useful for biomedical manuscript polishing comparisons."
+    },
+    {
+      "id": "patina",
+      "name": "patina",
+      "author": "devswha",
+      "language": "ko+en+zh+ja",
+      "category": "anti-AI-multilingual",
+      "source": "https://github.com/devswha/patina",
+      "approx_stars": 249,
+      "license": "MIT",
+      "approach": "Multilingual AI-writing humanizer for Korean, English, Chinese, and Japanese.",
+      "load_via": "git_clone",
+      "notes": "Useful when the task explicitly asks for multilingual anti-AI rewriting beyond Chinese and English."
+    },
+    {
+      "id": "humanai",
+      "name": "HumanAI",
+      "author": "MADEVAL",
+      "language": "multilingual",
+      "category": "anti-AI-multilingual",
+      "source": "https://github.com/MADEVAL/HumanAI",
+      "approx_stars": 53,
+      "license": "MIT",
+      "approach": "Five-stage pipeline for rewriting machine-generated text to sound human-written across multiple languages.",
+      "load_via": "git_clone",
+      "notes": "Lower-star but structured multilingual humanization skill; keep as an extended candidate rather than default."
     },
     {
       "id": "research-paper-writing-skills",
@@ -68,15 +172,19 @@
     }
   ],
   "diversity_matrix": {
-    "anti-AI × en": ["humanizer"],
+    "anti-AI × en": ["humanizer", "stop-slop", "avoid-ai-writing"],
+    "anti-AI × zh": ["humanizer-zh", "remove-ai-flavor-writing-skill"],
     "anti-AI × zh+en": ["writing-anti-ai"],
+    "anti-AI academic × en": ["academic-humanizer", "humanizer-academic-medical"],
+    "anti-AI multilingual": ["patina", "humanai"],
     "academic-style × zh": ["research-paper-writing-skills"],
     "academic-style × en": ["paper-writer-skill"]
   },
   "recommended_defaults": {
-    "chinese_user": ["baseline", "writing-anti-ai", "research-paper-writing-skills"],
-    "english_user": ["baseline", "humanizer", "paper-writer-skill"],
-    "bilingual_user": ["baseline", "writing-anti-ai", "humanizer"]
+    "chinese_user": ["baseline", "writing-anti-ai", "humanizer-zh", "remove-ai-flavor-writing-skill", "research-paper-writing-skills"],
+    "english_user": ["baseline", "humanizer", "stop-slop", "avoid-ai-writing", "paper-writer-skill"],
+    "academic_english_user": ["baseline", "humanizer", "academic-humanizer", "paper-writer-skill"],
+    "bilingual_user": ["baseline", "writing-anti-ai", "humanizer-zh", "humanizer", "stop-slop"]
   },
   "byo_supported": true,
   "byo_formats": [

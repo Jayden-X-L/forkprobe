@@ -20,14 +20,14 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.3" src="https://img.shields.io/badge/version-v0.3-2563eb">
+  <img alt="Version v0.4" src="https://img.shields.io/badge/version-v0.4-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.3 adds market research and research report comparison:** research-report pipelines can now generate and compare report previews, sources.json, evidence tables, claim checks, limitations, and AI judge recommendations. v0.2 paper figure and scientific graphics support remains available for PNG previews, SVG/PDF/TIFF exports, source files, captions, and QA notes.
+**v0.4 expands anti-AI and humanized writing candidates:** naturalization and style-rewriting tasks now prioritize dedicated anti-AI / humanizer skills such as `writing-anti-ai`, `humanizer-zh`, `humanizer`, `stop-slop`, `avoid-ai-writing`, and `remove-ai-flavor-writing-skill`, with multilingual extensions such as `patina` and `HumanAI`. v0.3 market research and research-report comparison remains available with report previews, sources.json, evidence tables, claim checks, limitations, and AI judge notes.
 
 When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe makes the choice visible: compare the real outputs first, then continue with the path you picked.
 
@@ -85,8 +85,8 @@ The shortlist below follows the current README capability matrix. `baseline` mea
 
 | Scenario | Status | What you see in the report | Recommended candidates |
 |---|---|---|---|
-| Academic polishing & SCI writing | Supported | Draft variants, AI judge notes, winner selection | `baseline`, `research-paper-writing-skills`, `paper-writer-skill`, [`nature-polishing`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-polishing), `humanizer` |
-| Naturalization & style rewriting | Supported | Side-by-side drafts in different tones and styles | `baseline`, `writing-anti-ai`, `humanizer`, `research-paper-writing-skills` |
+| Academic polishing & SCI writing | Supported | Draft variants, AI judge notes, winner selection | `baseline`, `research-paper-writing-skills`, `paper-writer-skill`, [`nature-polishing`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-polishing), `humanizer`, `academic-humanizer` |
+| Naturalization, style rewriting & anti-AI writing | Supported | Side-by-side drafts in different tones and styles | `baseline`, `writing-anti-ai`, [`Humanizer-zh`](https://github.com/op7418/Humanizer-zh), [`humanizer`](https://github.com/blader/humanizer), [`stop-slop`](https://github.com/hardikpandya/stop-slop), [`avoid-ai-writing`](https://github.com/conorbronsdon/avoid-ai-writing), [`remove-ai-flavor-writing-skill`](https://github.com/B1lli/remove-ai-flavor-writing-skill) |
 | Reviewer response & submission materials | Supported | Response drafts, structure, and tone comparison | `baseline`, [`nature-response`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-response), `paper-writer-skill`, `writing-anti-ai`, `research-paper-writing-skills` |
 | PPTX deck generation | Supported | Openable PPTX files, preview images, candidate notes | `baseline + presentations`, [`nature-paper2ppt`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-paper2ppt) `+ presentations`, [`academic-pptx-skill`](https://github.com/Gabberflast/academic-pptx-skill) `+ presentations`, [`ppt-master`](https://github.com/hugohe3/ppt-master), [`md-slides`](https://github.com/zl190/md-slides) |
 | Paper figures & scientific graphics | Supported | PNG previews, SVG/PDF/TIFF exports, code, captions, QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
@@ -104,8 +104,9 @@ Use this for academic polishing, naturalization, reviewer responses, submission 
 python3 scripts/compare.py \
   --input /tmp/forkprobe-input.txt \
   --skill baseline \
-  --skill writing-anti-ai \
-  --skill research-paper-writing-skills \
+  --skill humanizer \
+  --skill stop-slop \
+  --skill avoid-ai-writing \
   --judge \
   --output /tmp/forkprobe-report.html
 ```
@@ -235,7 +236,9 @@ After confirming the candidates, run a local text comparison:
 python3 scripts/compare.py \
   --input /tmp/forkprobe-input.txt \
   --skill baseline \
-  --skill writing-anti-ai \
+  --skill humanizer \
+  --skill stop-slop \
+  --skill avoid-ai-writing \
   --judge \
   --output /tmp/forkprobe-report.html
 ```

@@ -20,14 +20,14 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.3" src="https://img.shields.io/badge/version-v0.3-2563eb">
+  <img alt="Version v0.4" src="https://img.shields.io/badge/version-v0.4-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/report-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
-**v0.3 新增支持市场调研 / 调研报告对比：** research report pipeline 可以生成并横向比较报告预览、sources.json、evidence table、claim checks、limitations 和 AI 评审建议。v0.2 的论文作图 / 科研绘图能力继续支持 PNG 预览、SVG/PDF/TIFF、源文件、caption 和 QA。
+**v0.4 新增去 AI 味写作候选池：** 自然化与风格改写会优先比较 `writing-anti-ai`、`humanizer-zh`、`humanizer`、`stop-slop`、`avoid-ai-writing`、`remove-ai-flavor-writing-skill` 等专门的 anti-AI / humanizer skill，并保留 `patina`、`HumanAI` 等多语言扩展候选。v0.3 的市场调研 / 调研报告对比继续支持 report preview、sources.json、evidence table、claim checks、limitations 和 AI 评审建议。
 
 当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。ForkProbe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
 
@@ -85,8 +85,8 @@ Compare a few skills first and see which one fits the current task better.
 
 | 场景 | 状态 | Report 里看到什么 | 推荐候选 |
 |---|---|---|---|
-| 学术润色与 SCI 写作 | 已支持 | 多版本文本、AI 评审、winner 选择 | `baseline`, `research-paper-writing-skills`, `paper-writer-skill`, [`nature-polishing`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-polishing), `humanizer` |
-| 自然化与风格改写 | 已支持 | 不同风格稿件并排比较 | `baseline`, `writing-anti-ai`, `humanizer`, `research-paper-writing-skills` |
+| 学术润色与 SCI 写作 | 已支持 | 多版本文本、AI 评审、winner 选择 | `baseline`, `research-paper-writing-skills`, `paper-writer-skill`, [`nature-polishing`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-polishing), `humanizer`, `academic-humanizer` |
+| 自然化与风格改写 / 去 AI 味写作 | 已支持 | 不同风格稿件并排比较 | `baseline`, `writing-anti-ai`, [`Humanizer-zh`](https://github.com/op7418/Humanizer-zh), [`humanizer`](https://github.com/blader/humanizer), [`stop-slop`](https://github.com/hardikpandya/stop-slop), [`avoid-ai-writing`](https://github.com/conorbronsdon/avoid-ai-writing), [`remove-ai-flavor-writing-skill`](https://github.com/B1lli/remove-ai-flavor-writing-skill) |
 | 审稿回复与投稿材料 | 已支持 | 回复草稿、结构、语气对比 | `baseline`, [`nature-response`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-response), `paper-writer-skill`, `writing-anti-ai`, `research-paper-writing-skills` |
 | PPTX 成品生成 | 已支持 | 可打开的 PPTX、预览图、候选说明 | `baseline + presentations`, [`nature-paper2ppt`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-paper2ppt) `+ presentations`, [`academic-pptx-skill`](https://github.com/Gabberflast/academic-pptx-skill) `+ presentations`, [`ppt-master`](https://github.com/hugohe3/ppt-master), [`md-slides`](https://github.com/zl190/md-slides) |
 | 论文作图 / 科研绘图 | 已支持 | PNG 预览、SVG/PDF/TIFF、代码、caption、QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
@@ -105,7 +105,8 @@ python3 scripts/compare.py \
   --input /tmp/forkprobe-input.txt \
   --skill baseline \
   --skill writing-anti-ai \
-  --skill research-paper-writing-skills \
+  --skill humanizer-zh \
+  --skill remove-ai-flavor-writing-skill \
   --judge \
   --output /tmp/forkprobe-report.html
 ```
@@ -238,6 +239,8 @@ python3 scripts/compare.py \
   --input /tmp/forkprobe-input.txt \
   --skill baseline \
   --skill writing-anti-ai \
+  --skill humanizer-zh \
+  --skill remove-ai-flavor-writing-skill \
   --judge \
   --output /tmp/forkprobe-report.html
 ```

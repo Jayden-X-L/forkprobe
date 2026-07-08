@@ -87,6 +87,38 @@ CATALOG_COPY = {
         "reason_zh": "适合降低机器感，让中英文表达更自然。",
         "reason_en": "Useful for reducing AI-like phrasing in Chinese or English.",
     },
+    "humanizer-zh": {
+        "reason_zh": "适合中文文本去 AI 痕迹，偏中文 Humanizer 路线。",
+        "reason_en": "Useful for removing AI-generated traces from Chinese text.",
+    },
+    "stop-slop": {
+        "reason_zh": "适合英文 prose 去 AI 腔、去泛化表达和模板感。",
+        "reason_en": "Useful for removing AI tells, generic slop, and over-template prose in English.",
+    },
+    "avoid-ai-writing": {
+        "reason_zh": "适合先审计 AI 写作模式，再做英文自然化改写。",
+        "reason_en": "Useful for auditing and rewriting English content to avoid AI writing patterns.",
+    },
+    "remove-ai-flavor-writing-skill": {
+        "reason_zh": "适合中文去 AI 味，清理模板句、假互动结尾和过度圆滑表达。",
+        "reason_en": "Useful for Chinese AI-flavor removal, template shells, fake engagement endings, and over-polished copy.",
+    },
+    "academic-humanizer": {
+        "reason_zh": "适合英文论文、基金或学术材料去 AI 痕迹，同时保留 scholarly voice。",
+        "reason_en": "Useful for removing AI-writing tells from papers and grants while preserving scholarly voice.",
+    },
+    "humanizer-academic-medical": {
+        "reason_zh": "适合医学/生物医学英文论文自然化和去 AI 痕迹。",
+        "reason_en": "Useful for naturalizing academic medical papers and removing AI-generated writing traces.",
+    },
+    "patina": {
+        "reason_zh": "适合韩/英/中/日多语言去 AI 写作场景。",
+        "reason_en": "Useful for multilingual anti-AI rewriting across Korean, English, Chinese, and Japanese.",
+    },
+    "humanai": {
+        "reason_zh": "适合用多阶段流程做多语言 humanization 对比。",
+        "reason_en": "Useful for multilingual humanization comparisons with a staged rewrite pipeline.",
+    },
     "research-paper-writing-skills": {
         "reason_zh": "适合中文科研表达、论文段落和 SCI 写作语气优化。",
         "reason_en": "Useful for Chinese academic expression and SCI-style paper prose.",
@@ -917,22 +949,34 @@ def recommend_candidates(
         add_byo("nature-response")
         add_catalog("writing-anti-ai", "适合让回复语气更自然、克制，减少模板感。")
         add_catalog("research-paper-writing-skills", "适合中文起草后再转成正式科研回复。")
+    elif "anti_ai" in signal_set:
+        is_chinese_anti_ai = "zh" in signal_set or "chinese_academic" in signal_set
+        is_english_anti_ai = "english" in signal_set or "nature" in signal_set
+        if is_chinese_anti_ai:
+            add_catalog("writing-anti-ai")
+            add_catalog("humanizer-zh")
+            add_catalog("remove-ai-flavor-writing-skill")
+            add_catalog("research-paper-writing-skills")
+        elif is_english_anti_ai:
+            add_catalog("humanizer")
+            add_catalog("stop-slop")
+            add_catalog("avoid-ai-writing")
+            add_catalog("academic-humanizer")
+        else:
+            add_catalog("writing-anti-ai")
+            add_catalog("humanizer-zh")
+            add_catalog("humanizer")
+            add_catalog("stop-slop")
+        notes_zh.append("v0.4 去 AI 味写作模式：优先比较专门的 anti-AI / humanizer skill，并避免把任务降级成普通润色。")
+        notes_en.append("v0.4 anti-AI writing mode: prioritize dedicated anti-AI/humanizer skills instead of treating the task as generic polishing.")
     elif "english" in signal_set or "nature" in signal_set:
         add_catalog("paper-writer-skill")
         add_byo("nature-polishing")
-        if "anti_ai" in signal_set:
-            add_catalog("writing-anti-ai")
-        else:
-            add_catalog("humanizer")
+        add_catalog("humanizer")
         add_catalog("research-paper-writing-skills")
-    elif "anti_ai" in signal_set:
-        add_catalog("writing-anti-ai")
-        if "english" in signal_set:
-            add_catalog("humanizer")
-        add_catalog("research-paper-writing-skills")
-        add_catalog("paper-writer-skill")
     else:
         add_catalog("writing-anti-ai")
+        add_catalog("humanizer-zh")
         add_catalog("research-paper-writing-skills")
         add_catalog("paper-writer-skill")
         if "zh" not in signal_set:
