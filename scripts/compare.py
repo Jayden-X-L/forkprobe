@@ -4,8 +4,8 @@ forkprobe main orchestration: run a task in parallel with and without skill(s).
 Usage:
     python compare.py --input task.txt --skill baseline --skill humanizer --output report.html
 
-v0.4 status: expanded anti-AI writing candidates, catalog/BYO skill loading, parallel execution, HTML report,
-research report artifact routing, and local HTML reports
+v0.5 status: expanded anti-AI writing candidates, catalog/BYO skill loading, parallel execution, HTML report,
+research-report and webpage artifact routing, and local HTML reports
 rendering, local verdict capture, and first artifact comparison flows.
 """
 from __future__ import annotations
@@ -346,7 +346,10 @@ def _extract_json_object(text: str) -> Optional[dict]:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        pass
+        try:
+            return json.loads(text, strict=False)
+        except json.JSONDecodeError:
+            pass
 
     start = text.find("{")
     end = text.rfind("}")
@@ -355,7 +358,10 @@ def _extract_json_object(text: str) -> Optional[dict]:
     try:
         return json.loads(text[start : end + 1])
     except json.JSONDecodeError:
-        return None
+        try:
+            return json.loads(text[start : end + 1], strict=False)
+        except json.JSONDecodeError:
+            return None
 
 
 def parse_judge_output(output: str, results: list[RunResult], tokens: int, latency: float) -> JudgeResult:
@@ -523,7 +529,7 @@ def main():
         print(f"Error resolving skill: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[forkprobe] v0.4")
+    print(f"[forkprobe] v0.5")
     print(f"[forkprobe] Task input: {len(task_input)} chars from {input_path}")
     print(f"[forkprobe] Skills to compare: {[s.id for s in skills]}")
     print()

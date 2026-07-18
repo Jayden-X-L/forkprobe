@@ -78,6 +78,18 @@ def _normalize_candidate(candidate: dict[str, Any], manifest_dir: Path) -> dict[
         for artifact in candidate.get("artifacts", [])
     ]
     summary = candidate.get("summary") or candidate.get("output") or candidate.get("notes") or ""
+    web_preview_source = candidate.get("web_preview") if isinstance(candidate.get("web_preview"), dict) else {}
+    web_preview: dict[str, Any] = {}
+    for source_key, target_key in (
+        ("page_path", "page_href"),
+        ("desktop_path", "desktop_href"),
+        ("mobile_path", "mobile_href"),
+    ):
+        value = str(web_preview_source.get(source_key) or web_preview_source.get(target_key) or "")
+        if value:
+            web_preview[target_key] = _href_for_path(value, manifest_dir)
+    if web_preview_source:
+        web_preview["qa_score"] = int(web_preview_source.get("qa_score") or 0)
     return {
         "skill_id": candidate_id,
         "skill_name": candidate.get("name") or candidate.get("skill_name") or candidate_id,
@@ -90,6 +102,7 @@ def _normalize_candidate(candidate: dict[str, Any], manifest_dir: Path) -> dict[
         "latency_seconds": float(candidate.get("latency_seconds") or 0.0),
         "error": candidate.get("error"),
         "artifacts": artifacts,
+        "web_preview": web_preview,
     }
 
 

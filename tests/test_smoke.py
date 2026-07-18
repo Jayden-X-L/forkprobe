@@ -348,6 +348,58 @@ class TestRecommendations(unittest.TestCase):
         self.assertIn("调研报告 pipeline", text)
         self.assertIn("sources.json", "\n".join(rec.notes_zh))
 
+    def test_recommend_webpage_routes_to_confirmed_artifact_mode(self):
+        from recommend import format_text, recommend_candidates
+
+        rec = recommend_candidates(
+            "请为 ForkProbe 制作一个完整可运行的响应式产品官网网页成品，要有桌面端和移动端。",
+            online_discovery=False,
+        )
+        self.assertEqual(rec.deliverable_type, "web_artifact")
+        self.assertEqual(rec.compare_mode, "artifact")
+        ids = [candidate.id for candidate in rec.candidates]
+        self.assertIn("baseline-web", ids)
+        self.assertIn("anthropic-frontend-design", ids)
+        self.assertIn("baoyu-design-web", ids)
+        self.assertNotIn("chinese_academic", rec.task_signals)
+        self.assertIn("scripts/web_artifact.py", rec.suggested_command)
+        self.assertIn("--confirmed", rec.suggested_command)
+        self.assertIn("--judge", rec.suggested_command)
+        text = format_text(rec, input_path="web-task.md", lang="zh")
+        self.assertIn("桌面/移动端预览", text)
+
+    def test_recommend_web_brief_only_stays_text_mode(self):
+        from recommend import recommend_candidates
+
+        rec = recommend_candidates(
+            "请给我一个网页方案和 wireframe，不要生成网页，不要写代码。",
+            online_discovery=False,
+        )
+        self.assertEqual(rec.deliverable_type, "text")
+        self.assertEqual(rec.compare_mode, "text")
+
+    def test_web_artifact_cli_run_requires_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(PROJECT_DIR / "scripts" / "web_artifact.py"),
+                    "--text",
+                    "请生成一个产品官网网页成品。",
+                    "--output-dir",
+                    str(Path(tmp) / "run"),
+                    "--pipeline",
+                    "baseline-web",
+                    "--run",
+                    "--no-open",
+                ],
+                text=True,
+                capture_output=True,
+            )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("candidate confirmation", proc.stderr)
+        self.assertIn("scripts/recommend.py", proc.stderr)
+
     def test_research_artifact_cli_run_requires_confirmation(self):
         with tempfile.TemporaryDirectory() as tmp:
             proc = subprocess.run(
@@ -1249,6 +1301,114 @@ class TestRenderReport(unittest.TestCase):
                 else:
                     os.environ["FORKPROBE_RESEARCH_SANDBOX"] = old_sandbox
 
+    def test_web_catalog_and_default_pipelines(self):
+        from web_artifact import build_pipeline_registry, default_pipeline_ids
+
+        registry, dynamic_ids = build_pipeline_registry()
+        self.assertEqual(dynamic_ids, [])
+        self.assertGreaterEqual(len(registry), 12)
+        self.assertTrue(registry["baseline-web"].runnable)
+        self.assertTrue(registry["anthropic-frontend-design"].runnable)
+        self.assertFalse(registry["google-stitch-react"].runnable)
+        self.assertIn("anthropic-web-artifacts", default_pipeline_ids("dashboard"))
+        self.assertIn("html-anything-prototype", default_pipeline_ids("landing"))
+
+    def test_run_web_pipeline_with_fake_codex_and_render_previews(self):
+        from render_artifact_report import render_from_manifest
+        from web_artifact import build_pipeline_registry, create_workspace, run_parallel
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fake_cli = tmp_path / "codex"
+            fake_cli.write_text(
+                "#!/usr/bin/env python3\n"
+                "import pathlib, re, sys\n"
+                "args = sys.argv[1:]\n"
+                "out = pathlib.Path(args[args.index('--output-last-message') + 1])\n"
+                "prompt = sys.stdin.read()\n"
+                "match = re.search(r'Build the actual runnable website under `([^`]+)`', prompt)\n"
+                "site = pathlib.Path(match.group(1))\n"
+                "site.mkdir(parents=True, exist_ok=True)\n"
+                "html = '''<!doctype html><html lang=\"zh-CN\"><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>ForkProbe V0.5</title><style>@media(max-width:600px){main{display:block}} button{padding:8px}</style></head><body><main><h1>ForkProbe</h1><button type=\"button\">开始比较</button></main></body></html>'''\n"
+                "(site / 'index.html').write_text(html, encoding='utf-8')\n"
+                "source = site.parent / 'source'\n"
+                "source.mkdir(parents=True, exist_ok=True)\n"
+                "(source / 'index.html').write_text(html, encoding='utf-8')\n"
+                "(site.parent.parent / 'summary.md').write_text('Fake web candidate with responsive layout and a working CTA.', encoding='utf-8')\n"
+                "out.write_text('Fake web runner completed.', encoding='utf-8')\n"
+                "print('tokens used\\n2,345', file=sys.stderr)\n",
+                encoding="utf-8",
+            )
+            os.chmod(fake_cli, 0o755)
+
+            def fake_capture(_chrome, _url, output_path, _width, _height):
+                output_path.write_bytes(b"fake png")
+                return True, ""
+
+            old_cli = os.environ.get("FORKPROBE_CODEX_CLI")
+            old_chrome = os.environ.get("FORKPROBE_CHROME_BIN")
+            os.environ["FORKPROBE_CODEX_CLI"] = str(fake_cli)
+            os.environ["FORKPROBE_CHROME_BIN"] = sys.executable
+            try:
+                task = "请制作一个完整可运行的响应式产品官网网页成品。"
+                workspace = create_workspace(
+                    task_input=task,
+                    output_dir=tmp_path / "run",
+                    pipeline_ids=["baseline-web"],
+                )
+                registry, _ = build_pipeline_registry()
+                with (
+                    patch("web_artifact._capture_screenshot", side_effect=fake_capture),
+                    patch(
+                        "web_artifact._measure_browser_layout",
+                        return_value=({"inner_width": 390, "scroll_width": 390}, ""),
+                    ),
+                ):
+                    runs = run_parallel(
+                        task_input=task,
+                        output_dir=Path(workspace["output_dir"]),
+                        pipeline_ids=["baseline-web"],
+                        pipeline_registry=registry,
+                        max_workers=1,
+                        timeout=30,
+                    )
+                self.assertIsNone(runs[0].error)
+                self.assertEqual(runs[0].tokens_used, 2345)
+
+                refreshed = create_workspace(
+                    task_input=task,
+                    output_dir=Path(workspace["output_dir"]),
+                    pipeline_ids=["baseline-web"],
+                )
+                manifest_path = Path(refreshed["manifest_path"])
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                candidate = manifest["candidates"][0]
+                self.assertEqual(candidate["web_preview"]["qa_score"], 100)
+                self.assertIn("desktop_path", candidate["web_preview"])
+                self.assertIn("mobile_path", candidate["web_preview"])
+                self.assertIn("source.zip", {artifact["label"] for artifact in candidate["artifacts"]})
+                self.assertGreater(candidate["estimated_tokens_used"], 0)
+
+                report = tmp_path / "web-report.html"
+                render_from_manifest(manifest_path, report, auto_open=False)
+                html = report.read_text(encoding="utf-8")
+                self.assertIn("Web preview", html)
+                self.assertIn("Desktop", html)
+                self.assertIn("Mobile", html)
+                self.assertIn("Open page", html)
+                self.assertIn("100/100", html)
+                self.assertIn("desktop.png", html)
+                self.assertIn("mobile.png", html)
+            finally:
+                if old_cli is None:
+                    os.environ.pop("FORKPROBE_CODEX_CLI", None)
+                else:
+                    os.environ["FORKPROBE_CODEX_CLI"] = old_cli
+                if old_chrome is None:
+                    os.environ.pop("FORKPROBE_CHROME_BIN", None)
+                else:
+                    os.environ["FORKPROBE_CHROME_BIN"] = old_chrome
+
 
 class TestJudgeParsing(unittest.TestCase):
     def _results(self):
@@ -1275,6 +1435,20 @@ class TestJudgeParsing(unittest.TestCase):
                 error=None,
             ),
         ]
+
+    def test_judge_parser_accepts_unescaped_newline_inside_string(self):
+        from compare import parse_judge_output
+
+        raw = (
+            '{"winner_skill_id":"humanizer","verdict_type":"pick","confidence":0.8,'
+            '"summary":"ok","reasoning":"line one\nline two",'
+            '"scores":{"humanizer":{"score":8,"note":"best"},'
+            '"baseline":{"score":7,"note":"close"}}}'
+        )
+        parsed = parse_judge_output(raw, self._results(), tokens=123, latency=1.5)
+        self.assertIsNone(parsed.error)
+        self.assertEqual(parsed.winner_skill_id, "humanizer")
+        self.assertIn("line two", parsed.reasoning)
 
     def test_parse_judge_json_with_fence(self):
         from compare import parse_judge_output

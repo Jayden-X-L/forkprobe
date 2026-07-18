@@ -1,6 +1,6 @@
 ---
 name: forkprobe
-description: Recommend a small set of candidate skills or artifact-generation pipelines for an open-ended task, then compare their outputs so the user can decide what actually helps. Use when the user is unsure if a particular skill would improve their output, when comparing 2+ skills for the same task, when they naturally ask to compare skills without saying forkprobe, or when explicitly invoked with /forkprobe. Chinese examples include "我想比较几个科研写作 skill", "帮我看看哪个 skill 更适合这段", "先别直接改，并排试几个 skill", "哪个 skill 改出来更自然", "比较几个去 AI 味写作 skill", "基于文档做一个 PPT，想比较几个 skill 效果", "比较几个论文作图 skill", and "比较几个市场调研/调研报告 skill". Especially valuable for academic paragraph polishing, anti-AI text rewriting, Chinese AI-flavor removal, scientific writing, reviewer response, Nature-style polishing, PPT planning, PPTX artifact comparison, scientific figure artifact comparison, market research comparison, and research report artifact comparison. Do NOT use for simple deterministic tasks where skill choice is obvious or for casual conversation.
+description: Recommend a small set of candidate skills or artifact-generation pipelines for an open-ended task, then compare their outputs so the user can decide what actually helps. Use when the user is unsure if a particular skill would improve their output, when comparing 2+ skills for the same task, when they naturally ask to compare skills without saying forkprobe, or when explicitly invoked with /forkprobe. Chinese examples include "我想比较几个科研写作 skill", "帮我看看哪个 skill 更适合这段", "先别直接改，并排试几个 skill", "哪个 skill 改出来更自然", "比较几个去 AI 味写作 skill", "基于文档做一个 PPT，想比较几个 skill 效果", "比较几个论文作图 skill", "比较几个市场调研/调研报告 skill", and "比较几个网页制作 skill，看哪个成品更好". Especially valuable for academic paragraph polishing, anti-AI text rewriting, Chinese AI-flavor removal, scientific writing, reviewer response, Nature-style polishing, PPTX artifact comparison, scientific figure artifact comparison, market research comparison, research report artifact comparison, and finished webpage/HTML comparison. Do NOT use for simple deterministic tasks where skill choice is obvious or for casual conversation.
 ---
 
 # forkprobe
@@ -9,9 +9,9 @@ description: Recommend a small set of candidate skills or artifact-generation pi
 
 ## What this skill does
 
-Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines local curated candidates with GitHub/network skill discovery by default, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code or Codex), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, and research reports, it compares artifact-generation pipelines and renders a report with file links/previews.
+Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines local curated candidates with GitHub/network skill discovery by default, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code or Codex), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, research reports, and webpages, it compares artifact-generation pipelines and renders a report with file links/previews.
 
-**v0.4 scope:** Text-first academic workflows, expanded anti-AI / humanizer writing comparisons, PPTX artifact comparison, scientific figure artifact comparison, and market research / research report artifact comparison. Text flows cover paragraph polishing, anti-AI text rewriting, Chinese AI-flavor removal, SCI/Nature-style writing, translation/polishing, reviewer-response drafting, and PPT outline comparison. Artifact flows cover PPTX pipeline recommendation, paper figure/scientific graphics pipelines that generate PNG previews, SVG/PDF/TIFF exports, source files, captions, and QA notes, plus research report pipelines that generate report previews, sources, evidence tables, claim checks, limitations, and summaries for artifact report comparison. Candidate discovery merges local curated candidates with sanitized GitHub/network discovery unless the user explicitly asks for local-only/offline mode.
+**v0.5 scope:** All v0.4 text, PPTX, scientific figure, and research-report workflows, plus finished webpage/HTML artifact comparison. Web flows classify landing pages, dashboards, web apps, report pages, and general sites; recommend task-fit candidates; wait for confirmation; generate isolated runnable sites; capture shared desktop/mobile screenshots; run browser QA; and compare page links, source packages, latency, token estimates, and AI judge notes. Candidate discovery merges local curated candidates with sanitized GitHub/network discovery unless the user explicitly asks for local-only/offline mode.
 
 ## When to invoke
 
@@ -35,6 +35,8 @@ Chinese trigger examples:
 - "比较几个 PPT skill，看哪个做出来的 PPT 更好"
 - "比较几个论文作图 skill，看哪个机制图成品更好"
 - "比较几个调研报告 skill，看哪个报告证据链更可靠"
+- "比较几个网页制作 skill，看哪个 Landing Page 成品更好"
+- "用几个前端 skill 并排生成 Dashboard，让我看桌面端和移动端效果"
 
 ## When NOT to invoke
 
@@ -59,6 +61,7 @@ First classify the deliverable:
 | "做一个 PPT", "生成 PPT", "PPTX", "比较 PPT skill 效果" | `pptx` | `artifact` |
 | "画图", "生成示意图", "生成科研图/论文 figure 成品" | `visual_artifact` | `artifact` |
 | "市场调研报告", "公司调研", "竞品分析", "用户研究报告", "文献综述", "投研报告" | `research_report` | `artifact` |
+| "制作网页", "完整网站", "Landing Page", "Dashboard", "Web App", "HTML 成品" | `web_artifact` | `artifact` |
 
 Important PPT rule:
 - If the user says they want to "做一个 PPT" or compare PPT skills, assume they want a **PPTX artifact**.
@@ -70,8 +73,9 @@ Important PPT rule:
 Before running the comparison, recommend 3-5 candidates and wait for user confirmation. Always include `baseline`.
 
 Hard interaction rule:
-- Do **not** run `compare.py`, `figure_artifact.py --run`, `research_artifact.py --run`, or any artifact-generation command before the user confirms the candidate shortlist.
+- Do **not** run `compare.py`, `figure_artifact.py --run`, `research_artifact.py --run`, `web_artifact.py --run`, or any artifact-generation command before the user confirms the candidate shortlist.
 - For market research / research report tasks, `research_artifact.py` is only the runner. It must not be used as the first step. First run `scripts/recommend.py`, show the shortlist, and ask the user to confirm, remove, or add candidates.
+- For finished webpage tasks, `web_artifact.py` is only the runner. First use `scripts/recommend.py`, explain the candidate differences, and wait for confirmation. A request for a brief, wireframe, or prompt without a finished page stays in text mode.
 - If a user says "use ForkProbe" and gives a task, stop after the recommendation message unless they have already explicitly confirmed the exact candidates in the same message.
 
 Default discovery flow:
@@ -87,7 +91,7 @@ Only skip GitHub/network discovery when the user explicitly asks for local-only/
 Use the local recommendation helper when task text is available:
 
 ```bash
-python scripts/recommend.py --input <path_to_user_input> --domain academic-writing
+python scripts/recommend.py --input <path_to_user_input>
 ```
 
 If the user only gave a short task description, use:
@@ -129,6 +133,7 @@ Recommendation rules:
 - For PPT outline tasks, compare text plans with `nature-paper2ppt`, `paper-writer-skill`, and relevant writing skills.
 - For PPTX artifact tasks, run discovery first, then compare PPT generation pipelines, not writing-only skills.
 - For research report artifact tasks, compare research-report pipelines, not short-answer research summaries. Default candidates include `baseline-research-report`, `source-first-research`, `analyst-style-report`, and `evidence-table-report`; for specific domains, add `company-research-report`, `user-research-cookiy-report`, `literature-review-report`, or `investment-research-report`.
+- For webpage artifact tasks, classify the page family before shortlisting. Always include `baseline-web`; then choose from `anthropic-frontend-design`, `anthropic-web-artifacts`, `ui-ux-pro-max-web`, `garden-web-design-engineer`, `baoyu-design-web`, and `html-anything-prototype` according to landing/dashboard/app/report fit. Do not include a conditional candidate that requires unavailable Stitch, SuperDesign, gstack, or other external tooling.
 
 PPTX discovery:
 
@@ -345,6 +350,52 @@ python scripts/research_artifact.py \
 
 `--skill-source` accepts the same `repo#subdir` or local path format used by BYO text skills. forkprobe turns each source into its own research-report pipeline, injects the skill instructions into that candidate run, and compares the generated research package in the report.
 
+### Web artifact mode
+
+Use this path when the user wants a finished, runnable website rather than a page brief, wireframe, prompt, or isolated code suggestion. Supported families include landing pages, product sites, dashboards, web apps, report pages, and general HTML deliverables.
+
+First recommend candidates and wait for confirmation:
+
+```bash
+python scripts/recommend.py --input <path_to_user_input> --domain academic-writing
+```
+
+Only after confirmation, run the selected web pipelines:
+
+```bash
+python scripts/web_artifact.py \
+  --input <path_to_user_input> \
+  --pipeline baseline-web \
+  --pipeline anthropic-frontend-design \
+  --pipeline garden-web-design-engineer \
+  --pipeline baoyu-design-web \
+  --confirmed \
+  --run \
+  --judge \
+  --render-report \
+  --report-output ./web-artifact-report.html
+```
+
+Each candidate must produce a runnable static entry at `artifacts/site/index.html`. ForkProbe then:
+
+1. normalizes the final static site
+2. captures `desktop.png` at `1440x1000`
+3. captures `mobile.png` at `390x844`
+4. writes `qa.json` for page load, viewport, responsiveness, interactions, local assets, basic accessibility, and real-browser mobile horizontal overflow when Python Playwright is available
+5. packages editable files as `source.zip`
+6. renders side-by-side previews, QA, metrics, files, and AI judge notes
+
+Expected candidate package:
+
+- `site/index.html` and local assets
+- `desktop.png`
+- `mobile.png`
+- `qa.json`
+- `source.zip`
+- `README.md` and candidate `summary.md`
+
+To compare a BYO web skill, add `--skill-source <repo#subdir-or-local-path>` after the user approves it. Never add conditional candidates whose required runtime is unavailable.
+
 ### Step 5: Show report
 
 Tell the user:
@@ -422,8 +473,10 @@ SKILL.md (this file)
         ├─> scripts/discover_skills.py (PPTX skill/pipeline discovery)
         ├─> scripts/figure_artifact.py (scientific figure artifact pipeline runner)
         ├─> scripts/research_artifact.py (research report artifact pipeline runner)
-        ├─> scripts/render_artifact_report.py (PPTX/file artifact report rendering)
+        ├─> scripts/web_artifact.py (webpage artifact runner, screenshots, and QA)
+        ├─> scripts/render_artifact_report.py (PPTX/file/web artifact report rendering)
         ├─> catalog/academic-writing.json (skill metadata)
+        ├─> catalog/web-artifact-skills.json (curated webpage candidates)
         └─> scripts/render_report.py
               └─> templates/report.html.j2
 ```

@@ -25,6 +25,14 @@ forkprobe may invoke local tools for explicit workflow steps:
 - `codex exec` is used only when Codex native execution is enabled.
 - Commands are passed as argument lists without `shell=True`.
 
+## Web Artifact Preview
+
+- `web_artifact.py` serves each generated site from a temporary loopback-only HTTP server for screenshots; it does not bind to external interfaces.
+- Chrome/Chromium runs headlessly with a fresh temporary profile for each screenshot.
+- When the Python Playwright package is available, it launches the same local Chrome/Chromium executable against the loopback preview to measure rendered mobile overflow; no remote browser service is used.
+- Generated webpage files are not deployed. The report links to local files, and generic embedded HTML previews use a sandboxed iframe.
+- Generated website code is untrusted output. Inspect `qa.json` and the source package before deploying it or connecting it to credentials, production APIs, or private data.
+
 ## Local Data
 
 - Task content is embedded in the generated local report so the user can compare outputs.

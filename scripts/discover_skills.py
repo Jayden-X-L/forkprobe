@@ -121,6 +121,13 @@ def sanitized_discovery_queries(deliverable: str, signals: list[str], max_querie
             "ai skill diagram generation",
         ]
         return queries[:max_queries]
+    if deliverable == "web_artifact":
+        queries = [
+            "claude skill frontend design website",
+            "codex skill web artifact html",
+            "agent skill landing page dashboard",
+        ]
+        return queries[:max_queries]
 
     queries = []
     if "anti_ai" in signal_set:
@@ -212,6 +219,8 @@ def _score_repo(repo: dict[str, Any], deliverable: str, signals: list[str], skil
     if deliverable == "pptx" and any(word in text for word in ["ppt", "pptx", "presentation", "slide"]):
         score += 18
     if deliverable == "visual_artifact" and any(word in text for word in ["figure", "diagram", "visual", "chart"]):
+        score += 18
+    if deliverable == "web_artifact" and any(word in text for word in ["frontend", "website", "web", "html", "landing", "dashboard", "ui", "ux"]):
         score += 18
     if deliverable == "text" and any(word in text for word in ["writing", "paper", "polish", "academic", "humanize"]):
         score += 18
@@ -316,6 +325,37 @@ def _seed_candidates(deliverable: str, signals: list[str]) -> list[OnlineSkillCa
             summary_en="Built-in GitHub seed for scientific figures, figure storyline, and captions.",
             score=82,
         ))
+
+    if deliverable == "web_artifact" or "web" in signal_set:
+        seeds.extend([
+            _seed_candidate(
+                id="github_seed:anthropic-frontend-design",
+                name="Anthropic frontend-design",
+                source="https://github.com/anthropics/skills#skills/frontend-design",
+                summary_zh="内置 GitHub seed：强调主题化视觉、排版、响应式和避免模板化 AI 页面。",
+                summary_en="Built-in GitHub seed for subject-specific visuals, typography, responsiveness, and avoiding generic AI pages.",
+                score=92,
+                stars=162057,
+            ),
+            _seed_candidate(
+                id="github_seed:garden-web-design-engineer",
+                name="web-design-engineer",
+                source="https://github.com/ConardLi/garden-skills#skills/web-design-engineer",
+                summary_zh="内置 GitHub seed：完整 HTML/CSS/JavaScript/React 页面与浏览器验收流程。",
+                summary_en="Built-in GitHub seed for complete HTML/CSS/JavaScript/React pages and browser acceptance.",
+                score=89,
+                stars=9595,
+            ),
+            _seed_candidate(
+                id="github_seed:baoyu-design-web",
+                name="baoyu-design",
+                source="https://github.com/JimLiu/baoyu-design#skills/baoyu-design",
+                summary_zh="内置 GitHub seed：自包含 HTML 高保真 UI、Landing Page 和 Dashboard。",
+                summary_en="Built-in GitHub seed for self-contained high-fidelity HTML UI, landing pages, and dashboards.",
+                score=87,
+                stars=2649,
+            ),
+        ])
 
     if "rebuttal" in signal_set:
         seeds.append(_seed_candidate(
@@ -654,7 +694,7 @@ def format_online_report(report: OnlineDiscoveryReport, lang: str = "zh") -> str
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Discover candidate skills/pipelines before forkprobe comparison")
-    parser.add_argument("--deliverable", default="pptx", choices=["text", "pptx", "visual_artifact"], help="Deliverable type")
+    parser.add_argument("--deliverable", default="pptx", choices=["text", "pptx", "visual_artifact", "research_report", "web_artifact"], help="Deliverable type")
     parser.add_argument("--query", default="", help="Task/domain query, e.g. 'academic PPT from document'")
     parser.add_argument("--signal", action="append", default=[], help="Sanitized task signal, e.g. anti_ai or chinese_academic")
     parser.add_argument("--limit", type=int, default=5, help="Maximum pipelines in shortlist")

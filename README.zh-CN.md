@@ -20,14 +20,14 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.4" src="https://img.shields.io/badge/version-v0.4-2563eb">
+  <img alt="Version v0.5" src="https://img.shields.io/badge/version-v0.5-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/report-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
-**v0.4 新增去 AI 味写作候选池：** 自然化与风格改写会优先比较 `writing-anti-ai`、`humanizer-zh`、`humanizer`、`stop-slop`、`avoid-ai-writing`、`remove-ai-flavor-writing-skill` 等专门的 anti-AI / humanizer skill，并保留 `patina`、`HumanAI` 等多语言扩展候选。v0.3 的市场调研 / 调研报告对比继续支持 report preview、sources.json、evidence table、claim checks、limitations 和 AI 评审建议。
+**v0.5 新增网页成品对比：** ForkProbe 会先根据 Landing Page、Dashboard、Web App、报告页等任务类型推荐网页 skill，等待用户确认后并行生成可运行网站，再统一截取桌面端与移动端预览、执行浏览器 QA，并在 report 中比较页面、源码、耗时、token 和 AI 评审。v0.4 的去 AI 味写作候选池与 v0.3 的调研报告对比继续支持。
 
 当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。ForkProbe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
 
@@ -35,7 +35,7 @@ ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交
 
 - 你不确定当前任务该用哪个 skill，想先看真实输出再决定。
 - 你想比较 baseline 和多个 skill，而不是只相信 skill 的描述。
-- 你的交付物是 PPTX、科研 figure package、调研报告 package 这类文件成品，需要看文件、预览和 QA。
+- 你的交付物是 PPTX、科研 figure package、调研报告 package 或可运行网页，需要看文件、预览和 QA。
 - 你想引入 GitHub 或本地自带的 BYO skill，但希望先做一次小规模试跑。
 - 不适合简单确定性任务：如果答案或工具路径已经很明确，直接执行会更快。
 
@@ -92,9 +92,9 @@ Compare a few skills first and see which one fits the current task better.
 | 论文作图 / 科研绘图 | 已支持 | PNG 预览、SVG/PDF/TIFF、代码、caption、QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
 | 调研报告 / Research report | 已支持 | 报告预览、sources.json、evidence table、claim checks、limitations、AI 评审 | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
 | 图片生成 / 生图比较 | 规划中 | 图片预览、文件链接、候选说明 | 暂不放固定候选；未来支持 image-generation pipelines |
-| 网页 / HTML 制作比较 | 规划中 | 页面链接、截图预览、候选说明 | 暂不放固定候选；未来支持 web/HTML artifact pipelines |
+| 网页 / HTML 制作比较 | 已支持 | 可运行页面链接、桌面/移动端截图、QA、源码、AI 评审 | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
 
-## 四种工作模式
+## 五种工作模式
 
 ### 1. Text comparison
 
@@ -178,12 +178,40 @@ python3 scripts/research_artifact.py \
 
 推荐产物包括 `candidate-report.md`、`candidate-report.html`、`sources.json`、`evidence-table.md`、`claim-checks.md`、`limitations.md` 和 `summary.md`。
 
+### 5. Web artifact comparison
+
+如果目标是 Landing Page、官网、Dashboard、Web App、报告页或 HTML 成品，ForkProbe 会先推荐网页生成候选，等待确认后再并行生成完整可运行页面。所有候选统一使用 `1440x1000` 和 `390x844` 视口截图，并执行本地资源、响应式、交互与基础可访问性 QA。环境中安装 Python Playwright 时，还会用真实浏览器测量移动端横向溢出；不可用时 `qa.json` 会明确记录该项未测量，而不会伪报通过。
+
+第一步先推荐候选：
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-web-task.txt
+```
+
+确认后运行网页成品对比：
+
+```bash
+python3 scripts/web_artifact.py \
+  --input /tmp/forkprobe-web-task.txt \
+  --pipeline baseline-web \
+  --pipeline anthropic-frontend-design \
+  --pipeline garden-web-design-engineer \
+  --pipeline baoyu-design-web \
+  --confirmed \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-web-report.html
+```
+
+每条候选输出 `site/index.html`、`desktop.png`、`mobile.png`、`qa.json`、`source.zip` 和候选说明。Report 可切换桌面/移动端预览并直接打开成品页面。
+
 ## 支持的 Agent 工作流
 
 - Claude Code / Claude 风格 skill 会话
 - Codex 原生执行路径，并在失败时 fallback 到 OpenAI API
 - OpenClaw、WorkBuddy、OpenCode 等自然语言 Agent 工作流
-- “做一个 PPT”、“生成论文 figure”和“生成调研报告”这类成品生成任务的 artifact comparison
+- “做一个 PPT”、“生成论文 figure”、“生成调研报告”和“制作网页成品”这类 artifact comparison
 
 ## 安装
 
@@ -273,7 +301,7 @@ https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing
 
 ## Report、winner 与 handoff
 
-ForkProbe 的核心产物是本地 HTML report。文本模式展示每一路完整输出、耗时、token 估算和 AI 评审；artifact 模式展示 PPTX 或 figure package 的文件链接、预览、候选说明、caption、QA 和评审建议。
+ForkProbe 的核心产物是本地 HTML report。文本模式展示每一路完整输出、耗时、token 估算和 AI 评审；artifact 模式展示 PPTX、figure package、research package 或网页成品的文件链接、预览、候选说明、QA 和评审建议。
 
 当用户在 report 中选择 winner 后，ForkProbe 会记录本地 verdict，并生成 continuation handoff。当前 Agent 可以沿用 winner 的风格、结构或文件产物继续完成正式任务。
 

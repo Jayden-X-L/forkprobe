@@ -448,6 +448,8 @@ def _skill_from_online_discovery(candidate, deliverable_type: str) -> Recommende
         produces = "figure_package"
     elif deliverable_type == "research_report":
         produces = "research_report"
+    elif deliverable_type == "web_artifact":
+        produces = "web_site"
     else:
         produces = "text"
     return RecommendedSkill(
@@ -459,9 +461,9 @@ def _skill_from_online_discovery(candidate, deliverable_type: str) -> Recommende
         reason_zh=candidate.summary_zh,
         reason_en=candidate.summary_en,
         source=candidate.source,
-        runnable=bool(candidate.runnable and deliverable_type not in {"pptx", "visual_artifact", "research_report"}),
+        runnable=bool(candidate.runnable and deliverable_type not in {"pptx", "visual_artifact", "research_report", "web_artifact"}),
         produces=produces,
-        pipeline_steps=[candidate.command_arg] if deliverable_type in {"pptx", "visual_artifact", "research_report"} else [],
+        pipeline_steps=[candidate.command_arg] if deliverable_type in {"pptx", "visual_artifact", "research_report", "web_artifact"} else [],
         caution_zh=candidate.risk_zh,
         caution_en=candidate.risk_en,
         source_kind=candidate.category or "github_discovered",
@@ -481,7 +483,7 @@ KEYWORDS = {
     ],
     "nature": ["nature", "自然子刊", "nature 风格", "nature风格"],
     "chinese_academic": [
-        "中文", "科研", "论文", "sci", "学术", "摘要", "方法", "结果", "讨论", "医学",
+        "科研", "论文", "sci", "学术", "摘要", "方法", "结果", "讨论", "医学",
         "临床", "投稿", "润色",
     ],
     "rebuttal": [
@@ -500,6 +502,11 @@ KEYWORDS = {
         "research report", "market research", "industry research", "company research",
         "competitive analysis", "user research", "customer research", "literature review",
         "investment research", "analyst report",
+    ],
+    "web": [
+        "网页", "网站", "落地页", "着陆页", "官网", "页面", "前端", "web page",
+        "webpage", "website", "landing page", "frontend", "dashboard", "web app",
+        "html page", "interactive prototype", "交互原型", "数据看板",
     ],
 }
 
@@ -533,6 +540,20 @@ RESEARCH_REPORT_HINTS = [
     "market research", "industry research", "company research", "competitive analysis",
     "user research", "customer research", "literature review", "investment research",
     "analyst report",
+]
+
+WEB_ARTIFACT_HINTS = [
+    "做一个网页", "制作网页", "生成网页", "开发网页", "搭建网页", "做一个网站", "制作网站",
+    "生成网站", "开发网站", "搭建网站", "网页成品", "html成品", "html 成品", "落地页",
+    "着陆页", "官网", "数据看板", "交互原型", "webpage", "web page", "website",
+    "landing page", "frontend page", "web app", "html page", "build a page", "build a website",
+    "create a page", "create a website", "create an html", "interactive prototype",
+]
+
+WEB_TEXT_ONLY_HINTS = [
+    "只要网页方案", "只给网页方案", "只要页面方案", "只给页面方案", "只要线框", "只给线框",
+    "只要wireframe", "只给wireframe", "只要 prompt", "只给 prompt", "不要生成网页", "不生成网页",
+    "不要写代码", "不写代码", "不要生成文件", "website brief only", "wireframe only", "prompt only",
 ]
 
 LOCAL_ONLY_HINTS = [
@@ -591,6 +612,10 @@ def detect_deliverable_type(task_text: str, signals: Optional[list[str]] = None)
         if _has_compact_any(task_text, FIGURE_TEXT_ONLY_HINTS):
             return "text"
         return "visual_artifact"
+    if "web" in signal_set and _has_compact_any(task_text, WEB_ARTIFACT_HINTS):
+        if _has_compact_any(task_text, WEB_TEXT_ONLY_HINTS):
+            return "text"
+        return "web_artifact"
     return "text"
 
 
@@ -655,6 +680,39 @@ def _figure_artifact_pipeline(pipeline_id: str) -> RecommendedSkill:
 
 def _research_artifact_pipeline(pipeline_id: str) -> RecommendedSkill:
     return RESEARCH_ARTIFACT_PIPELINES[pipeline_id]
+
+
+def _web_artifact_pipeline(pipeline_id: str, catalog: dict) -> RecommendedSkill:
+    skill_meta = next((skill for skill in catalog.get("skills", []) if skill.get("id") == pipeline_id), None)
+    if not skill_meta:
+        raise KeyError(f"Web artifact pipeline {pipeline_id!r} not found in catalog")
+    source = skill_meta.get("source", "")
+    if source and skill_meta.get("subdir"):
+        source = f"{source}#{skill_meta['subdir']}"
+    return RecommendedSkill(
+        id=pipeline_id,
+        name=skill_meta["name"],
+        author=skill_meta.get("author", ""),
+        kind="pipeline",
+        command_arg=pipeline_id,
+        reason_zh=skill_meta.get("summary_zh", ""),
+        reason_en=skill_meta.get("summary_en", ""),
+        source=source,
+        runnable=False,
+        produces="web_site",
+        pipeline_steps=list(skill_meta.get("pipeline_steps", [])),
+        caution_zh=(
+            "需要: " + "、".join(skill_meta.get("requires", []))
+            if skill_meta.get("requires") else ""
+        ),
+        caution_en=(
+            "Requires: " + ", ".join(skill_meta.get("requires", []))
+            if skill_meta.get("requires") else ""
+        ),
+        source_kind="local_baseline" if pipeline_id == "baseline-web" else "known_github",
+        score=10_000 if pipeline_id == "baseline-web" else 86,
+        stars=int(skill_meta.get("stars") or 0),
+    )
 
 
 def _candidate_key(candidate: RecommendedSkill) -> str:
@@ -722,6 +780,19 @@ def _detect_research_family(task_text: str) -> str:
     return "general"
 
 
+def _detect_web_family(task_text: str) -> str:
+    compact = _compact(task_text)
+    if any(word in compact for word in ["dashboard", "admin", "analytics", "数据看板", "仪表盘", "管理后台", "控制台"]):
+        return "dashboard"
+    if any(word in compact for word in ["reportpage", "报告页", "数据报告", "分析报告页面", "研究报告网页"]):
+        return "report"
+    if any(word in compact for word in ["landingpage", "落地页", "着陆页", "官网", "产品首页", "营销页"]):
+        return "landing"
+    if any(word in compact for word in ["webapp", "saas", "工具", "表单", "编辑器", "工作台", "交互应用"]):
+        return "app"
+    return "general"
+
+
 def _figure_artifact_command(candidates: list[RecommendedSkill]) -> list[str]:
     command = ["python3", "scripts/figure_artifact.py", "--input", "<input.txt>"]
     for candidate in candidates:
@@ -744,6 +815,18 @@ def _research_artifact_command(candidates: list[RecommendedSkill]) -> list[str]:
     return command
 
 
+def _web_artifact_command(candidates: list[RecommendedSkill], catalog: dict) -> list[str]:
+    known_ids = {skill.get("id") for skill in catalog.get("skills", [])}
+    command = ["python3", "scripts/web_artifact.py", "--input", "<input.txt>"]
+    for candidate in candidates:
+        if candidate.id in known_ids:
+            command.extend(["--pipeline", candidate.id])
+        elif candidate.command_arg.startswith(("http://", "https://", "/", "./", "~/")):
+            command.extend(["--skill-source", candidate.command_arg])
+    command.extend(["--confirmed", "--run", "--judge", "--render-report", "--report-output", "./web-artifact-report.html"])
+    return command
+
+
 def _note_if_no_new_external(candidates: list[RecommendedSkill], notes_zh: list[str], notes_en: list[str]) -> None:
     if not any(_is_external_candidate(candidate) for candidate in candidates):
         notes_zh.append("外部发现候选与本地 curated 候选去重后没有新增项，最终 shortlist 暂时只包含本地候选。")
@@ -761,7 +844,7 @@ def recommend_candidates(
     catalog = load_catalog(domain)
     signals = detect_task_signals(task_text)
     deliverable_type = detect_deliverable_type(task_text, signals)
-    compare_mode = "artifact" if deliverable_type in {"pptx", "visual_artifact", "research_report"} else "text"
+    compare_mode = "artifact" if deliverable_type in {"pptx", "visual_artifact", "research_report", "web_artifact"} else "text"
     signal_set = set(signals)
     candidates: list[RecommendedSkill] = []
     notes_zh: list[str] = []
@@ -801,6 +884,15 @@ def recommend_candidates(
         candidate.score = candidate.score or 76
         _append_unique(candidates, candidate, pool_limit)
 
+    web_catalog: dict = {}
+
+    def add_web_pipeline(pipeline_id: str) -> None:
+        nonlocal web_catalog
+        if not web_catalog:
+            web_catalog = load_catalog("web-artifact-skills")
+        candidate = _web_artifact_pipeline(pipeline_id, web_catalog)
+        _append_unique(candidates, candidate, pool_limit)
+
     def add_online_candidates() -> None:
         nonlocal discovery_queries
         if local_only:
@@ -821,6 +913,53 @@ def recommend_candidates(
             _append_unique(candidates, _skill_from_online_discovery(candidate, deliverable_type), pool_limit)
         notes_zh.extend(getattr(discovery, "notes_zh", []))
         notes_en.extend(getattr(discovery, "notes_en", []))
+
+    if deliverable_type == "web_artifact":
+        web_family = _detect_web_family(task_text)
+        web_pipeline_ids = {
+            "landing": [
+                "baseline-web", "anthropic-frontend-design", "baoyu-design-web",
+                "ui-ux-pro-max-web", "html-anything-prototype",
+            ],
+            "dashboard": [
+                "baseline-web", "anthropic-web-artifacts", "ui-ux-pro-max-web",
+                "garden-web-design-engineer", "baoyu-design-web",
+            ],
+            "app": [
+                "baseline-web", "anthropic-web-artifacts", "garden-web-design-engineer",
+                "ui-ux-pro-max-web", "baoyu-design-web",
+            ],
+            "report": [
+                "baseline-web", "anthropic-web-artifacts", "garden-web-design-engineer",
+                "baoyu-design-web", "ui-ux-pro-max-web",
+            ],
+            "general": [
+                "baseline-web", "anthropic-frontend-design", "garden-web-design-engineer",
+                "baoyu-design-web", "ui-ux-pro-max-web",
+            ],
+        }
+        for pipeline_id in web_pipeline_ids[web_family]:
+            add_web_pipeline(pipeline_id)
+        add_online_candidates()
+        candidates = _rank_and_limit(candidates, max_candidates)
+        notes_zh.append("交互式使用时，必须先展示网页候选和适用差异，等待用户确认后再执行 suggested command。")
+        notes_zh.append("这是网页成品对比模式：每条 pipeline 生成独立可运行页面，并统一产出桌面/移动端截图、页面链接、源文件、QA 和 AI 评审。")
+        notes_zh.append("只想比较页面方案、wireframe 或 prompt 时，应切回 text 模式。")
+        notes_en.append("In interactive use, show the web candidate shortlist and fit differences first, then wait for confirmation before running the suggested command.")
+        notes_en.append("This is finished-webpage comparison mode: every pipeline produces a runnable page plus desktop/mobile screenshots, a page link, source files, QA, and AI judge notes.")
+        notes_en.append("Switch back to text mode when the user only wants a page brief, wireframe, or prompt.")
+        return Recommendation(
+            deliverable_type=deliverable_type,
+            compare_mode=compare_mode,
+            task_signals=signals,
+            candidates=candidates,
+            notes_zh=notes_zh,
+            notes_en=notes_en,
+            suggested_command=_web_artifact_command(candidates, web_catalog),
+            mode_explanation_zh=f"识别到最终交付物是可运行网页成品（{web_family}），应比较网页生成 pipeline，而不是只比较设计方案文字。",
+            mode_explanation_en=f"Detected a runnable webpage deliverable ({web_family}). Compare webpage-generation pipelines, not just design-plan text.",
+            discovery_queries=discovery_queries,
+        )
 
     if deliverable_type == "research_report":
         research_family = _detect_research_family(task_text)
@@ -1048,6 +1187,8 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
                     lines.append("This creates one workspace per figure pipeline, runs candidates, judges the artifact summaries, and renders the report. You can also add files to a candidate's artifacts folder and re-render.")
                 elif recommendation.deliverable_type == "research_report":
                     lines.append("This creates one workspace per research-report pipeline, runs candidates, judges the artifact summaries, and renders the report. You can also add files to a candidate's artifacts folder and re-render.")
+                elif recommendation.deliverable_type == "web_artifact":
+                    lines.append("This creates one workspace per web pipeline, builds runnable pages, captures desktop/mobile screenshots, runs QA and AI judging, and renders the comparison report.")
                 else:
                     lines.append("This creates one workspace per artifact pipeline, runs candidates, judges the artifact summaries, and renders the report. You can also add files to a candidate's artifacts folder and re-render.")
             elif recommendation.deliverable_type == "pptx":
@@ -1094,6 +1235,8 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
                 lines.append("这会为每条科研图 pipeline 创建独立 workspace、试跑候选、评审 artifact 摘要并渲染 report；也可以手动补充某个候选的 artifacts 后重新渲染。")
             elif recommendation.deliverable_type == "research_report":
                 lines.append("这会为每条调研报告 pipeline 创建独立 workspace、试跑候选、评审 artifact 摘要并渲染 report；也可以手动补充某个候选的 artifacts 后重新渲染。")
+            elif recommendation.deliverable_type == "web_artifact":
+                lines.append("这会为每条网页 pipeline 创建独立 workspace、生成可运行网页、截取桌面/移动端预览、执行 QA 与 AI 评审，并渲染横向对比 report。")
             else:
                 lines.append("这会为每条文件生成 pipeline 创建独立 workspace、试跑候选、评审 artifact 摘要并渲染 report；也可以手动补充某个候选的 artifacts 后重新渲染。")
         elif recommendation.deliverable_type == "pptx":

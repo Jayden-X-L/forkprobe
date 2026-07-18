@@ -20,14 +20,14 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.4" src="https://img.shields.io/badge/version-v0.4-2563eb">
+  <img alt="Version v0.5" src="https://img.shields.io/badge/version-v0.5-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.4 expands anti-AI and humanized writing candidates:** naturalization and style-rewriting tasks now prioritize dedicated anti-AI / humanizer skills such as `writing-anti-ai`, `humanizer-zh`, `humanizer`, `stop-slop`, `avoid-ai-writing`, and `remove-ai-flavor-writing-skill`, with multilingual extensions such as `patina` and `HumanAI`. v0.3 market research and research-report comparison remains available with report previews, sources.json, evidence tables, claim checks, limitations, and AI judge notes.
+**v0.5 adds finished webpage comparison:** ForkProbe recommends web skills by page family, waits for confirmation, then generates runnable sites in parallel. Every candidate receives the same desktop/mobile screenshot pass and browser QA, and the report compares the page, source, latency, token estimate, and AI judge notes. The v0.4 anti-AI writing pool and v0.3 research-report workflow remain supported.
 
 When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe makes the choice visible: compare the real outputs first, then continue with the path you picked.
 
@@ -35,7 +35,7 @@ When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe m
 
 - You are not sure which skill fits the current task and want to see real outputs first.
 - You want to compare the baseline against several skills instead of trusting skill descriptions.
-- Your deliverable is a file artifact such as a PPTX deck, scientific figure package, or research report package.
+- Your deliverable is a file artifact such as a PPTX deck, scientific figure package, research report package, or runnable webpage.
 - You want to try a GitHub or bring-your-own skill with a small preflight run.
 - It is not meant for simple deterministic tasks where the best tool path is already obvious.
 
@@ -92,9 +92,9 @@ The shortlist below follows the current README capability matrix. `baseline` mea
 | Paper figures & scientific graphics | Supported | PNG previews, SVG/PDF/TIFF exports, code, captions, QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
 | Research reports | Supported | Report previews, sources.json, evidence tables, claim checks, limitations, AI judge notes | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
 | Image generation comparison | Planned | Image previews, file links, candidate notes | No fixed shortlist yet; planned support for image-generation pipelines |
-| Web / HTML creation comparison | Planned | Page links, screenshot previews, candidate notes | No fixed shortlist yet; planned support for web/HTML artifact pipelines |
+| Web / HTML creation comparison | Supported | Runnable page links, desktop/mobile screenshots, QA, source, AI judge notes | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
 
-## Four Work Modes
+## Five Work Modes
 
 ### 1. Text comparison
 
@@ -177,6 +177,34 @@ python3 scripts/research_artifact.py \
 ```
 
 Expected outputs include `candidate-report.md`, `candidate-report.html`, `sources.json`, `evidence-table.md`, `claim-checks.md`, `limitations.md`, and `summary.md`.
+
+### 5. Web artifact comparison
+
+For landing pages, product sites, dashboards, web apps, report pages, or finished HTML deliverables, ForkProbe recommends web-generation candidates first and waits for confirmation. It then generates runnable pages, captures shared `1440x1000` desktop and `390x844` mobile screenshots, and runs local-asset, responsive, interaction, and basic accessibility QA. When Python Playwright is available, it also measures mobile horizontal overflow in a real browser; otherwise `qa.json` records that the check was unavailable instead of reporting a false pass.
+
+Recommend candidates first:
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-web-task.txt
+```
+
+After confirmation, run the web artifact comparison:
+
+```bash
+python3 scripts/web_artifact.py \
+  --input /tmp/forkprobe-web-task.txt \
+  --pipeline baseline-web \
+  --pipeline anthropic-frontend-design \
+  --pipeline garden-web-design-engineer \
+  --pipeline baoyu-design-web \
+  --confirmed \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-web-report.html
+```
+
+Each candidate outputs `site/index.html`, `desktop.png`, `mobile.png`, `qa.json`, `source.zip`, and a candidate summary. The report switches between desktop/mobile previews and opens the finished page directly.
 
 ## Supported Agent Workflows
 
@@ -271,7 +299,7 @@ https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing
 
 ## Reports, Winners, And Handoffs
 
-ForkProbe's main output is a local HTML report. Text mode shows each complete output, latency, token estimates, and AI judge notes. Artifact mode shows PPTX or figure-package links, previews, candidate notes, captions, QA, and judge recommendations.
+ForkProbe's main output is a local HTML report. Text mode shows each complete output, latency, token estimates, and AI judge notes. Artifact mode shows PPTX, figure-package, research-package, or webpage links, previews, candidate notes, QA, and judge recommendations.
 
 After you choose a winner in the report, ForkProbe records a local verdict and creates a continuation handoff. The current Agent can then keep working from the selected style, structure, or artifact path.
 

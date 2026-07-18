@@ -6,7 +6,7 @@ expose slightly different APIs for spawning sub-tasks. Claude Code is reached
 through claude-agent-sdk when available. Codex is reached through the native
 `codex exec` CLI first, then the OpenAI API fallback when needed.
 
-For v0.4 we use the official Python SDKs to call those APIs directly. This
+For v0.5 we use the official Python SDKs to call those APIs directly. This
 keeps the "subagent" abstraction simple and platform-agnostic at the call site.
 """
 from __future__ import annotations
@@ -103,7 +103,7 @@ def spawn_subagent(
             output="",
             tokens_used=0,
             latency_seconds=0.0,
-            error=f"Unknown platform: {platform}. forkprobe v0.4 supports Claude Code and Codex only.",
+            error=f"Unknown platform: {platform}. forkprobe v0.5 supports Claude Code and Codex only.",
         )
 
 
@@ -298,6 +298,7 @@ def _spawn_codex_native(task_input: str, system_prompt: str, skill_id: str, time
     reasoning_effort = os.environ.get("FORKPROBE_CODEX_REASONING_EFFORT")
     t0 = time.time()
     output_path = None
+    transcript_handle = None
     try:
         with tempfile.NamedTemporaryFile(prefix="forkprobe-codex-", suffix=".txt", delete=False) as f:
             output_path = Path(f.name)
@@ -314,28 +315,71 @@ def _spawn_codex_native(task_input: str, system_prompt: str, skill_id: str, time
             "-C",
             str(Path.cwd()),
         ]
+        if os.environ.get("FORKPROBE_CODEX_IGNORE_USER_CONFIG", "0").lower() in {"1", "true", "yes", "on"}:
+            cmd.extend(["--ignore-user-config", "--ignore-rules"])
         if model:
             cmd.extend(["--model", model])
         if reasoning_effort:
             cmd.extend(["-c", f'model_reasoning_effort="{reasoning_effort}"'])
         cmd.append("-")
 
-        proc = subprocess.run(
+        transcript_handle = tempfile.TemporaryFile(mode="w+t", encoding="utf-8")
+        proc = subprocess.Popen(
             cmd,
-            input=prompt,
+            stdin=subprocess.PIPE,
+            stdout=transcript_handle,
+            stderr=subprocess.STDOUT,
             text=True,
-            capture_output=True,
-            timeout=timeout,
         )
-        transcript = f"{proc.stdout}\n{proc.stderr}"
+        if proc.stdin is not None:
+            proc.stdin.write(prompt)
+            proc.stdin.close()
+            proc.stdin = None
+
+        deadline = time.time() + timeout
+        last_size = -1
+        stable_polls = 0
+        final_message_ready = False
+        while time.time() < deadline:
+            size = output_path.stat().st_size if output_path.exists() else 0
+            if size > 0:
+                if size == last_size:
+                    stable_polls += 1
+                else:
+                    stable_polls = 0
+                    last_size = size
+                if stable_polls >= 4:
+                    final_message_ready = True
+                    break
+            if proc.poll() is not None:
+                break
+            time.sleep(0.1)
+
+        timed_out = proc.poll() is None and not final_message_ready
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=3)
+        transcript_handle.flush()
+        transcript_handle.seek(0)
+        transcript = transcript_handle.read()
         tokens = _parse_codex_tokens(transcript)
         output = ""
         if output_path.exists():
             output = output_path.read_text(encoding="utf-8").strip()
         if not output:
-            output = proc.stdout.strip()
+            output = transcript.strip()
 
-        if proc.returncode != 0:
+        if timed_out:
+            return SubagentResult(
+                output=output, tokens_used=tokens, latency_seconds=time.time() - t0,
+                error=f"Codex CLI timeout after {timeout}s",
+            )
+
+        if proc.returncode not in {0, -15} and not final_message_ready:
             return SubagentResult(
                 output=output,
                 tokens_used=tokens,
@@ -350,17 +394,14 @@ def _spawn_codex_native(task_input: str, system_prompt: str, skill_id: str, time
                 error="Codex CLI returned an empty final message.",
             )
         return SubagentResult(output=output, tokens_used=tokens, latency_seconds=time.time() - t0)
-    except subprocess.TimeoutExpired:
-        return SubagentResult(
-            output="", tokens_used=0, latency_seconds=time.time() - t0,
-            error=f"Codex CLI timeout after {timeout}s",
-        )
     except Exception as e:
         return SubagentResult(
             output="", tokens_used=0, latency_seconds=time.time() - t0,
             error=f"{type(e).__name__}: {e}",
         )
     finally:
+        if transcript_handle is not None:
+            transcript_handle.close()
         if output_path:
             try:
                 output_path.unlink(missing_ok=True)
