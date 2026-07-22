@@ -27,7 +27,7 @@
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.5 adds finished webpage comparison:** ForkProbe recommends web skills by page family, waits for confirmation, then generates runnable sites in parallel. Every candidate receives the same desktop/mobile screenshot pass and browser QA, and the report compares the page, source, latency, token estimate, and AI judge notes. The v0.4 anti-AI writing pool and v0.3 research-report workflow remain supported.
+**v0.5 adds finished webpage comparison:** ForkProbe recommends web skills by page family, waits for confirmation, then generates runnable sites in parallel. Every candidate receives the same desktop/mobile screenshot pass and browser QA, and the report compares the page, source, latency, token estimate, and AI judge notes. The web pool now includes Hallmark as a structurally varied, anti-AI-template design route. The v0.4 anti-AI writing pool and v0.3 research-report workflow remain supported.
 
 When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe makes the choice visible: compare the real outputs first, then continue with the path you picked.
 
@@ -92,7 +92,7 @@ The shortlist below follows the current README capability matrix. `baseline` mea
 | Paper figures & scientific graphics | Supported | PNG previews, SVG/PDF/TIFF exports, code, captions, QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
 | Research reports | Supported | Report previews, sources.json, evidence tables, claim checks, limitations, AI judge notes | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
 | Image generation comparison | Planned | Image previews, file links, candidate notes | No fixed shortlist yet; planned support for image-generation pipelines |
-| Web / HTML creation comparison | Supported | Runnable page links, desktop/mobile screenshots, QA, source, AI judge notes | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
+| Web / HTML creation comparison | Supported | Runnable page links, desktop/mobile screenshots, QA, source, AI judge notes | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`Hallmark`](https://github.com/Nutlope/hallmark), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
 
 ## Five Work Modes
 
@@ -195,7 +195,7 @@ python3 scripts/web_artifact.py \
   --input /tmp/forkprobe-web-task.txt \
   --pipeline baseline-web \
   --pipeline anthropic-frontend-design \
-  --pipeline garden-web-design-engineer \
+  --pipeline hallmark-web \
   --pipeline baoyu-design-web \
   --confirmed \
   --run \

@@ -360,6 +360,7 @@ class TestRecommendations(unittest.TestCase):
         ids = [candidate.id for candidate in rec.candidates]
         self.assertIn("baseline-web", ids)
         self.assertIn("anthropic-frontend-design", ids)
+        self.assertIn("hallmark-web", ids)
         self.assertIn("baoyu-design-web", ids)
         self.assertNotIn("chinese_academic", rec.task_signals)
         self.assertIn("scripts/web_artifact.py", rec.suggested_command)
@@ -367,6 +368,17 @@ class TestRecommendations(unittest.TestCase):
         self.assertIn("--judge", rec.suggested_command)
         text = format_text(rec, input_path="web-task.md", lang="zh")
         self.assertIn("桌面/移动端预览", text)
+
+        compact = recommend_candidates(
+            "请制作一个完整可运行的 Landing Page 网页成品。",
+            max_candidates=3,
+            online_discovery=False,
+        )
+        compact_ids = [candidate.id for candidate in compact.candidates]
+        self.assertEqual(
+            compact_ids,
+            ["baseline-web", "hallmark-web", "anthropic-frontend-design"],
+        )
 
     def test_recommend_web_brief_only_stays_text_mode(self):
         from recommend import recommend_candidates
@@ -1302,16 +1314,34 @@ class TestRenderReport(unittest.TestCase):
                     os.environ["FORKPROBE_RESEARCH_SANDBOX"] = old_sandbox
 
     def test_web_catalog_and_default_pipelines(self):
-        from web_artifact import build_pipeline_registry, default_pipeline_ids
+        from web_artifact import build_pipeline_instructions, build_pipeline_registry, default_pipeline_ids
 
         registry, dynamic_ids = build_pipeline_registry()
         self.assertEqual(dynamic_ids, [])
         self.assertGreaterEqual(len(registry), 12)
         self.assertTrue(registry["baseline-web"].runnable)
         self.assertTrue(registry["anthropic-frontend-design"].runnable)
+        self.assertTrue(registry["hallmark-web"].runnable)
+        self.assertEqual(
+            registry["hallmark-web"].skill_source,
+            "https://github.com/Nutlope/hallmark#skills/hallmark",
+        )
         self.assertFalse(registry["google-stitch-react"].runnable)
         self.assertIn("anthropic-web-artifacts", default_pipeline_ids("dashboard"))
-        self.assertIn("html-anything-prototype", default_pipeline_ids("landing"))
+        self.assertIn("hallmark-web", default_pipeline_ids("landing"))
+        self.assertNotIn("hallmark-web", default_pipeline_ids("dashboard"))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            instructions = build_pipeline_instructions(
+                "Build a product landing page.",
+                registry["hallmark-web"],
+                Path(tmp) / "candidate",
+            )
+        self.assertIn("Hallmark Trial Adapter", instructions)
+        self.assertIn("explicit `go ahead`", instructions)
+        self.assertIn("record the inference in `summary.md`", instructions)
+        self.assertIn("Complete the runnable site, editable source, and `summary.md`", instructions)
+        self.assertIn("ForkProbe performs independent browser QA", instructions)
 
     def test_run_web_pipeline_with_fake_codex_and_render_previews(self):
         from render_artifact_report import render_from_manifest

@@ -1,7 +1,7 @@
 {
   "domain": "web-artifact",
   "version": "v0.5",
-  "last_updated": "2026-07-18",
+  "last_updated": "2026-07-22",
   "description": "Curated webpage-generation and web-quality skills for ForkProbe artifact comparison. Repository stars are discovery signals only; candidates are selected by task fit, output contract, dependencies, and headless execution readiness.",
   "output_contract": {
     "required": [
@@ -50,6 +50,22 @@
       "summary_zh": "强调主题化视觉方向、排版、响应式和避免模板化 AI 设计，适合完整页面和产品界面。",
       "summary_en": "Emphasizes subject-specific visual direction, typography, responsiveness, and avoiding generic AI design for complete pages and product interfaces.",
       "pipeline_steps": ["frontend-design", "web-renderer", "browser-qa"]
+    },
+    {
+      "id": "hallmark-web",
+      "name": "Hallmark anti-AI-slop design + web renderer",
+      "author": "Nutlope",
+      "source": "https://github.com/Nutlope/hallmark",
+      "subdir": "skills/hallmark",
+      "license": "MIT",
+      "stars": 15000,
+      "score": 90,
+      "role": "generator_and_refiner",
+      "runnable": true,
+      "default_families": ["landing", "general"],
+      "summary_zh": "强调页面宏观结构多样性、设计 token 和反 AI 模板规则，适合 Landing Page、品牌官网和视觉重设计；不负责业务逻辑。",
+      "summary_en": "Emphasizes macrostructure variety, design tokens, and anti-AI-template rules for landing pages, brand sites, and visual redesigns; it does not provide business logic.",
+      "pipeline_steps": ["hallmark", "web-renderer", "browser-qa"]
     },
     {
       "id": "anthropic-web-artifacts",

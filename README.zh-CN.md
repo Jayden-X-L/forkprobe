@@ -27,7 +27,7 @@
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
-**v0.5 新增网页成品对比：** ForkProbe 会先根据 Landing Page、Dashboard、Web App、报告页等任务类型推荐网页 skill，等待用户确认后并行生成可运行网站，再统一截取桌面端与移动端预览、执行浏览器 QA，并在 report 中比较页面、源码、耗时、token 和 AI 评审。v0.4 的去 AI 味写作候选池与 v0.3 的调研报告对比继续支持。
+**v0.5 新增网页成品对比：** ForkProbe 会先根据 Landing Page、Dashboard、Web App、报告页等任务类型推荐网页 skill，等待用户确认后并行生成可运行网站，再统一截取桌面端与移动端预览、执行浏览器 QA，并在 report 中比较页面、源码、耗时、token 和 AI 评审。网页候选池现已加入 Hallmark，专门提供强调结构多样性和反 AI 模板化的设计路线。v0.4 的去 AI 味写作候选池与 v0.3 的调研报告对比继续支持。
 
 当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。ForkProbe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
 
@@ -92,7 +92,7 @@ Compare a few skills first and see which one fits the current task better.
 | 论文作图 / 科研绘图 | 已支持 | PNG 预览、SVG/PDF/TIFF、代码、caption、QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
 | 调研报告 / Research report | 已支持 | 报告预览、sources.json、evidence table、claim checks、limitations、AI 评审 | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
 | 图片生成 / 生图比较 | 规划中 | 图片预览、文件链接、候选说明 | 暂不放固定候选；未来支持 image-generation pipelines |
-| 网页 / HTML 制作比较 | 已支持 | 可运行页面链接、桌面/移动端截图、QA、源码、AI 评审 | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
+| 网页 / HTML 制作比较 | 已支持 | 可运行页面链接、桌面/移动端截图、QA、源码、AI 评审 | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`Hallmark`](https://github.com/Nutlope/hallmark), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
 
 ## 五种工作模式
 
@@ -195,7 +195,7 @@ python3 scripts/web_artifact.py \
   --input /tmp/forkprobe-web-task.txt \
   --pipeline baseline-web \
   --pipeline anthropic-frontend-design \
-  --pipeline garden-web-design-engineer \
+  --pipeline hallmark-web \
   --pipeline baoyu-design-web \
   --confirmed \
   --run \

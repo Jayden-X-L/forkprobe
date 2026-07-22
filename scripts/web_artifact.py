@@ -131,11 +131,11 @@ def detect_web_family(task_text: str) -> str:
 
 def default_pipeline_ids(web_family: str, max_candidates: int = 5) -> list[str]:
     ordered = {
-        "landing": ["baseline-web", "anthropic-frontend-design", "baoyu-design-web", "ui-ux-pro-max-web", "html-anything-prototype"],
+        "landing": ["baseline-web", "anthropic-frontend-design", "hallmark-web", "baoyu-design-web", "ui-ux-pro-max-web"],
         "dashboard": ["baseline-web", "anthropic-web-artifacts", "ui-ux-pro-max-web", "garden-web-design-engineer", "baoyu-design-web"],
         "app": ["baseline-web", "anthropic-web-artifacts", "garden-web-design-engineer", "ui-ux-pro-max-web", "baoyu-design-web"],
         "report": ["baseline-web", "anthropic-web-artifacts", "garden-web-design-engineer", "baoyu-design-web", "ui-ux-pro-max-web"],
-        "general": ["baseline-web", "anthropic-frontend-design", "garden-web-design-engineer", "baoyu-design-web", "ui-ux-pro-max-web"],
+        "general": ["baseline-web", "anthropic-frontend-design", "hallmark-web", "garden-web-design-engineer", "baoyu-design-web"],
     }[web_family]
     return ordered[:max_candidates]
 
@@ -231,6 +231,20 @@ def build_pipeline_instructions(task_input: str, pipeline: WebPipeline, candidat
     artifact_dir = candidate_dir / "artifacts"
     steps = " -> ".join(pipeline.pipeline_steps)
     source_note = f"\nExternal skill source: `{pipeline.skill_source}`\n" if pipeline.skill_source else ""
+    adapter_note = ""
+    if pipeline.id == "hallmark-web":
+        adapter_note = """
+## Hallmark Trial Adapter
+
+This is a confirmed autonomous ForkProbe trial. Treat that confirmation as the user's explicit `go ahead`:
+
+- Use Hallmark's default Design flow, not `audit`, `redesign`, or `study`, unless the original task explicitly requests one of those modes.
+- Infer any missing audience, primary use case, and tone from the original task; record the inference in `summary.md` instead of asking a follow-up question.
+- Use the catalog route unless the original task explicitly requests a custom theme.
+- Apply Hallmark to the visual and interaction layer while still satisfying ForkProbe's runnable-site output contract.
+- Complete the runnable site, editable source, and `summary.md` before optional refinement. Load only the Hallmark references required by the selected genre, macrostructure, theme, and components.
+- Run Hallmark's source-level pre-emit critique and slop test once, fix material failures, then exit. Do not install tools or start an additional browser review loop; ForkProbe performs independent browser QA after the candidate exits.
+"""
     return f"""# {pipeline.name}
 
 ## Goal
@@ -245,6 +259,7 @@ Generate one complete webpage artifact for the same original task as every other
 
 {steps}
 {source_note}
+{adapter_note}
 
 ## Output Contract
 

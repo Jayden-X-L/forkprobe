@@ -11,7 +11,7 @@ description: Recommend a small set of candidate skills or artifact-generation pi
 
 Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines local curated candidates with GitHub/network skill discovery by default, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code or Codex), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, research reports, and webpages, it compares artifact-generation pipelines and renders a report with file links/previews.
 
-**v0.5 scope:** All v0.4 text, PPTX, scientific figure, and research-report workflows, plus finished webpage/HTML artifact comparison. Web flows classify landing pages, dashboards, web apps, report pages, and general sites; recommend task-fit candidates; wait for confirmation; generate isolated runnable sites; capture shared desktop/mobile screenshots; run browser QA; and compare page links, source packages, latency, token estimates, and AI judge notes. Candidate discovery merges local curated candidates with sanitized GitHub/network discovery unless the user explicitly asks for local-only/offline mode.
+**v0.5 scope:** All v0.4 text, PPTX, scientific figure, and research-report workflows, plus finished webpage/HTML artifact comparison. Web flows classify landing pages, dashboards, web apps, report pages, and general sites; recommend task-fit candidates; wait for confirmation; generate isolated runnable sites; capture shared desktop/mobile screenshots; run browser QA; and compare page links, source packages, latency, token estimates, and AI judge notes. The curated web pool includes Hallmark for structurally varied, anti-AI-template landing pages and general sites. Candidate discovery merges local curated candidates with sanitized GitHub/network discovery unless the user explicitly asks for local-only/offline mode.
 
 ## When to invoke
 
@@ -133,7 +133,7 @@ Recommendation rules:
 - For PPT outline tasks, compare text plans with `nature-paper2ppt`, `paper-writer-skill`, and relevant writing skills.
 - For PPTX artifact tasks, run discovery first, then compare PPT generation pipelines, not writing-only skills.
 - For research report artifact tasks, compare research-report pipelines, not short-answer research summaries. Default candidates include `baseline-research-report`, `source-first-research`, `analyst-style-report`, and `evidence-table-report`; for specific domains, add `company-research-report`, `user-research-cookiy-report`, `literature-review-report`, or `investment-research-report`.
-- For webpage artifact tasks, classify the page family before shortlisting. Always include `baseline-web`; then choose from `anthropic-frontend-design`, `anthropic-web-artifacts`, `ui-ux-pro-max-web`, `garden-web-design-engineer`, `baoyu-design-web`, and `html-anything-prototype` according to landing/dashboard/app/report fit. Do not include a conditional candidate that requires unavailable Stitch, SuperDesign, gstack, or other external tooling.
+- For webpage artifact tasks, classify the page family before shortlisting. Always include `baseline-web`; then choose from `anthropic-frontend-design`, `hallmark-web`, `anthropic-web-artifacts`, `ui-ux-pro-max-web`, `garden-web-design-engineer`, `baoyu-design-web`, and `html-anything-prototype` according to landing/dashboard/app/report fit. Use `hallmark-web` for landing pages and general sites where structural variety and anti-template design matter; do not treat it as a business-logic pipeline. Do not include a conditional candidate that requires unavailable Stitch, SuperDesign, gstack, or other external tooling.
 
 PPTX discovery:
 
@@ -367,7 +367,7 @@ python scripts/web_artifact.py \
   --input <path_to_user_input> \
   --pipeline baseline-web \
   --pipeline anthropic-frontend-design \
-  --pipeline garden-web-design-engineer \
+  --pipeline hallmark-web \
   --pipeline baoyu-design-web \
   --confirmed \
   --run \

@@ -710,7 +710,7 @@ def _web_artifact_pipeline(pipeline_id: str, catalog: dict) -> RecommendedSkill:
             if skill_meta.get("requires") else ""
         ),
         source_kind="local_baseline" if pipeline_id == "baseline-web" else "known_github",
-        score=10_000 if pipeline_id == "baseline-web" else 86,
+        score=10_000 if pipeline_id == "baseline-web" else int(skill_meta.get("score") or 86),
         stars=int(skill_meta.get("stars") or 0),
     )
 
@@ -918,8 +918,8 @@ def recommend_candidates(
         web_family = _detect_web_family(task_text)
         web_pipeline_ids = {
             "landing": [
-                "baseline-web", "anthropic-frontend-design", "baoyu-design-web",
-                "ui-ux-pro-max-web", "html-anything-prototype",
+                "baseline-web", "anthropic-frontend-design", "hallmark-web",
+                "baoyu-design-web", "ui-ux-pro-max-web",
             ],
             "dashboard": [
                 "baseline-web", "anthropic-web-artifacts", "ui-ux-pro-max-web",
@@ -934,8 +934,8 @@ def recommend_candidates(
                 "baoyu-design-web", "ui-ux-pro-max-web",
             ],
             "general": [
-                "baseline-web", "anthropic-frontend-design", "garden-web-design-engineer",
-                "baoyu-design-web", "ui-ux-pro-max-web",
+                "baseline-web", "anthropic-frontend-design", "hallmark-web",
+                "garden-web-design-engineer", "baoyu-design-web",
             ],
         }
         for pipeline_id in web_pipeline_ids[web_family]:
