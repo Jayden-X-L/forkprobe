@@ -4,7 +4,7 @@ forkprobe main orchestration: run a task in parallel with and without skill(s).
 Usage:
     python compare.py --input task.txt --skill baseline --skill humanizer --output report.html
 
-v0.5 status: expanded anti-AI writing candidates, catalog/BYO skill loading, parallel execution, HTML report,
+v0.6 status: video artifact comparison, expanded candidate catalogs, parallel execution, HTML report,
 research-report and webpage artifact routing, and local HTML reports
 rendering, local verdict capture, and first artifact comparison flows.
 """
@@ -529,7 +529,7 @@ def main():
         print(f"Error resolving skill: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[forkprobe] v0.5")
+    print(f"[forkprobe] v0.6")
     print(f"[forkprobe] Task input: {len(task_input)} chars from {input_path}")
     print(f"[forkprobe] Skills to compare: {[s.id for s in skills]}")
     print()

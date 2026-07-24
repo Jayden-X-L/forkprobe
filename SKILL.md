@@ -1,6 +1,6 @@
 ---
 name: forkprobe
-description: Recommend a small set of candidate skills or artifact-generation pipelines for an open-ended task, then compare their outputs so the user can decide what actually helps. Use when the user is unsure if a particular skill would improve their output, when comparing 2+ skills for the same task, when they naturally ask to compare skills without saying forkprobe, or when explicitly invoked with /forkprobe. Chinese examples include "我想比较几个科研写作 skill", "帮我看看哪个 skill 更适合这段", "先别直接改，并排试几个 skill", "哪个 skill 改出来更自然", "比较几个去 AI 味写作 skill", "基于文档做一个 PPT，想比较几个 skill 效果", "比较几个论文作图 skill", "比较几个市场调研/调研报告 skill", and "比较几个网页制作 skill，看哪个成品更好". Especially valuable for academic paragraph polishing, anti-AI text rewriting, Chinese AI-flavor removal, scientific writing, reviewer response, Nature-style polishing, PPTX artifact comparison, scientific figure artifact comparison, market research comparison, research report artifact comparison, and finished webpage/HTML comparison. Do NOT use for simple deterministic tasks where skill choice is obvious or for casual conversation.
+description: Recommend a small set of candidate skills or artifact-generation pipelines for an open-ended task, then compare their outputs so the user can decide what actually helps. Use when the user is unsure if a particular skill would improve their output, when comparing 2+ skills for the same task, when they naturally ask to compare skills without saying forkprobe, or when explicitly invoked with /forkprobe. Chinese examples include "我想比较几个科研写作 skill", "帮我看看哪个 skill 更适合这段", "比较几个去 AI 味写作 skill", "比较几个论文作图 skill", "比较几个市场调研/调研报告 skill", "比较几个网页制作 skill", "比较几个产品宣传片 skill", "比较几种动效视频路线", and "用几个 skill 对同一条口播做粗剪". Especially valuable for writing, PPTX, scientific figure, research report, finished webpage, product-promo video, motion-graphics video, and talking-head rough-cut comparison. Do NOT use for simple deterministic tasks where skill choice is obvious or for casual conversation.
 ---
 
 # forkprobe
@@ -9,9 +9,9 @@ description: Recommend a small set of candidate skills or artifact-generation pi
 
 ## What this skill does
 
-Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines local curated candidates with GitHub/network skill discovery by default, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code or Codex), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, research reports, and webpages, it compares artifact-generation pipelines and renders a report with file links/previews.
+Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines local curated candidates with GitHub/network skill discovery by default, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code or Codex), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, research reports, webpages, and videos, it compares artifact-generation pipelines and renders a report with file links, previews or playback.
 
-**v0.5 scope:** All v0.4 text, PPTX, scientific figure, and research-report workflows, plus finished webpage/HTML artifact comparison. Web flows classify landing pages, dashboards, web apps, report pages, and general sites; recommend task-fit candidates; wait for confirmation; generate isolated runnable sites; capture shared desktop/mobile screenshots; run browser QA; and compare page links, source packages, latency, token estimates, and AI judge notes. The curated web pool includes Hallmark for structurally varied, anti-AI-template landing pages and general sites. Candidate discovery merges local curated candidates with sanitized GitHub/network discovery unless the user explicitly asks for local-only/offline mode.
+**v0.6 scope:** All v0.5 workflows plus finished-video comparison in three isolated scenes: product promos, motion graphics, and talking-head rough cuts. Video flows recommend scene-fit candidates, wait for confirmation, run isolated pipelines, require `video.mp4`, normalize media metadata with ffprobe, create posters with ffmpeg, apply scene-specific QA, and render playable candidates with latency, token estimates, artifacts, and AI judge notes. Product promos compare Remotion Agent, HyperFrames product-launch-video, and video-shotcraft. Motion graphics compare Remotion, HyperFrames motion-graphics, and Remotion Bits. Talking-head rough cuts compare auto-editor, local-Whisper video-editing, video-use in cut-only mode, and experimental chengfeng-videocut. Never score candidates from different video scenes in one report.
 
 ## When to invoke
 
@@ -37,6 +37,9 @@ Chinese trigger examples:
 - "比较几个调研报告 skill，看哪个报告证据链更可靠"
 - "比较几个网页制作 skill，看哪个 Landing Page 成品更好"
 - "用几个前端 skill 并排生成 Dashboard，让我看桌面端和移动端效果"
+- "比较几个产品宣传片 skill，看哪个 MP4 成片更好"
+- "把这组数据做成动效视频，并排比较 Remotion 和 HyperFrames"
+- "用几个 skill 对同一条口播原片做粗剪，让我选择切点最自然的一版"
 
 ## When NOT to invoke
 
@@ -62,6 +65,7 @@ First classify the deliverable:
 | "画图", "生成示意图", "生成科研图/论文 figure 成品" | `visual_artifact` | `artifact` |
 | "市场调研报告", "公司调研", "竞品分析", "用户研究报告", "文献综述", "投研报告" | `research_report` | `artifact` |
 | "制作网页", "完整网站", "Landing Page", "Dashboard", "Web App", "HTML 成品" | `web_artifact` | `artifact` |
+| "产品宣传片", "产品视频", "动效视频", "口播粗剪", "视频成片" | `video_artifact` | `artifact` |
 
 Important PPT rule:
 - If the user says they want to "做一个 PPT" or compare PPT skills, assume they want a **PPTX artifact**.
@@ -73,9 +77,10 @@ Important PPT rule:
 Before running the comparison, recommend 3-5 candidates and wait for user confirmation. Always include `baseline`.
 
 Hard interaction rule:
-- Do **not** run `compare.py`, `figure_artifact.py --run`, `research_artifact.py --run`, `web_artifact.py --run`, or any artifact-generation command before the user confirms the candidate shortlist.
+- Do **not** run `compare.py`, `figure_artifact.py --run`, `research_artifact.py --run`, `web_artifact.py --run`, `video_artifact.py --run`, or any artifact-generation command before the user confirms the candidate shortlist.
 - For market research / research report tasks, `research_artifact.py` is only the runner. It must not be used as the first step. First run `scripts/recommend.py`, show the shortlist, and ask the user to confirm, remove, or add candidates.
 - For finished webpage tasks, `web_artifact.py` is only the runner. First use `scripts/recommend.py`, explain the candidate differences, and wait for confirmation. A request for a brief, wireframe, or prompt without a finished page stays in text mode.
+- For finished-video tasks, `video_artifact.py` is only the runner. First use `scripts/recommend.py`, show candidates from exactly one video scene, and wait for confirmation. A request for only a script, storyboard, or video brief stays in text mode.
 - If a user says "use ForkProbe" and gives a task, stop after the recommendation message unless they have already explicitly confirmed the exact candidates in the same message.
 
 Default discovery flow:
@@ -134,6 +139,9 @@ Recommendation rules:
 - For PPTX artifact tasks, run discovery first, then compare PPT generation pipelines, not writing-only skills.
 - For research report artifact tasks, compare research-report pipelines, not short-answer research summaries. Default candidates include `baseline-research-report`, `source-first-research`, `analyst-style-report`, and `evidence-table-report`; for specific domains, add `company-research-report`, `user-research-cookiy-report`, `literature-review-report`, or `investment-research-report`.
 - For webpage artifact tasks, classify the page family before shortlisting. Always include `baseline-web`; then choose from `anthropic-frontend-design`, `hallmark-web`, `anthropic-web-artifacts`, `ui-ux-pro-max-web`, `garden-web-design-engineer`, `baoyu-design-web`, and `html-anything-prototype` according to landing/dashboard/app/report fit. Use `hallmark-web` for landing pages and general sites where structural variety and anti-template design matter; do not treat it as a business-logic pipeline. Do not include a conditional candidate that requires unavailable Stitch, SuperDesign, gstack, or other external tooling.
+- For product-promo video tasks, use `baseline-remotion-agent`, `hyperframes-product-launch`, and `video-shotcraft`.
+- For motion-graphics tasks, use `baseline-remotion-motion`, `hyperframes-motion-graphics`, and `remotion-bits-enhanced`.
+- For talking-head rough cuts, use `auto-editor`, `maxazure-video-editing`, `video-use-cut-only`, and experimental `chengfeng-cut-talking-head`. Require the same source video for every candidate and forbid B-roll, music, generated scenes, visual packaging, or script rewriting in cut-only mode.
 
 PPTX discovery:
 
@@ -396,6 +404,82 @@ Expected candidate package:
 
 To compare a BYO web skill, add `--skill-source <repo#subdir-or-local-path>` after the user approves it. Never add conditional candidates whose required runtime is unavailable.
 
+### Video artifact mode
+
+Use this path when the user wants a playable video result rather than only a script, storyboard, motion brief, or edit suggestion. Classify every request into exactly one family:
+
+- `product_promo`: product launch, feature announcement, website showcase, or brand promo
+- `motion_graphics`: kinetic type, data/UI animation, logo sting, chart hit, or explanatory motion
+- `talking_head_cut`: rough cut of existing talking-head, interview, podcast, or vlog footage
+
+Do not mix these families in one comparison. Their inputs, artifact contracts, and judge rubrics are intentionally different.
+
+First recommend candidates and wait:
+
+```bash
+python scripts/recommend.py --input <path_to_video_task>
+```
+
+Only after confirmation, run the selected video pipelines:
+
+```bash
+python scripts/video_artifact.py \
+  --input <path_to_video_task> \
+  --pipeline baseline-remotion-agent \
+  --pipeline hyperframes-product-launch \
+  --pipeline video-shotcraft \
+  --confirmed \
+  --run \
+  --judge \
+  --render-report \
+  --report-output ./video-artifact-report.html
+```
+
+For a talking-head rough cut, pass the same source footage to every candidate:
+
+```bash
+python scripts/video_artifact.py \
+  --input <path_to_video_task> \
+  --asset <source-video.mp4> \
+  --pipeline auto-editor \
+  --pipeline maxazure-video-editing \
+  --pipeline video-use-cut-only \
+  --pipeline chengfeng-cut-talking-head \
+  --confirmed \
+  --run \
+  --judge \
+  --render-report \
+  --report-output ./video-artifact-report.html
+```
+
+Every candidate must write `artifacts/video.mp4`. ForkProbe then:
+
+1. probes duration, dimensions, codecs, file size, and audio with ffprobe
+2. creates `poster.png` with ffmpeg when missing
+3. packages editable source as `source.zip` when available
+4. applies product-promo, motion-graphics, or rough-cut-specific QA
+5. renders inline video playback, metrics, artifacts, QA, and AI judge notes
+
+Expected product-promo package:
+
+- `video.mp4`, `poster.png`, `subtitles.srt`
+- `script.md`, `storyboard.md`
+- `source.zip`, `qa.json`, `summary.md`
+
+Expected motion-graphics package:
+
+- `video.mp4`, `poster.png`
+- `motion-spec.md`
+- `source.zip`, `qa.json`, `summary.md`
+
+Expected talking-head rough-cut package:
+
+- `video.mp4`, `subtitles.srt`, `transcript.md`
+- `cut-list.json` and preferably `timeline.json`, EDL, or XML
+- `qa.json`, `summary.md`
+
+Use `--skill-source <repo#subdir-or-local-path>` only after the user approves a BYO video candidate. Talking-head `--run` must fail when no existing source video is supplied.
+
 ### Step 5: Show report
 
 Tell the user:
@@ -474,9 +558,11 @@ SKILL.md (this file)
         ├─> scripts/figure_artifact.py (scientific figure artifact pipeline runner)
         ├─> scripts/research_artifact.py (research report artifact pipeline runner)
         ├─> scripts/web_artifact.py (webpage artifact runner, screenshots, and QA)
-        ├─> scripts/render_artifact_report.py (PPTX/file/web artifact report rendering)
+        ├─> scripts/video_artifact.py (product promo, motion graphics, and rough-cut runner)
+        ├─> scripts/render_artifact_report.py (PPTX/file/web/video artifact report rendering)
         ├─> catalog/academic-writing.json (skill metadata)
         ├─> catalog/web-artifact-skills.json (curated webpage candidates)
+        ├─> catalog/video-artifact-skills.json (curated video pipelines)
         └─> scripts/render_report.py
               └─> templates/report.html.j2
 ```

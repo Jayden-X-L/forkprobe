@@ -14,14 +14,14 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.5" src="https://img.shields.io/badge/version-v0.5-2563eb">
+  <img alt="Version v0.6" src="https://img.shields.io/badge/version-v0.6-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/report-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
-**v0.5 新增网页成品对比：** ForkProbe 会先根据 Landing Page、Dashboard、Web App、报告页等任务类型推荐网页 skill，等待用户确认后并行生成可运行网站，再统一截取桌面端与移动端预览、执行浏览器 QA，并在 report 中比较页面、源码、耗时、token 和 AI 评审。网页候选池现已加入 Hallmark，专门提供强调结构多样性和反 AI 模板化的设计路线。v0.4 的去 AI 味写作候选池与 v0.3 的调研报告对比继续支持。
+**v0.6 新增视频剪辑成品对比：** ForkProbe 会先把任务识别为产品宣传片、动效视频或口播粗剪，推荐同场景候选并等待确认，再并行生成或剪辑 MP4。Report 可以直接播放每一路成片，比较时长、分辨率、音轨、字幕、脚本/分镜或剪辑清单、FFmpeg 媒体 QA、耗时、token 和 AI 评审。v0.5 的网页成品对比以及此前的写作、PPTX、科研绘图和调研报告能力继续支持。
 
 当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。ForkProbe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
 
@@ -29,7 +29,7 @@ ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交
 
 - 你不确定当前任务该用哪个 skill，想先看真实输出再决定。
 - 你想比较 baseline 和多个 skill，而不是只相信 skill 的描述。
-- 你的交付物是 PPTX、科研 figure package、调研报告 package 或可运行网页，需要看文件、预览和 QA。
+- 你的交付物是 PPTX、科研 figure package、调研报告、可运行网页或视频成片，需要看文件、预览和 QA。
 - 你想引入 GitHub 或本地自带的 BYO skill，但希望先做一次小规模试跑。
 - 不适合简单确定性任务：如果答案或工具路径已经很明确，直接执行会更快。
 
@@ -87,8 +87,11 @@ Compare a few skills first and see which one fits the current task better.
 | 调研报告 / Research report | 已支持 | 报告预览、sources.json、evidence table、claim checks、limitations、AI 评审 | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
 | 图片生成 / 生图比较 | 规划中 | 图片预览、文件链接、候选说明 | 暂不放固定候选；未来支持 image-generation pipelines |
 | 网页 / HTML 制作比较 | 已支持 | 可运行页面链接、桌面/移动端截图、QA、源码、AI 评审 | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`Hallmark`](https://github.com/Nutlope/hallmark), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
+| 产品宣传片成品比较 | 已支持 | MP4 播放、封面、字幕、脚本、分镜、源码、媒体 QA、AI 评审 | `baseline-remotion-agent`, [`HyperFrames product-launch-video`](https://github.com/heygen-com/hyperframes), [`video-shotcraft`](https://github.com/Vincentwei1021/video-shotcraft) |
+| 动效视频成品比较 | 已支持 | MP4 播放、动效规格、源码、时长/分辨率、媒体 QA、AI 评审 | `baseline-remotion-motion`, [`HyperFrames motion-graphics`](https://github.com/heygen-com/hyperframes), [`Remotion Bits`](https://github.com/av/remotion-bits) |
+| 口播粗剪比较 | 已支持 | 粗剪 MP4、字幕、转写稿、剪辑清单/时间线、压缩时长、媒体 QA | [`auto-editor`](https://github.com/WyattBlue/auto-editor), [`video-editing-skill`](https://github.com/maxazure/video-editing-skill), [`video-use`](https://github.com/browser-use/video-use) `cut-only`, [`chengfeng-videocut`](https://github.com/Agentchengfeng/chengfeng-videocut-skills)（实验） |
 
-## 五种工作模式
+## 六种工作模式
 
 ### 1. Text comparison
 
@@ -200,12 +203,39 @@ python3 scripts/web_artifact.py \
 
 每条候选输出 `site/index.html`、`desktop.png`、`mobile.png`、`qa.json`、`source.zip` 和候选说明。Report 可切换桌面/移动端预览并直接打开成品页面。
 
+### 6. Video artifact comparison
+
+视频模式严格按场景分组，不会把产品宣传片、动效视频和口播粗剪混在同一轮评分。第一步先推荐候选并等待确认：
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-video-task.txt
+```
+
+产品宣传片或动效视频确认后直接运行对应候选。口播粗剪必须使用 `--asset` 给所有候选提供同一个原始视频：
+
+```bash
+python3 scripts/video_artifact.py \
+  --input /tmp/forkprobe-video-task.txt \
+  --asset /path/to/source-video.mp4 \
+  --pipeline auto-editor \
+  --pipeline maxazure-video-editing \
+  --pipeline video-use-cut-only \
+  --pipeline chengfeng-cut-talking-head \
+  --confirmed \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-video-report.html
+```
+
+每条候选必须生成 `video.mp4`。ForkProbe 会用 `ffprobe` 检查时长、分辨率、编码和音轨，用 `ffmpeg` 生成统一封面，并根据场景检查字幕、脚本/分镜、动效规格或转写稿/剪辑清单。Report 内可直接播放成片。
+
 ## 支持的 Agent 工作流
 
 - Claude Code / Claude 风格 skill 会话
 - Codex 原生执行路径，并在失败时 fallback 到 OpenAI API
 - OpenClaw、WorkBuddy、OpenCode 等自然语言 Agent 工作流
-- “做一个 PPT”、“生成论文 figure”、“生成调研报告”和“制作网页成品”这类 artifact comparison
+- “做一个 PPT”、“生成论文 figure”、“生成调研报告”、“制作网页成品”和“比较视频成片”这类 artifact comparison
 
 ## 安装
 
@@ -227,6 +257,12 @@ cp -r forkprobe ~/.agents/skills/
 
 ```bash
 pip3 install jinja2
+```
+
+视频模式另外需要本机安装 `FFmpeg`，用于媒体探测、封面和统一 QA：
+
+```bash
+brew install ffmpeg
 ```
 
 Codex App / Codex CLI 路径会优先使用本地 `codex exec`，继承你的 Codex 登录和模型配置，不需要 `OPENAI_API_KEY`。
@@ -295,7 +331,7 @@ https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing
 
 ## Report、winner 与 handoff
 
-ForkProbe 的核心产物是本地 HTML report。文本模式展示每一路完整输出、耗时、token 估算和 AI 评审；artifact 模式展示 PPTX、figure package、research package 或网页成品的文件链接、预览、候选说明、QA 和评审建议。
+ForkProbe 的核心产物是本地 HTML report。文本模式展示每一路完整输出、耗时、token 估算和 AI 评审；artifact 模式展示 PPTX、figure package、research package、网页或视频成品的文件链接、预览/播放、候选说明、QA 和评审建议。
 
 当用户在 report 中选择 winner 后，ForkProbe 会记录本地 verdict，并生成 continuation handoff。当前 Agent 可以沿用 winner 的风格、结构或文件产物继续完成正式任务。
 
@@ -352,7 +388,7 @@ FORKPROBE_RUN_INTEGRATION=1 python3 tests/test_integration.py
 docs/       GitHub Pages 发布页和截图
 scripts/    对比、推荐、报告和 verdict 工具
 templates/  HTML report 模板
-catalog/    curated skill catalog
+catalog/    curated skill 与 artifact pipeline catalog
 tests/      smoke / integration tests
 SKILL.md    Agent skill 指令
 ```

@@ -1,7 +1,7 @@
 """
 Render a forkprobe artifact comparison report.
 
-This helper is for file-producing workflows such as PPTX comparison. It does
+This helper is for file-producing workflows such as PPTX and video comparison. It does
 not generate artifacts itself; the active agent creates one artifact per
 pipeline, writes a manifest, then this script renders a report with file links,
 optional previews, judge notes, and winner selection.
@@ -48,6 +48,10 @@ def _preview_kind(value: str) -> str:
     suffix = Path(value.split("?", 1)[0].split("#", 1)[0]).suffix.lower()
     if suffix in {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}:
         return "image"
+    if suffix in {".mp4", ".webm", ".mov", ".m4v"}:
+        return "video"
+    if suffix in {".mp3", ".wav", ".m4a", ".aac", ".ogg"}:
+        return "audio"
     if suffix in {".html", ".htm"}:
         return "html"
     if suffix == ".pdf":
@@ -90,6 +94,19 @@ def _normalize_candidate(candidate: dict[str, Any], manifest_dir: Path) -> dict[
             web_preview[target_key] = _href_for_path(value, manifest_dir)
     if web_preview_source:
         web_preview["qa_score"] = int(web_preview_source.get("qa_score") or 0)
+    video_preview_source = candidate.get("video_preview") if isinstance(candidate.get("video_preview"), dict) else {}
+    video_preview: dict[str, Any] = {}
+    for source_key, target_key in (
+        ("video_path", "video_href"),
+        ("poster_path", "poster_href"),
+    ):
+        value = str(video_preview_source.get(source_key) or video_preview_source.get(target_key) or "")
+        if value:
+            video_preview[target_key] = _href_for_path(value, manifest_dir)
+    if video_preview_source:
+        video_preview["qa_score"] = int(video_preview_source.get("qa_score") or 0)
+        metadata = video_preview_source.get("metadata")
+        video_preview["metadata"] = metadata if isinstance(metadata, dict) else {}
     return {
         "skill_id": candidate_id,
         "skill_name": candidate.get("name") or candidate.get("skill_name") or candidate_id,
@@ -103,6 +120,7 @@ def _normalize_candidate(candidate: dict[str, Any], manifest_dir: Path) -> dict[
         "error": candidate.get("error"),
         "artifacts": artifacts,
         "web_preview": web_preview,
+        "video_preview": video_preview,
     }
 
 

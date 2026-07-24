@@ -20,14 +20,14 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.5" src="https://img.shields.io/badge/version-v0.5-2563eb">
+  <img alt="Version v0.6" src="https://img.shields.io/badge/version-v0.6-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.5 adds finished webpage comparison:** ForkProbe recommends web skills by page family, waits for confirmation, then generates runnable sites in parallel. Every candidate receives the same desktop/mobile screenshot pass and browser QA, and the report compares the page, source, latency, token estimate, and AI judge notes. The web pool now includes Hallmark as a structurally varied, anti-AI-template design route. The v0.4 anti-AI writing pool and v0.3 research-report workflow remain supported.
+**v0.6 adds finished-video comparison:** ForkProbe classifies a task as a product promo, motion-graphics video, or talking-head rough cut, recommends candidates within that scene, waits for confirmation, and then generates or edits MP4 candidates in parallel. The report plays every finished video and compares duration, resolution, audio, captions, scripts/storyboards or edit decisions, FFmpeg media QA, latency, token estimates, and AI judge notes. The v0.5 finished-webpage workflow and all earlier writing, PPTX, scientific-figure, and research-report modes remain supported.
 
 When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe makes the choice visible: compare the real outputs first, then continue with the path you picked.
 
@@ -35,7 +35,7 @@ When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe m
 
 - You are not sure which skill fits the current task and want to see real outputs first.
 - You want to compare the baseline against several skills instead of trusting skill descriptions.
-- Your deliverable is a file artifact such as a PPTX deck, scientific figure package, research report package, or runnable webpage.
+- Your deliverable is a file artifact such as a PPTX deck, scientific figure package, research report, runnable webpage, or finished video.
 - You want to try a GitHub or bring-your-own skill with a small preflight run.
 - It is not meant for simple deterministic tasks where the best tool path is already obvious.
 
@@ -93,8 +93,11 @@ The shortlist below follows the current README capability matrix. `baseline` mea
 | Research reports | Supported | Report previews, sources.json, evidence tables, claim checks, limitations, AI judge notes | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
 | Image generation comparison | Planned | Image previews, file links, candidate notes | No fixed shortlist yet; planned support for image-generation pipelines |
 | Web / HTML creation comparison | Supported | Runnable page links, desktop/mobile screenshots, QA, source, AI judge notes | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`Hallmark`](https://github.com/Nutlope/hallmark), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
+| Product-promo comparison | Supported | Playable MP4, poster, captions, script, storyboard, source, media QA, AI judge notes | `baseline-remotion-agent`, [`HyperFrames product-launch-video`](https://github.com/heygen-com/hyperframes), [`video-shotcraft`](https://github.com/Vincentwei1021/video-shotcraft) |
+| Motion-graphics comparison | Supported | Playable MP4, motion specification, source, media metadata, QA, AI judge notes | `baseline-remotion-motion`, [`HyperFrames motion-graphics`](https://github.com/heygen-com/hyperframes), [`Remotion Bits`](https://github.com/av/remotion-bits) |
+| Talking-head rough-cut comparison | Supported | Rough-cut MP4, captions, transcript, cut list/timeline, duration reduction, media QA | [`auto-editor`](https://github.com/WyattBlue/auto-editor), [`video-editing-skill`](https://github.com/maxazure/video-editing-skill), [`video-use`](https://github.com/browser-use/video-use) `cut-only`, [`chengfeng-videocut`](https://github.com/Agentchengfeng/chengfeng-videocut-skills) (experimental) |
 
-## Five Work Modes
+## Six Work Modes
 
 ### 1. Text comparison
 
@@ -206,12 +209,39 @@ python3 scripts/web_artifact.py \
 
 Each candidate outputs `site/index.html`, `desktop.png`, `mobile.png`, `qa.json`, `source.zip`, and a candidate summary. The report switches between desktop/mobile previews and opens the finished page directly.
 
+### 6. Video artifact comparison
+
+Video comparison is divided into three separate scenes. Product promos, motion graphics, and talking-head rough cuts are never scored together. Recommend candidates first and wait for confirmation:
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-video-task.txt
+```
+
+Product promos and motion graphics can run from a brief plus optional shared assets. A talking-head rough cut must pass the same source footage to every candidate with `--asset`:
+
+```bash
+python3 scripts/video_artifact.py \
+  --input /tmp/forkprobe-video-task.txt \
+  --asset /path/to/source-video.mp4 \
+  --pipeline auto-editor \
+  --pipeline maxazure-video-editing \
+  --pipeline video-use-cut-only \
+  --pipeline chengfeng-cut-talking-head \
+  --confirmed \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-video-report.html
+```
+
+Each candidate must produce `video.mp4`. ForkProbe uses `ffprobe` to verify duration, dimensions, codecs, and audio, uses `ffmpeg` to create a consistent poster, and runs scene-specific checks over captions, scripts/storyboards, motion specifications, or transcripts/cut lists. The report plays each finished candidate directly.
+
 ## Supported Agent Workflows
 
 - Claude Code / Claude-style skill sessions
 - Codex native execution, with fallback to the OpenAI API
 - Natural-language Agent surfaces such as OpenClaw, WorkBuddy, OpenCode, and similar platforms
-- Artifact comparisons for generated PPTX, scientific figure packages, research report packages, and other file outputs
+- Artifact comparisons for generated PPTX, scientific figures, research reports, webpages, and finished videos
 
 ## Installation
 
@@ -231,6 +261,12 @@ Install the core dependency:
 
 ```bash
 pip3 install jinja2
+```
+
+Video mode also requires local FFmpeg for media inspection, poster generation, and shared QA:
+
+```bash
+brew install ffmpeg
 ```
 
 The Codex App / Codex CLI path uses local `codex exec` first, inheriting your Codex login and model configuration. It does not require `OPENAI_API_KEY`.
@@ -299,7 +335,7 @@ https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing
 
 ## Reports, Winners, And Handoffs
 
-ForkProbe's main output is a local HTML report. Text mode shows each complete output, latency, token estimates, and AI judge notes. Artifact mode shows PPTX, figure-package, research-package, or webpage links, previews, candidate notes, QA, and judge recommendations.
+ForkProbe's main output is a local HTML report. Text mode shows each complete output, latency, token estimates, and AI judge notes. Artifact mode shows PPTX, figure-package, research-package, webpage, or finished-video links, previews or playback, candidate notes, QA, and judge recommendations.
 
 After you choose a winner in the report, ForkProbe records a local verdict and creates a continuation handoff. The current Agent can then keep working from the selected style, structure, or artifact path.
 
@@ -354,7 +390,7 @@ FORKPROBE_RUN_INTEGRATION=1 python3 tests/test_integration.py
 docs/       GitHub Pages launch page and screenshots
 scripts/    comparison, recommendation, report, and verdict helpers
 templates/  HTML report template
-catalog/    curated skill catalogs
+catalog/    curated skill and artifact-pipeline catalogs
 tests/      smoke and integration tests
 SKILL.md    Agent skill instructions
 ```

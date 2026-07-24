@@ -524,6 +524,85 @@ class TestRecommendations(unittest.TestCase):
         discovery.assert_not_called()
         self.assertTrue(any("只用本地" in note for note in rec.notes_zh))
 
+    def test_recommend_video_scenes_route_to_distinct_artifact_pools(self):
+        from recommend import recommend_candidates
+
+        product = recommend_candidates(
+            "请比较几个 skill，生成一条产品宣传片 MP4 成片。",
+            online_discovery=False,
+        )
+        self.assertEqual(product.deliverable_type, "video_artifact")
+        self.assertEqual(product.compare_mode, "artifact")
+        self.assertEqual(
+            [candidate.id for candidate in product.candidates],
+            ["baseline-remotion-agent", "hyperframes-product-launch", "video-shotcraft"],
+        )
+        self.assertIn("scripts/video_artifact.py", product.suggested_command)
+        self.assertIn("--confirmed", product.suggested_command)
+
+        motion = recommend_candidates(
+            "把这组数据和 UI 做成动态图形 motion graphics 成片并比较几个 skill。",
+            online_discovery=False,
+        )
+        self.assertEqual(
+            [candidate.id for candidate in motion.candidates],
+            ["baseline-remotion-motion", "hyperframes-motion-graphics", "remotion-bits-enhanced"],
+        )
+
+        rough_cut = recommend_candidates(
+            "请对同一个口播原片做粗剪，比较几个 skill 的 MP4 成品。",
+            online_discovery=False,
+        )
+        rough_cut_ids = [candidate.id for candidate in rough_cut.candidates]
+        self.assertEqual(
+            rough_cut_ids,
+            ["auto-editor", "maxazure-video-editing", "video-use-cut-only", "chengfeng-cut-talking-head"],
+        )
+        self.assertIn("--asset", rough_cut.suggested_command)
+        self.assertIn("<source-video>", rough_cut.suggested_command)
+
+    def test_video_script_or_storyboard_only_stays_text_mode(self):
+        from recommend import recommend_candidates
+
+        rec = recommend_candidates(
+            "请比较几个宣传片 skill，只要脚本和分镜，不要生成视频。",
+            online_discovery=False,
+        )
+        self.assertEqual(rec.deliverable_type, "text")
+        self.assertEqual(rec.compare_mode, "text")
+
+    def test_video_artifact_cli_requires_confirmation_and_rough_cut_asset(self):
+        without_confirmation = subprocess.run(
+            [
+                sys.executable,
+                str(PROJECT_DIR / "scripts" / "video_artifact.py"),
+                "--text",
+                "制作一条产品宣传片成片",
+                "--run",
+                "--no-open",
+            ],
+            text=True,
+            capture_output=True,
+        )
+        self.assertNotEqual(without_confirmation.returncode, 0)
+        self.assertIn("candidate confirmation", without_confirmation.stderr)
+
+        without_source = subprocess.run(
+            [
+                sys.executable,
+                str(PROJECT_DIR / "scripts" / "video_artifact.py"),
+                "--text",
+                "对口播原片做粗剪",
+                "--confirmed",
+                "--run",
+                "--no-open",
+            ],
+            text=True,
+            capture_output=True,
+        )
+        self.assertNotEqual(without_source.returncode, 0)
+        self.assertIn("requires at least one existing source video", without_source.stderr)
+
 
 class TestTokenEstimates(unittest.TestCase):
     def test_estimate_run_tokens_counts_skill_prompt(self):
@@ -1438,6 +1517,118 @@ class TestRenderReport(unittest.TestCase):
                     os.environ.pop("FORKPROBE_CHROME_BIN", None)
                 else:
                     os.environ["FORKPROBE_CHROME_BIN"] = old_chrome
+
+    def test_video_catalog_default_groups_and_report_playback(self):
+        from render_artifact_report import render_from_manifest
+        from video_artifact import (
+            build_pipeline_registry,
+            create_workspace,
+            default_pipeline_ids,
+            run_parallel,
+        )
+
+        registry, dynamic_ids = build_pipeline_registry()
+        self.assertEqual(dynamic_ids, [])
+        self.assertEqual(
+            default_pipeline_ids("product_promo"),
+            ["baseline-remotion-agent", "hyperframes-product-launch", "video-shotcraft"],
+        )
+        self.assertEqual(
+            default_pipeline_ids("motion_graphics"),
+            ["baseline-remotion-motion", "hyperframes-motion-graphics", "remotion-bits-enhanced"],
+        )
+        self.assertEqual(
+            default_pipeline_ids("talking_head_cut"),
+            ["auto-editor", "maxazure-video-editing", "video-use-cut-only", "chengfeng-cut-talking-head"],
+        )
+        self.assertEqual(registry["chengfeng-cut-talking-head"].maturity, "experimental")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fake_cli = tmp_path / "codex"
+            fake_cli.write_text(
+                "#!/usr/bin/env python3\n"
+                "import pathlib, re, subprocess, sys\n"
+                "args = sys.argv[1:]\n"
+                "out = pathlib.Path(args[args.index('--output-last-message') + 1])\n"
+                "prompt = sys.stdin.read()\n"
+                "match = re.search(r'playable result to `([^`]+)`', prompt)\n"
+                "video = pathlib.Path(match.group(1))\n"
+                "video.parent.mkdir(parents=True, exist_ok=True)\n"
+                "subprocess.run(['ffmpeg','-y','-loglevel','error','-f','lavfi','-i','color=c=0x2563eb:s=640x360:d=1',"
+                "'-f','lavfi','-i','sine=frequency=440:duration=1','-shortest','-c:v','libx264','-pix_fmt','yuv420p','-c:a','aac',str(video)], check=True)\n"
+                "(video.parent / 'script.md').write_text('# Script\\nForkProbe compares real outputs.', encoding='utf-8')\n"
+                "(video.parent / 'storyboard.md').write_text('# Storyboard\\nOne-second test scene.', encoding='utf-8')\n"
+                "(video.parent / 'subtitles.srt').write_text('1\\n00:00:00,000 --> 00:00:00,900\\nForkProbe\\n', encoding='utf-8')\n"
+                "source = video.parent / 'source'\n"
+                "source.mkdir(parents=True, exist_ok=True)\n"
+                "(source / 'main.tsx').write_text('export const Test = true;', encoding='utf-8')\n"
+                "(video.parent.parent / 'summary.md').write_text('Rendered a real product-promo test candidate.', encoding='utf-8')\n"
+                "out.write_text('Fake video runner completed.', encoding='utf-8')\n"
+                "print('tokens used\\n4,444', file=sys.stderr)\n",
+                encoding="utf-8",
+            )
+            os.chmod(fake_cli, 0o755)
+
+            old_cli = os.environ.get("FORKPROBE_CODEX_CLI")
+            old_load = os.environ.get("FORKPROBE_VIDEO_LOAD_SKILL_PROMPTS")
+            os.environ["FORKPROBE_CODEX_CLI"] = str(fake_cli)
+            os.environ["FORKPROBE_VIDEO_LOAD_SKILL_PROMPTS"] = "0"
+            try:
+                task = "为 ForkProbe 生成一条产品宣传片 MP4 成片。"
+                workspace = create_workspace(
+                    task_input=task,
+                    output_dir=tmp_path / "run",
+                    pipeline_ids=["baseline-remotion-agent"],
+                )
+                runs = run_parallel(
+                    task_input=task,
+                    output_dir=Path(workspace["output_dir"]),
+                    pipeline_ids=["baseline-remotion-agent"],
+                    video_type="product_promo",
+                    assets=[],
+                    pipeline_registry=registry,
+                    max_workers=1,
+                    timeout=30,
+                )
+                self.assertIsNone(runs[0].error)
+                self.assertEqual(runs[0].tokens_used, 4444)
+
+                refreshed = create_workspace(
+                    task_input=task,
+                    output_dir=Path(workspace["output_dir"]),
+                    pipeline_ids=["baseline-remotion-agent"],
+                )
+                manifest_path = Path(refreshed["manifest_path"])
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                candidate = manifest["candidates"][0]
+                self.assertEqual(candidate["video_preview"]["qa_score"], 100)
+                metadata = candidate["video_preview"]["metadata"]
+                self.assertGreater(metadata["duration_seconds"], 0)
+                self.assertEqual((metadata["width"], metadata["height"]), (640, 360))
+                self.assertTrue(metadata["has_audio"])
+                labels = {artifact["label"] for artifact in candidate["artifacts"]}
+                self.assertIn("video.mp4", labels)
+                self.assertIn("poster.png", labels)
+                self.assertIn("source.zip", labels)
+
+                report = tmp_path / "video-report.html"
+                render_from_manifest(manifest_path, report, auto_open=False)
+                html = report.read_text(encoding="utf-8")
+                self.assertIn("Finished video", html)
+                self.assertIn("<video controls", html)
+                self.assertIn("video.mp4", html)
+                self.assertIn("100/100", html)
+                self.assertIn("v0.6", html)
+            finally:
+                if old_cli is None:
+                    os.environ.pop("FORKPROBE_CODEX_CLI", None)
+                else:
+                    os.environ["FORKPROBE_CODEX_CLI"] = old_cli
+                if old_load is None:
+                    os.environ.pop("FORKPROBE_VIDEO_LOAD_SKILL_PROMPTS", None)
+                else:
+                    os.environ["FORKPROBE_VIDEO_LOAD_SKILL_PROMPTS"] = old_load
 
 
 class TestJudgeParsing(unittest.TestCase):

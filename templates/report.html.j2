@@ -25,7 +25,7 @@
             total: 'total',
             connected: 'connected to local server',
             noServer: 'Demo mode: your choice stays on this page only',
-            preference: 'Pick the output you prefer · v0.5',
+            preference: 'Pick the output you prefer · v0.6',
             originalInput: 'Original input',
             error: 'error',
             partial: 'artifacts available',
@@ -50,6 +50,12 @@
             mobilePreview: 'Mobile',
             openPage: 'Open page',
             qaScore: 'QA score',
+            videoPreview: 'Finished video',
+            duration: 'Duration',
+            resolution: 'Resolution',
+            audioTrack: 'Audio',
+            audioYes: 'present',
+            audioNo: 'none',
             recommendedBadge: 'AI recommended',
             pick: '✓ Pick this one',
             picked: '✓ Picked',
@@ -64,7 +70,7 @@
             closeTab: 'You can close this tab. Latest verdict is in',
             serverError: 'Could not reach forkprobe server',
             serverErrorHint: 'The server may have timed out. Your selection is in the browser console; you can also re-run forkprobe.',
-            privacy: 'Privacy: 100% local in v0.5',
+            privacy: 'Privacy: 100% local in v0.6',
             judgeTitle: 'AI judge recommendation',
             judgeRecommended: 'Recommended',
             judgeConfidence: 'confidence',
@@ -90,7 +96,7 @@
             total: '总耗时',
             connected: '已连接本地记录服务',
             noServer: '演示模式：你的选择只会保留在当前页面',
-            preference: '请选择你更认可的结果 · v0.5',
+            preference: '请选择你更认可的结果 · v0.6',
             originalInput: '原始输入',
             error: '错误',
             partial: '产物已生成',
@@ -115,6 +121,12 @@
             mobilePreview: '移动端',
             openPage: '打开网页',
             qaScore: 'QA 分数',
+            videoPreview: '视频成品',
+            duration: '时长',
+            resolution: '分辨率',
+            audioTrack: '音轨',
+            audioYes: '有',
+            audioNo: '无',
             recommendedBadge: 'AI 推荐',
             pick: '✓ 选择这个',
             picked: '✓ 已选择',
@@ -129,7 +141,7 @@
             closeTab: '你可以关闭这个页面。最新选择位置:',
             serverError: '无法连接 forkprobe 本地服务',
             serverErrorHint: '本地服务可能已经超时。你的选择仍在浏览器控制台里; 也可以重新运行 forkprobe。',
-            privacy: '隐私:v0.5 完全本地保存',
+            privacy: '隐私:v0.6 完全本地保存',
             judgeTitle: 'AI 评审推荐',
             judgeRecommended: '推荐',
             judgeConfidence: '置信度',
@@ -469,7 +481,7 @@
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-        <span x-text="t('preference')">Pick the output you prefer · v0.5</span>
+        <span x-text="t('preference')">Pick the output you prefer · v0.6</span>
         <div class="inline-flex overflow-hidden rounded border border-slate-300 bg-white">
           <button type="button"
                   @click="setLang('zh')"
@@ -631,6 +643,42 @@
           <p class="mt-2">{{ r.error|e }}</p>
         </div>
         {% endif %}
+        {% if r.video_preview is defined and r.video_preview %}
+        <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500" x-text="t('videoPreview')">Finished video</p>
+              <p class="mt-1 text-xs text-slate-500">
+                <span x-text="t('qaScore')">QA score</span>:
+                <strong class="text-slate-800">{{ r.video_preview.qa_score|default(0) }}/100</strong>
+              </p>
+            </div>
+            {% if r.video_preview.metadata is defined and r.video_preview.metadata %}
+            <div class="grid grid-cols-3 gap-x-3 gap-y-1 text-right text-[11px] text-slate-500">
+              <span>
+                <span x-text="t('duration')">Duration</span><br>
+                <strong class="text-slate-700">{{ "%.1f"|format(r.video_preview.metadata.duration_seconds|default(0)|float) }}s</strong>
+              </span>
+              <span>
+                <span x-text="t('resolution')">Resolution</span><br>
+                <strong class="text-slate-700">{{ r.video_preview.metadata.width|default(0) }}x{{ r.video_preview.metadata.height|default(0) }}</strong>
+              </span>
+              <span>
+                <span x-text="t('audioTrack')">Audio</span><br>
+                <strong class="text-slate-700" x-text="{{ 'true' if r.video_preview.metadata.has_audio|default(false) else 'false' }} ? t('audioYes') : t('audioNo')"></strong>
+              </span>
+            </div>
+            {% endif %}
+          </div>
+          {% if r.video_preview.video_href is defined and r.video_preview.video_href %}
+          <video controls preload="metadata"
+                 {% if r.video_preview.poster_href is defined and r.video_preview.poster_href %}poster="{{ r.video_preview.poster_href }}"{% endif %}
+                 class="mt-3 aspect-video w-full rounded border border-slate-200 bg-black object-contain">
+            <source src="{{ r.video_preview.video_href }}">
+          </video>
+          {% endif %}
+        </div>
+        {% endif %}
         {% if r.web_preview is defined and r.web_preview %}
         <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3" x-data="{ webViewport: 'desktop' }">
           <div class="flex flex-wrap items-center justify-between gap-2">
@@ -683,6 +731,14 @@
                 <a href="{{ artifact.preview_href }}" target="_blank" rel="noreferrer">
                   <img src="{{ artifact.preview_href }}" alt="{{ artifact.label if artifact.label is defined else artifact.path }}" class="mb-3 max-h-56 w-full rounded border border-slate-100 object-contain bg-white">
                 </a>
+                {% elif artifact.preview_kind == 'video' %}
+                <video controls preload="metadata" class="mb-3 aspect-video w-full rounded border border-slate-100 bg-black object-contain">
+                  <source src="{{ artifact.preview_href }}">
+                </video>
+                {% elif artifact.preview_kind == 'audio' %}
+                <audio controls preload="metadata" class="mb-3 w-full">
+                  <source src="{{ artifact.preview_href }}">
+                </audio>
                 {% elif artifact.preview_kind == 'html' or artifact.preview_kind == 'pdf' %}
                 <div class="mb-3 overflow-hidden rounded border border-slate-100 bg-white">
                   <iframe src="{{ artifact.preview_href }}" title="{{ artifact.label if artifact.label is defined else artifact.path }}" class="h-56 w-full" loading="lazy" sandbox="allow-scripts allow-forms allow-popups"></iframe>
@@ -829,7 +885,7 @@
   <footer class="mt-12 pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
     forkprobe · MIT ·
     <a href="https://github.com/Jayden-X-L/forkprobe" target="_blank" rel="noopener noreferrer" class="hover:text-slate-800 transition">github</a> ·
-    <span x-text="t('privacy')">Privacy: 100% local in v0.5</span>
+    <span x-text="t('privacy')">Privacy: 100% local in v0.6</span>
   </footer>
 
 </body>

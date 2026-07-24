@@ -450,6 +450,8 @@ def _skill_from_online_discovery(candidate, deliverable_type: str) -> Recommende
         produces = "research_report"
     elif deliverable_type == "web_artifact":
         produces = "web_site"
+    elif deliverable_type == "video_artifact":
+        produces = "video_package"
     else:
         produces = "text"
     return RecommendedSkill(
@@ -461,9 +463,9 @@ def _skill_from_online_discovery(candidate, deliverable_type: str) -> Recommende
         reason_zh=candidate.summary_zh,
         reason_en=candidate.summary_en,
         source=candidate.source,
-        runnable=bool(candidate.runnable and deliverable_type not in {"pptx", "visual_artifact", "research_report", "web_artifact"}),
+        runnable=bool(candidate.runnable and deliverable_type not in {"pptx", "visual_artifact", "research_report", "web_artifact", "video_artifact"}),
         produces=produces,
-        pipeline_steps=[candidate.command_arg] if deliverable_type in {"pptx", "visual_artifact", "research_report", "web_artifact"} else [],
+        pipeline_steps=[candidate.command_arg] if deliverable_type in {"pptx", "visual_artifact", "research_report", "web_artifact", "video_artifact"} else [],
         caution_zh=candidate.risk_zh,
         caution_en=candidate.risk_en,
         source_kind=candidate.category or "github_discovered",
@@ -507,6 +509,11 @@ KEYWORDS = {
         "网页", "网站", "落地页", "着陆页", "官网", "页面", "前端", "web page",
         "webpage", "website", "landing page", "frontend", "dashboard", "web app",
         "html page", "interactive prototype", "交互原型", "数据看板",
+    ],
+    "video": [
+        "视频", "宣传片", "产品片", "产品视频", "动效", "动态图形", "口播", "粗剪",
+        "剪辑", "短片", "短视频", "video", "promo", "product launch video",
+        "motion graphics", "talking head", "rough cut",
     ],
 }
 
@@ -556,6 +563,18 @@ WEB_TEXT_ONLY_HINTS = [
     "不要写代码", "不写代码", "不要生成文件", "website brief only", "wireframe only", "prompt only",
 ]
 
+VIDEO_ARTIFACT_HINTS = [
+    "视频", "宣传片", "产品片", "产品视频", "动效", "动态图形", "口播", "粗剪", "剪辑",
+    "成片", "mp4", "webm", "video", "promo", "product launch video", "motion graphics",
+    "talking head", "rough cut",
+]
+
+VIDEO_TEXT_ONLY_HINTS = [
+    "只要脚本", "只给脚本", "只要文案", "只给文案", "只要分镜", "只给分镜",
+    "不要生成视频", "不生成视频", "不要渲染", "不渲染", "script only",
+    "storyboard only", "video brief only", "只要视频方案", "只给视频方案",
+]
+
 LOCAL_ONLY_HINTS = [
     "只要本地", "仅本地", "只用本地", "本地候选", "不要联网", "别联网",
     "不联网", "离线", "local only", "offline", "no network",
@@ -599,6 +618,10 @@ def detect_deliverable_type(task_text: str, signals: Optional[list[str]] = None)
     signal_set = set(signals)
     if "research_report" in signal_set and _has_compact_any(task_text, RESEARCH_REPORT_HINTS):
         return "research_report"
+    if "video" in signal_set and _has_compact_any(task_text, VIDEO_ARTIFACT_HINTS):
+        if _has_compact_any(task_text, VIDEO_TEXT_ONLY_HINTS):
+            return "text"
+        return "video_artifact"
     if "slides" in signal_set:
         if _has_compact_any(task_text, TEXT_ONLY_HINTS):
             return "ppt_outline"
@@ -715,6 +738,42 @@ def _web_artifact_pipeline(pipeline_id: str, catalog: dict) -> RecommendedSkill:
     )
 
 
+def _video_artifact_pipeline(pipeline_id: str, catalog: dict) -> RecommendedSkill:
+    pipeline_meta = next(
+        (pipeline for pipeline in catalog.get("pipelines", []) if pipeline.get("id") == pipeline_id),
+        None,
+    )
+    if not pipeline_meta:
+        raise KeyError(f"Video artifact pipeline {pipeline_id!r} not found in catalog")
+    source = pipeline_meta.get("source", "")
+    if source and pipeline_meta.get("subdir"):
+        source = f"{source}#{pipeline_meta['subdir']}"
+    maturity = str(pipeline_meta.get("maturity") or "stable")
+    requires = [str(value) for value in pipeline_meta.get("requires", [])]
+    caution_zh = f"成熟度: {maturity}。"
+    caution_en = f"Maturity: {maturity}."
+    if requires:
+        caution_zh += " 需要: " + "、".join(requires)
+        caution_en += " Requires: " + ", ".join(requires)
+    return RecommendedSkill(
+        id=pipeline_id,
+        name=pipeline_meta["name"],
+        author=pipeline_meta.get("author", ""),
+        kind="pipeline",
+        command_arg=pipeline_id,
+        reason_zh=pipeline_meta.get("summary_zh", ""),
+        reason_en=pipeline_meta.get("summary_en", ""),
+        source=source,
+        runnable=False,
+        produces="video_package",
+        pipeline_steps=list(pipeline_meta.get("pipeline_steps", [])),
+        caution_zh=caution_zh,
+        caution_en=caution_en,
+        source_kind="known_github",
+        score=86 if maturity == "stable" else 72,
+    )
+
+
 def _candidate_key(candidate: RecommendedSkill) -> str:
     raw = (candidate.command_arg if "#" in (candidate.command_arg or "") else candidate.source) or candidate.command_arg or candidate.id
     source = raw.lower().strip()
@@ -793,6 +852,21 @@ def _detect_web_family(task_text: str) -> str:
     return "general"
 
 
+def _detect_video_family(task_text: str) -> str:
+    compact = _compact(task_text)
+    if any(word in compact for word in [
+        "口播", "粗剪", "删停顿", "删除停顿", "删口误", "删除口误", "talkinghead",
+        "roughcut", "jumpcut", "采访剪辑", "访谈剪辑",
+    ]):
+        return "talking_head_cut"
+    if any(word in compact for word in [
+        "动效", "动态图形", "motiongraphics", "kinetictype", "数据动画", "图表动画",
+        "字幕动效", "logosting", "lowerthird", "信息动效",
+    ]):
+        return "motion_graphics"
+    return "product_promo"
+
+
 def _figure_artifact_command(candidates: list[RecommendedSkill]) -> list[str]:
     command = ["python3", "scripts/figure_artifact.py", "--input", "<input.txt>"]
     for candidate in candidates:
@@ -827,6 +901,24 @@ def _web_artifact_command(candidates: list[RecommendedSkill], catalog: dict) -> 
     return command
 
 
+def _video_artifact_command(
+    candidates: list[RecommendedSkill],
+    catalog: dict,
+    video_family: str,
+) -> list[str]:
+    known_ids = {pipeline.get("id") for pipeline in catalog.get("pipelines", [])}
+    command = ["python3", "scripts/video_artifact.py", "--input", "<input.txt>"]
+    if video_family == "talking_head_cut":
+        command.extend(["--asset", "<source-video>"])
+    for candidate in candidates:
+        if candidate.id in known_ids:
+            command.extend(["--pipeline", candidate.id])
+        elif candidate.command_arg.startswith(("http://", "https://", "/", "./", "~/")):
+            command.extend(["--skill-source", candidate.command_arg])
+    command.extend(["--confirmed", "--run", "--judge", "--render-report", "--report-output", "./video-artifact-report.html"])
+    return command
+
+
 def _note_if_no_new_external(candidates: list[RecommendedSkill], notes_zh: list[str], notes_en: list[str]) -> None:
     if not any(_is_external_candidate(candidate) for candidate in candidates):
         notes_zh.append("外部发现候选与本地 curated 候选去重后没有新增项，最终 shortlist 暂时只包含本地候选。")
@@ -844,7 +936,9 @@ def recommend_candidates(
     catalog = load_catalog(domain)
     signals = detect_task_signals(task_text)
     deliverable_type = detect_deliverable_type(task_text, signals)
-    compare_mode = "artifact" if deliverable_type in {"pptx", "visual_artifact", "research_report", "web_artifact"} else "text"
+    compare_mode = "artifact" if deliverable_type in {
+        "pptx", "visual_artifact", "research_report", "web_artifact", "video_artifact"
+    } else "text"
     signal_set = set(signals)
     candidates: list[RecommendedSkill] = []
     notes_zh: list[str] = []
@@ -893,6 +987,15 @@ def recommend_candidates(
         candidate = _web_artifact_pipeline(pipeline_id, web_catalog)
         _append_unique(candidates, candidate, pool_limit)
 
+    video_catalog: dict = {}
+
+    def add_video_pipeline(pipeline_id: str) -> None:
+        nonlocal video_catalog
+        if not video_catalog:
+            video_catalog = load_catalog("video-artifact-skills")
+        candidate = _video_artifact_pipeline(pipeline_id, video_catalog)
+        _append_unique(candidates, candidate, pool_limit)
+
     def add_online_candidates() -> None:
         nonlocal discovery_queries
         if local_only:
@@ -913,6 +1016,54 @@ def recommend_candidates(
             _append_unique(candidates, _skill_from_online_discovery(candidate, deliverable_type), pool_limit)
         notes_zh.extend(getattr(discovery, "notes_zh", []))
         notes_en.extend(getattr(discovery, "notes_en", []))
+
+    if deliverable_type == "video_artifact":
+        video_family = _detect_video_family(task_text)
+        video_pipeline_ids = {
+            "product_promo": [
+                "baseline-remotion-agent",
+                "hyperframes-product-launch",
+                "video-shotcraft",
+            ],
+            "motion_graphics": [
+                "baseline-remotion-motion",
+                "hyperframes-motion-graphics",
+                "remotion-bits-enhanced",
+            ],
+            "talking_head_cut": [
+                "auto-editor",
+                "maxazure-video-editing",
+                "video-use-cut-only",
+                "chengfeng-cut-talking-head",
+            ],
+        }
+        for pipeline_id in video_pipeline_ids[video_family]:
+            add_video_pipeline(pipeline_id)
+        candidates = _rank_and_limit(candidates, max_candidates)
+        family_zh = {
+            "product_promo": "产品宣传片",
+            "motion_graphics": "动效视频",
+            "talking_head_cut": "口播粗剪",
+        }[video_family]
+        notes_zh.append("交互式使用时，必须先展示视频候选与路线差异，等待用户确认后再执行 suggested command。")
+        notes_zh.append(f"这是{family_zh}成品对比模式：每条 pipeline 生成独立 MP4，并统一执行 ffprobe/ffmpeg 媒体 QA。")
+        notes_en.append("In interactive use, show the video candidate shortlist and route differences first, then wait for confirmation.")
+        notes_en.append(f"This is finished-video comparison mode ({video_family}): every pipeline produces an MP4 and receives shared ffprobe/ffmpeg media QA.")
+        if video_family == "talking_head_cut":
+            notes_zh.append("口播粗剪执行时必须通过 --asset 提供同一个原始视频；cut-only 候选不得加入 B-roll、音乐或重写脚本。")
+            notes_en.append("Talking-head rough cuts require the same source video via --asset; cut-only candidates must not add B-roll, music, or rewrite the script.")
+        return Recommendation(
+            deliverable_type=deliverable_type,
+            compare_mode=compare_mode,
+            task_signals=signals,
+            candidates=candidates,
+            notes_zh=notes_zh,
+            notes_en=notes_en,
+            suggested_command=_video_artifact_command(candidates, video_catalog, video_family),
+            mode_explanation_zh=f"识别到最终交付物是{family_zh}成品，应比较同场景的视频 pipeline，而不是只比较脚本或分镜。",
+            mode_explanation_en=f"Detected a finished {video_family} deliverable. Compare pipelines within the same video scene, not just scripts or storyboards.",
+            discovery_queries=discovery_queries,
+        )
 
     if deliverable_type == "web_artifact":
         web_family = _detect_web_family(task_text)
