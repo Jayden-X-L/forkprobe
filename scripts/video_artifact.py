@@ -427,6 +427,49 @@ def _probe_video(path: Path) -> dict[str, Any]:
     }
 
 
+def _sample_frame_variation(path: Path) -> dict[str, Any]:
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg or not path.exists():
+        return {
+            "sampled_frames": 0,
+            "unique_frames": 0,
+            "error": "ffmpeg not found" if not ffmpeg else "video missing",
+        }
+    cmd = [
+        ffmpeg, "-v", "error", "-i", str(path),
+        "-map", "0:v:0", "-an",
+        "-vf", "fps=2,scale=160:-2",
+        "-frames:v", "24",
+        "-f", "framemd5", "-",
+    ]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if proc.returncode != 0:
+            return {
+                "sampled_frames": 0,
+                "unique_frames": 0,
+                "error": proc.stderr.strip() or f"ffmpeg exited {proc.returncode}",
+            }
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "sampled_frames": 0,
+            "unique_frames": 0,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+    signatures = []
+    for line in proc.stdout.splitlines():
+        if not line or line.startswith("#"):
+            continue
+        fields = [field.strip() for field in line.split(",")]
+        if len(fields) >= 6 and fields[-1]:
+            signatures.append(fields[-1])
+    return {
+        "sampled_frames": len(signatures),
+        "unique_frames": len(set(signatures)),
+        "error": "",
+    }
+
+
 def _normalize_primary_video(artifact_dir: Path) -> Path | None:
     primary = artifact_dir / "video.mp4"
     if primary.exists():
@@ -482,6 +525,15 @@ def postprocess_candidate(
     artifact_dir.mkdir(parents=True, exist_ok=True)
     video = _normalize_primary_video(artifact_dir)
     metadata = _probe_video(video) if video else {}
+    frame_variation = _sample_frame_variation(video) if video and not metadata.get("error") else {
+        "sampled_frames": 0,
+        "unique_frames": 0,
+        "error": "video unavailable",
+    }
+    metadata.update({
+        "sampled_frames": int(frame_variation.get("sampled_frames") or 0),
+        "unique_frames": int(frame_variation.get("unique_frames") or 0),
+    })
     poster_error = ""
     poster = artifact_dir / "poster.png"
     if video and not metadata.get("error"):
@@ -559,6 +611,18 @@ def postprocess_candidate(
     elif video_type == "motion_graphics":
         checks = {
             **common,
+            "minimum_duration": {
+                "passed": float(metadata.get("duration_seconds") or 0.0) >= 3.0,
+                "detail": f"{float(metadata.get('duration_seconds') or 0.0):.2f}s; minimum 3.00s",
+            },
+            "visual_variation": {
+                "passed": int(frame_variation.get("unique_frames") or 0) >= 2,
+                "detail": (
+                    f"{frame_variation.get('unique_frames', 0)} unique frames from "
+                    f"{frame_variation.get('sampled_frames', 0)} samples"
+                    if not frame_variation.get("error") else str(frame_variation["error"])
+                ),
+            },
             "motion_spec_present": {
                 "passed": _has_any(artifact_dir, ["motion-spec.md", "README.md"]),
                 "detail": "motion specification found" if _has_any(artifact_dir, ["motion-spec.md", "README.md"]) else "motion-spec.md missing",
@@ -569,13 +633,26 @@ def postprocess_candidate(
             },
         }
         weights = {
-            "video_present": 20, "video_decodes": 25, "dimensions_present": 10,
+            "video_present": 15, "video_decodes": 20, "dimensions_present": 10,
             "poster_present": 10, "summary_present": 10,
+            "minimum_duration": 5, "visual_variation": 5,
             "motion_spec_present": 10, "source_delivered": 15,
         }
     else:
         checks = {
             **common,
+            "minimum_duration": {
+                "passed": float(metadata.get("duration_seconds") or 0.0) >= 3.0,
+                "detail": f"{float(metadata.get('duration_seconds') or 0.0):.2f}s; minimum 3.00s",
+            },
+            "visual_variation": {
+                "passed": int(frame_variation.get("unique_frames") or 0) >= 2,
+                "detail": (
+                    f"{frame_variation.get('unique_frames', 0)} unique frames from "
+                    f"{frame_variation.get('sampled_frames', 0)} samples"
+                    if not frame_variation.get("error") else str(frame_variation["error"])
+                ),
+            },
             "audio_present": {
                 "passed": bool(metadata.get("has_audio")),
                 "detail": metadata.get("audio_codec") or "audio track missing",
@@ -598,10 +675,11 @@ def postprocess_candidate(
             },
         }
         weights = {
-            "video_present": 15, "video_decodes": 20, "dimensions_present": 5,
+            "video_present": 10, "video_decodes": 15, "dimensions_present": 5,
             "poster_present": 5, "summary_present": 5, "audio_present": 10,
+            "minimum_duration": 5, "visual_variation": 10,
             "script_present": 10, "storyboard_present": 10,
-            "subtitles_present": 5, "source_delivered": 15,
+            "subtitles_present": 5, "source_delivered": 10,
         }
 
     score = sum(weight for name, weight in weights.items() if checks[name]["passed"])
@@ -611,6 +689,7 @@ def postprocess_candidate(
         "checks": checks,
         "output_metadata": metadata,
         "source_metadata": source_meta,
+        "frame_variation": frame_variation,
         "poster_error": poster_error,
     }
     (artifact_dir / "qa.json").write_text(json.dumps(qa, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -625,7 +704,8 @@ def collect_candidate_artifacts(candidate_dir: Path, output_dir: Path) -> list[d
     for path in sorted(path for path in artifact_dir.rglob("*") if path.is_file()):
         if path.name == ".gitkeep" or path.suffix.lower() not in ARTIFACT_SUFFIXES:
             continue
-        if "source" in path.parts and path.name != "source.zip":
+        relative_parts = path.relative_to(artifact_dir).parts
+        if relative_parts[0] in {"source", "work"} and path.name != "source.zip":
             continue
         entry = {
             "path": _relative(path, output_dir),
@@ -701,6 +781,14 @@ def build_manifest(
         run_result = _load_run_result(candidate_dir)
         artifacts = collect_candidate_artifacts(candidate_dir, output_dir)
         summary = candidate_summary(pipeline, candidate_dir)
+        video_preview = _video_preview(candidate_dir, output_dir)
+        reported_error = run_result.get("error")
+        if (
+            reported_error
+            and "timeout" in str(reported_error).lower()
+            and int(video_preview.get("qa_score") or 0) >= 90
+        ):
+            reported_error = None
         candidates.append({
             "id": pipeline.id,
             "name": pipeline.name,
@@ -715,14 +803,14 @@ def build_manifest(
             "expected_artifacts": list(pipeline.expected_artifacts),
             "qa_checks": list(pipeline.qa_checks),
             "artifacts": artifacts,
-            "video_preview": _video_preview(candidate_dir, output_dir),
+            "video_preview": video_preview,
             "tokens_used": int(run_result.get("tokens_used") or 0),
             "provider_tokens_used": int(run_result.get("tokens_used") or 0),
             "estimated_tokens_used": estimate_candidate_tokens(
                 task_input, pipeline, candidate_dir, summary, artifacts, run_result
             ),
             "latency_seconds": float(run_result.get("latency_seconds") or 0.0),
-            "error": run_result.get("error"),
+            "error": reported_error,
         })
     return {
         "schema_version": "video-artifact-v0.6",

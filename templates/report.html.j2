@@ -731,7 +731,7 @@
                 <a href="{{ artifact.preview_href }}" target="_blank" rel="noreferrer">
                   <img src="{{ artifact.preview_href }}" alt="{{ artifact.label if artifact.label is defined else artifact.path }}" class="mb-3 max-h-56 w-full rounded border border-slate-100 object-contain bg-white">
                 </a>
-                {% elif artifact.preview_kind == 'video' %}
+                {% elif artifact.preview_kind == 'video' and not (r.video_preview is defined and r.video_preview and artifact.label == 'video.mp4') %}
                 <video controls preload="metadata" class="mb-3 aspect-video w-full rounded border border-slate-100 bg-black object-contain">
                   <source src="{{ artifact.preview_href }}">
                 </video>

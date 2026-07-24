@@ -1555,10 +1555,10 @@ class TestRenderReport(unittest.TestCase):
                 "match = re.search(r'playable result to `([^`]+)`', prompt)\n"
                 "video = pathlib.Path(match.group(1))\n"
                 "video.parent.mkdir(parents=True, exist_ok=True)\n"
-                "subprocess.run(['ffmpeg','-y','-loglevel','error','-f','lavfi','-i','color=c=0x2563eb:s=640x360:d=1',"
-                "'-f','lavfi','-i','sine=frequency=440:duration=1','-shortest','-c:v','libx264','-pix_fmt','yuv420p','-c:a','aac',str(video)], check=True)\n"
+                "subprocess.run(['ffmpeg','-y','-loglevel','error','-f','lavfi','-i','testsrc2=s=640x360:d=3:r=25',"
+                "'-f','lavfi','-i','sine=frequency=440:duration=3','-shortest','-c:v','libx264','-pix_fmt','yuv420p','-c:a','aac',str(video)], check=True)\n"
                 "(video.parent / 'script.md').write_text('# Script\\nForkProbe compares real outputs.', encoding='utf-8')\n"
-                "(video.parent / 'storyboard.md').write_text('# Storyboard\\nOne-second test scene.', encoding='utf-8')\n"
+                "(video.parent / 'storyboard.md').write_text('# Storyboard\\nThree-second animated test scene.', encoding='utf-8')\n"
                 "(video.parent / 'subtitles.srt').write_text('1\\n00:00:00,000 --> 00:00:00,900\\nForkProbe\\n', encoding='utf-8')\n"
                 "source = video.parent / 'source'\n"
                 "source.mkdir(parents=True, exist_ok=True)\n"
@@ -1607,6 +1607,7 @@ class TestRenderReport(unittest.TestCase):
                 self.assertGreater(metadata["duration_seconds"], 0)
                 self.assertEqual((metadata["width"], metadata["height"]), (640, 360))
                 self.assertTrue(metadata["has_audio"])
+                self.assertGreaterEqual(metadata["unique_frames"], 2)
                 labels = {artifact["label"] for artifact in candidate["artifacts"]}
                 self.assertIn("video.mp4", labels)
                 self.assertIn("poster.png", labels)
@@ -1617,9 +1618,21 @@ class TestRenderReport(unittest.TestCase):
                 html = report.read_text(encoding="utf-8")
                 self.assertIn("Finished video", html)
                 self.assertIn("<video controls", html)
+                self.assertEqual(html.count("<video controls"), 1)
                 self.assertIn("video.mp4", html)
                 self.assertIn("100/100", html)
                 self.assertIn("v0.6", html)
+
+                run_result_path = Path(workspace["output_dir"]) / "candidates" / "baseline-remotion-agent" / "run-result.json"
+                timed_out = json.loads(run_result_path.read_text(encoding="utf-8"))
+                timed_out["error"] = "Codex CLI timeout after 900s. Partial artifacts are available."
+                run_result_path.write_text(json.dumps(timed_out), encoding="utf-8")
+                reconciled = create_workspace(
+                    task_input=task,
+                    output_dir=Path(workspace["output_dir"]),
+                    pipeline_ids=["baseline-remotion-agent"],
+                )
+                self.assertIsNone(reconciled["manifest"]["candidates"][0]["error"])
             finally:
                 if old_cli is None:
                     os.environ.pop("FORKPROBE_CODEX_CLI", None)
@@ -1629,6 +1642,40 @@ class TestRenderReport(unittest.TestCase):
                     os.environ.pop("FORKPROBE_VIDEO_LOAD_SKILL_PROMPTS", None)
                 else:
                     os.environ["FORKPROBE_VIDEO_LOAD_SKILL_PROMPTS"] = old_load
+
+    def test_video_qa_rejects_short_static_placeholder(self):
+        from video_artifact import postprocess_candidate
+
+        with tempfile.TemporaryDirectory() as tmp:
+            candidate_dir = Path(tmp) / "candidate"
+            artifact_dir = candidate_dir / "artifacts"
+            source_dir = artifact_dir / "source"
+            source_dir.mkdir(parents=True)
+            subprocess.run(
+                [
+                    "ffmpeg", "-y", "-loglevel", "error",
+                    "-f", "lavfi", "-i", "color=c=0x2563eb:s=640x360:d=1",
+                    "-f", "lavfi", "-i", "sine=frequency=440:duration=1",
+                    "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                    "-c:a", "aac", str(artifact_dir / "video.mp4"),
+                ],
+                check=True,
+            )
+            (candidate_dir / "summary.md").write_text("Placeholder fixture.", encoding="utf-8")
+            (artifact_dir / "script.md").write_text("# Script", encoding="utf-8")
+            (artifact_dir / "storyboard.md").write_text("# Storyboard", encoding="utf-8")
+            (artifact_dir / "subtitles.srt").write_text(
+                "1\n00:00:00,000 --> 00:00:00,900\nPlaceholder\n",
+                encoding="utf-8",
+            )
+            (source_dir / "main.tsx").write_text("export const Test = true;", encoding="utf-8")
+
+            qa = postprocess_candidate(candidate_dir, "product_promo", [])
+
+            self.assertLess(qa["score"], 100)
+            self.assertFalse(qa["checks"]["minimum_duration"]["passed"])
+            self.assertFalse(qa["checks"]["visual_variation"]["passed"])
+            self.assertEqual(qa["output_metadata"]["unique_frames"], 1)
 
 
 class TestJudgeParsing(unittest.TestCase):
