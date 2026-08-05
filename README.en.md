@@ -23,6 +23,7 @@
   <img alt="Version v0.7" src="https://img.shields.io/badge/version-v0.7-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
+  <a href="https://github.com/openai/codex"><img alt="Built with OpenAI Codex" src="https://img.shields.io/badge/built%20with-OpenAI%20Codex-111827"></a>
 </p>
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
@@ -413,6 +414,10 @@ catalog/    curated skill and artifact-pipeline catalogs
 tests/      smoke and integration tests
 SKILL.md    Agent skill instructions
 ```
+
+## Collaboration Note
+
+ForkProbe was initiated, designed, and is maintained by [Jayden-X-L](https://github.com/Jayden-X-L). [OpenAI Codex](https://github.com/openai/codex) assisted as an AI development collaborator with parts of the solution design, implementation, testing, and documentation. Product direction and final decisions remain with the project author.
 
 ## License
 
