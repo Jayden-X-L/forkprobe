@@ -20,14 +20,14 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.6" src="https://img.shields.io/badge/version-v0.6-2563eb">
+  <img alt="Version v0.7" src="https://img.shields.io/badge/version-v0.7-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/report-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
-**v0.6 新增视频剪辑成品对比：** ForkProbe 会先把任务识别为产品宣传片、动效视频或口播粗剪，推荐同场景候选并等待确认，再并行生成或剪辑 MP4。Report 可以直接播放每一路成片，比较时长、分辨率、音轨、字幕、脚本/分镜或剪辑清单、FFmpeg 媒体 QA、耗时、token 和 AI 评审。v0.5 的网页成品对比以及此前的写作、PPTX、科研绘图和调研报告能力继续支持。
+**v0.7 新增多来源候选发现：** ForkProbe 会自动扫描 `~/.codex/skills`、`~/.agents/skills`、`~/.claude/skills` 和项目内 Skill 目录，并把匹配的已安装 Skill 与 curated 目录、EverMind Skill Hub、GitHub 搜索及用户自带路径合并、去重和排序。外部查询只发送脱敏后的场景词，不发送原始任务内容。v0.6 的视频成品对比以及此前的网页、写作、PPTX、科研绘图和调研报告能力继续支持。
 
 当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。ForkProbe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
 
@@ -36,7 +36,7 @@ ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交
 - 你不确定当前任务该用哪个 skill，想先看真实输出再决定。
 - 你想比较 baseline 和多个 skill，而不是只相信 skill 的描述。
 - 你的交付物是 PPTX、科研 figure package、调研报告、可运行网页或视频成片，需要看文件、预览和 QA。
-- 你想引入 GitHub 或本地自带的 BYO skill，但希望先做一次小规模试跑。
+- 你想从本机已安装 Skill、EverMind Skill Hub、GitHub 或 BYO 路径中找到候选，再做一次小规模试跑。
 - 不适合简单确定性任务：如果答案或工具路径已经很明确，直接执行会更快。
 
 ## 它怎么工作
@@ -53,7 +53,7 @@ flowchart LR
 
 ForkProbe 把 skill 选择变成一个可观察的流程：
 
-1. 根据当前任务推荐少量候选 skill 或 artifact pipeline。
+1. 从 curated 目录、本机已安装 Skill、EverMind Skill Hub、GitHub 和 BYO 路径中推荐少量候选 skill 或 artifact pipeline。
 2. 用同一份输入跑 baseline 和多个候选。
 3. 展示每一路完整输出、耗时、token 估算、文件预览和 AI 评审建议。
 4. 由你选择 winner。
@@ -315,9 +315,17 @@ python3 scripts/compare.py \
 open /tmp/forkprobe-report.html
 ```
 
-## BYO、GitHub discovery 与 local-only
+## 多来源候选发现、BYO 与 local-only
 
-在正式对比前，`scripts/recommend.py` 可以先推荐候选。默认情况下，它会合并本地 curated 候选和 GitHub / 网络发现结果。网络搜索只使用经过清洗的任务信号，不会直接拿你的原始文档做搜索词。
+在正式对比前，`scripts/recommend.py` 会先生成候选清单并等待确认。默认候选来源包括：
+
+- ForkProbe curated 目录和 baseline。
+- 自动扫描的本机已安装 Skill：`~/.codex/skills`、`~/.agents/skills`、`~/.claude/skills`，以及项目内 `.codex/skills`、`.agents/skills`、`.claude/skills`、`skills`。
+- EverMind Skill Hub 官方开放 API。
+- GitHub 已知候选与实时搜索。
+- 用户显式提供的本地路径、GitHub URL、`repo#subdir` 或 raw `SKILL.md` URL。
+
+ForkProbe 会按内容指纹和来源去重，再按场景匹配度排序。外部发现只使用经过清洗的任务信号，不会直接拿你的原始文档做搜索词，也不会自动安装或执行未经确认的候选。
 
 ```bash
 python3 scripts/recommend.py --input /tmp/forkprobe-input.txt
@@ -328,6 +336,16 @@ python3 scripts/recommend.py --input /tmp/forkprobe-input.txt
 ```bash
 python3 scripts/recommend.py --input /tmp/forkprobe-input.txt --local-only
 ```
+
+也可以单独关闭某个来源或强制刷新远程缓存：
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-input.txt --no-evermind
+python3 scripts/recommend.py --input /tmp/forkprobe-input.txt --no-local-skills
+python3 scripts/recommend.py --input /tmp/forkprobe-input.txt --refresh-sources
+```
+
+使用 `FORKPROBE_LOCAL_SKILL_ROOTS`（以系统路径分隔符连接多个目录）可以覆盖默认扫描目录；本地索引默认写入 `~/.forkprobe/index/local-skills.json`，EverMind 查询缓存默认写入 `~/.forkprobe/cache/evermind/`。
 
 BYO skill 支持本地路径、GitHub URL、`repo#subdir` 和 raw `SKILL.md` URL，例如：
 
@@ -368,7 +386,8 @@ python3 scripts/research_artifact.py \
 ## 隐私
 
 - 任务内容保留在本地 report 和本地日志里。
-- GitHub / 网络发现只使用清洗后的任务信号，不直接使用原始文档。
+- GitHub 和 EverMind Skill Hub 只接收清洗后的场景词，不接收原始任务、文档或本地路径。
+- 本地 Skill 扫描只读取 `SKILL.md` 元数据和说明，用于索引与匹配；不会自动安装或执行 Skill。
 - 本地 verdict 日志只记录 winner、可选理由、report 路径和 continuation handoff。
 - 如果不想联网，可以使用 `--local-only`，或明确说“只要本地候选”。
 - 如果不想启动本地 verdict-capture server，可以使用 `--no-server`。

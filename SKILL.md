@@ -9,9 +9,11 @@ description: Recommend a small set of candidate skills or artifact-generation pi
 
 ## What this skill does
 
-Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines local curated candidates with GitHub/network skill discovery by default, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code or Codex), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, research reports, webpages, and videos, it compares artifact-generation pipelines and renders a report with file links, previews or playback.
+Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines ForkProbe's curated catalog, automatically indexed local Skills, EverMind Skill Hub, GitHub discovery, and explicit BYO sources, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code or Codex), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, research reports, webpages, and videos, it compares artifact-generation pipelines and renders a report with file links, previews or playback.
 
-**v0.6 scope:** All v0.5 workflows plus finished-video comparison in three isolated scenes: product promos, motion graphics, and talking-head rough cuts. Video flows recommend scene-fit candidates, wait for confirmation, run isolated pipelines, require `video.mp4`, normalize media metadata with ffprobe, create posters with ffmpeg, apply scene-specific QA, and render playable candidates with latency, token estimates, artifacts, and AI judge notes. Product promos compare Remotion Agent, HyperFrames product-launch-video, and video-shotcraft. Motion graphics compare Remotion, HyperFrames motion-graphics, and Remotion Bits. Talking-head rough cuts compare auto-editor, local-Whisper video-editing, video-use in cut-only mode, and experimental chengfeng-videocut. Never score candidates from different video scenes in one report.
+**v0.7 scope:** All v0.6 workflows plus multi-source candidate discovery. Scan installed Skills under Codex, Agents, Claude, and project-local Skill directories; query EverMind Skill Hub and GitHub with sanitized scene terms; merge with curated and BYO candidates; dedupe by fingerprint/source; show source, license, installed state, and public quality signals; and preserve the confirmation gate before any candidate runs. `--local-only` keeps curated and installed-local discovery while skipping EverMind and live GitHub discovery.
+
+**v0.6 scope retained:** Finished-video comparison remains divided into product promos, motion graphics, and talking-head rough cuts. Never score candidates from different video scenes in one report.
 
 ## When to invoke
 
@@ -85,13 +87,14 @@ Hard interaction rule:
 
 Default discovery flow:
 1. Start with local curated candidates from forkprobe's catalog.
-2. In parallel, run GitHub/network skill discovery using sanitized task signals such as `academic writing`, `anti-AI writing`, `PPTX artifact`, or `scientific figure`. Do not search with the user's raw document text.
-3. Verify discovered GitHub candidates have a `SKILL.md` when possible.
-4. Dedupe local/BYO/GitHub candidates by source repo or command arg.
-5. Score by task fit, `SKILL.md` availability, popularity, and current environment fit.
-6. Present the merged shortlist and ask the user to confirm, remove, or add candidates.
+2. Automatically scan installed Skills under `~/.codex/skills`, `~/.agents/skills`, `~/.claude/skills`, and project-level Skill roots. Index `SKILL.md` metadata locally and never auto-install or auto-run a result.
+3. In parallel, query EverMind Skill Hub and GitHub discovery using sanitized scene terms such as `academic writing`, `PPTX`, `scientific figure`, or `frontend website`. Do not send the user's raw task, document, or local path.
+4. Verify remote candidates have an exact runnable repository/subdirectory source when possible. Reject an ambiguous repository-root reference for a nested Skill.
+5. Merge explicit BYO candidates and dedupe by content fingerprint, source repository, or command argument.
+6. Score by task fit, installed state, `SKILL.md` availability, public quality signals, popularity, and current environment fit.
+7. Present the merged shortlist with source labels and ask the user to confirm, remove, or add candidates.
 
-Only skip GitHub/network discovery when the user explicitly asks for local-only/offline candidates, e.g. "只要本地候选", "不要联网", "local only", or "offline".
+Only skip EverMind/GitHub discovery when the user explicitly asks for local-only/offline candidates, e.g. "只要本地候选", "不要联网", "local only", or "offline". Local-only mode still scans installed local Skills.
 
 Use the local recommendation helper when task text is available:
 
@@ -111,10 +114,18 @@ If the user explicitly asks for local-only candidates:
 python scripts/recommend.py --text "<task description>" --domain academic-writing --local-only
 ```
 
+Optional source controls:
+
+```bash
+python scripts/recommend.py --input <path_to_user_input> --no-evermind
+python scripts/recommend.py --input <path_to_user_input> --no-local-skills
+python scripts/recommend.py --input <path_to_user_input> --refresh-sources
+```
+
 Then present the recommendation in plain language:
 
 ```text
-我可以并排比较。我会先合并本地 curated 候选和 GitHub/网络发现候选，再让你确认。
+我可以并排比较。我会先合并 curated、本机已安装、EverMind Skill Hub、GitHub 和 BYO 候选，再让你确认。
 
 根据你的任务，我建议先跑这组：
 
@@ -130,7 +141,7 @@ Then present the recommendation in plain language:
 Recommendation rules:
 - If the user already named exact skills, respect that list and only add `baseline` unless they ask for suggestions.
 - If the user asks generally to compare skills, recommend first and do not start the run until they confirm.
-- If the user does not say local-only/offline, include GitHub/network discovery alongside local candidates.
+- If the user does not say local-only/offline, include EverMind and GitHub discovery alongside curated and installed-local candidates.
 - For Chinese SCI writing, default toward `baseline`, `writing-anti-ai`, `humanizer-zh`, `remove-ai-flavor-writing-skill`, `research-paper-writing-skills`, and `paper-writer-skill`.
 - For explicit anti-AI / humanizer writing tasks, prioritize dedicated anti-AI candidates before generic polishing: `writing-anti-ai`, `humanizer-zh`, `humanizer`, `stop-slop`, `avoid-ai-writing`, `remove-ai-flavor-writing-skill`, and academic variants when relevant.
 - For English/Nature-style polishing or translation, also consider BYO `https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing`.
@@ -541,8 +552,9 @@ Schema:
 
 ## Privacy & Safety
 
-- User task content stays local. GitHub/network discovery uses sanitized task signals only, never raw document text.
-- If the user asks for local-only/offline mode, skip GitHub/network discovery.
+- User task content stays local. EverMind/GitHub discovery uses sanitized scene terms only, never raw task text, documents, or local paths.
+- Local discovery reads `SKILL.md` packages for indexing and matching only; it does not install or execute them automatically.
+- If the user asks for local-only/offline mode, skip EverMind/GitHub discovery while keeping curated and installed-local candidates.
 - Verdict logs contain hashes and metadata only — never user task content.
 - Handoff files contain the selected winner and user-provided reason, never the original task or candidate outputs.
 - For academic users: this is a comparison tool, not a writing assistant. Users are responsible for confirming AI use is permitted by their target journal.
@@ -553,7 +565,8 @@ Schema:
 SKILL.md (this file)
   └─> scripts/compare.py
         ├─> scripts/platform_adapter.py (Claude Code vs Codex)
-        ├─> scripts/recommend.py (local candidate recommendation)
+        ├─> scripts/recommend.py (multi-source candidate recommendation)
+        ├─> scripts/candidate_providers.py (installed-local and EverMind providers)
         ├─> scripts/discover_skills.py (PPTX skill/pipeline discovery)
         ├─> scripts/figure_artifact.py (scientific figure artifact pipeline runner)
         ├─> scripts/research_artifact.py (research report artifact pipeline runner)

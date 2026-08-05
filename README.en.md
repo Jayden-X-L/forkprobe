@@ -20,14 +20,14 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.6" src="https://img.shields.io/badge/version-v0.6-2563eb">
+  <img alt="Version v0.7" src="https://img.shields.io/badge/version-v0.7-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
 </p>
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.6 adds finished-video comparison:** ForkProbe classifies a task as a product promo, motion-graphics video, or talking-head rough cut, recommends candidates within that scene, waits for confirmation, and then generates or edits MP4 candidates in parallel. The report plays every finished video and compares duration, resolution, audio, captions, scripts/storyboards or edit decisions, FFmpeg media QA, latency, token estimates, and AI judge notes. The v0.5 finished-webpage workflow and all earlier writing, PPTX, scientific-figure, and research-report modes remain supported.
+**v0.7 adds multi-source candidate discovery:** ForkProbe automatically scans `~/.codex/skills`, `~/.agents/skills`, `~/.claude/skills`, and project-level Skill directories. It merges matching installed Skills with the curated catalog, EverMind Skill Hub, GitHub discovery, and user-provided sources, then deduplicates and ranks them. External discovery receives sanitized scene terms only, never the raw task. The v0.6 finished-video workflow and all earlier webpage, writing, PPTX, scientific-figure, and research-report modes remain supported.
 
 When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe makes the choice visible: compare the real outputs first, then continue with the path you picked.
 
@@ -36,7 +36,7 @@ When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe m
 - You are not sure which skill fits the current task and want to see real outputs first.
 - You want to compare the baseline against several skills instead of trusting skill descriptions.
 - Your deliverable is a file artifact such as a PPTX deck, scientific figure package, research report, runnable webpage, or finished video.
-- You want to try a GitHub or bring-your-own skill with a small preflight run.
+- You want to find candidates across installed Skills, EverMind Skill Hub, GitHub, or a bring-your-own source before a small preflight run.
 - It is not meant for simple deterministic tasks where the best tool path is already obvious.
 
 ## How It Works
@@ -53,7 +53,7 @@ flowchart LR
 
 ForkProbe turns skill choice into a visible workflow:
 
-1. Recommend a small set of candidate skills or artifact pipelines.
+1. Recommend a small set of candidate skills or artifact pipelines from the curated catalog, installed Skills, EverMind Skill Hub, GitHub, and BYO sources.
 2. Run the same input through the baseline and each candidate.
 3. Show full outputs, latency, token estimates, file previews, and AI judge notes.
 4. Let you pick the best path.
@@ -313,9 +313,17 @@ Open the local report:
 open /tmp/forkprobe-report.html
 ```
 
-## BYO, GitHub Discovery, And Local-Only
+## Multi-Source Discovery, BYO, And Local-Only
 
-Before running a comparison, `scripts/recommend.py` can recommend candidates. By default, it combines local curated candidates with GitHub/network discovery using sanitized task signals. It does not send the raw task text as a search query.
+Before running a comparison, `scripts/recommend.py` builds a candidate shortlist and waits for confirmation. Default sources are:
+
+- ForkProbe's curated catalog and baseline.
+- Installed Skills discovered automatically under `~/.codex/skills`, `~/.agents/skills`, `~/.claude/skills`, and project-level `.codex/skills`, `.agents/skills`, `.claude/skills`, or `skills` directories.
+- The official EverMind Skill Hub open API.
+- Known GitHub candidates and live GitHub discovery.
+- User-provided local paths, GitHub URLs, `repo#subdir` references, or raw `SKILL.md` URLs.
+
+ForkProbe deduplicates candidates by content fingerprint and source, then ranks them for the detected scene. External discovery uses sanitized task signals only; it never sends the raw task and never installs or executes an unconfirmed candidate.
 
 ```bash
 python3 scripts/recommend.py --input /tmp/forkprobe-input.txt
@@ -326,6 +334,16 @@ For local-only discovery:
 ```bash
 python3 scripts/recommend.py --input /tmp/forkprobe-input.txt --local-only
 ```
+
+Disable one source or refresh remote caches explicitly:
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-input.txt --no-evermind
+python3 scripts/recommend.py --input /tmp/forkprobe-input.txt --no-local-skills
+python3 scripts/recommend.py --input /tmp/forkprobe-input.txt --refresh-sources
+```
+
+Set `FORKPROBE_LOCAL_SKILL_ROOTS` to an OS-path-separator-delimited list to replace the default scan roots. The local index is stored at `~/.forkprobe/index/local-skills.json`; EverMind query caches are stored under `~/.forkprobe/cache/evermind/`.
 
 Bring-your-own skills can be local paths, GitHub URLs, `repo#subdir` references, or raw `SKILL.md` URLs, for example:
 
@@ -366,7 +384,8 @@ Expected outputs include `candidate-report.md`, `candidate-report.html`, `source
 ## Privacy
 
 - Task content stays local in the report and local logs.
-- GitHub/network discovery uses sanitized task signals, not the raw document.
+- GitHub and EverMind Skill Hub receive sanitized scene terms only, never raw tasks, documents, or local paths.
+- Local discovery reads `SKILL.md` metadata and instructions for indexing and matching; it does not install or execute a Skill automatically.
 - Local verdict logs store the selected winner, optional reason, report path, and continuation handoff.
 - Use `--local-only` or ask for local-only candidates to skip network discovery.
 - Use `--no-server` to render reports without the local verdict-capture server.

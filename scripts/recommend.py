@@ -2,10 +2,10 @@
 forkprobe skill recommendation helper.
 
 This is a lightweight preflight step. It turns a user's task description into a
-small candidate set for compare.py. By default it combines local curated
-candidates with GitHub/network discovery using sanitized task signals; use
---local-only when the user explicitly asks to stay local. It never decides the
-winner and never calls a model.
+small candidate set for compare.py. By default it combines curated candidates,
+automatically indexed local skills, GitHub discovery, and EverMind Skill Hub
+results using sanitized task signals. It never decides the winner and never
+calls a model.
 """
 from __future__ import annotations
 
@@ -36,6 +36,13 @@ except ImportError:  # pragma: no cover - direct import fallback for unusual lau
     discover_skill_pipelines = None
     discover_online_skills = None
 
+from candidate_providers import (
+    EverMindSkillHubProvider,
+    LocalSkillProvider,
+    ProviderCandidate,
+    build_provider_query,
+)
+
 
 @dataclass
 class RecommendedSkill:
@@ -55,6 +62,14 @@ class RecommendedSkill:
     source_kind: str = "local"
     score: int = 0
     stars: int = 0
+    provider: str = "curated"
+    version: str = ""
+    license: str = ""
+    benchmark_score: float | None = None
+    safety_status: str = ""
+    installed: bool = False
+    local_path: str = ""
+    fingerprint: str = ""
 
 
 @dataclass
@@ -471,6 +486,63 @@ def _skill_from_online_discovery(candidate, deliverable_type: str) -> Recommende
         source_kind=candidate.category or "github_discovered",
         score=int(candidate.score),
         stars=int(candidate.stars),
+        provider="github_discovery",
+    )
+
+
+def _skill_from_provider(candidate: ProviderCandidate, deliverable_type: str) -> RecommendedSkill:
+    produces_by_deliverable = {
+        "pptx": "pptx",
+        "visual_artifact": "figure_package",
+        "research_report": "research_report",
+        "web_artifact": "web_site",
+        "video_artifact": "video_package",
+    }
+    produces = produces_by_deliverable.get(deliverable_type, "text")
+    if candidate.provider == "local_installed":
+        reason_zh = f"本地已安装的 Skill，与当前 {deliverable_type} 场景匹配，可直接进入确认和试跑。"
+        reason_en = f"Locally installed Skill matched to the current {deliverable_type} scene and ready for confirmation and trial-run."
+        author = "Local"
+    else:
+        reason_zh = f"EverMind Skill Hub 发现候选：{candidate.description}"
+        reason_en = f"EverMind Skill Hub candidate: {candidate.description}"
+        author = "EverMind Skill Hub"
+    caution_parts_zh: list[str] = []
+    caution_parts_en: list[str] = []
+    if candidate.license:
+        caution_parts_zh.append(f"许可证: {candidate.license}")
+        caution_parts_en.append(f"License: {candidate.license}")
+    else:
+        caution_parts_zh.append("许可证待确认")
+        caution_parts_en.append("License needs verification")
+    if candidate.provider == "evermind":
+        caution_parts_zh.append("执行前仍需检查仓库、依赖和脚本")
+        caution_parts_en.append("Repository, dependencies, and scripts still need preflight checks")
+    return RecommendedSkill(
+        id=candidate.id,
+        name=candidate.name,
+        author=author,
+        kind=candidate.provider,
+        command_arg=candidate.command_arg,
+        reason_zh=reason_zh,
+        reason_en=reason_en,
+        source=candidate.source,
+        runnable=candidate.runnable,
+        produces=produces,
+        pipeline_steps=[candidate.command_arg] if produces != "text" else [],
+        caution_zh="；".join(caution_parts_zh),
+        caution_en="; ".join(caution_parts_en),
+        source_kind=candidate.provider,
+        score=int(candidate.score),
+        stars=int(candidate.stars),
+        provider=candidate.provider,
+        version=candidate.version,
+        license=candidate.license,
+        benchmark_score=candidate.benchmark_score,
+        safety_status=candidate.safety_status,
+        installed=candidate.installed,
+        local_path=candidate.local_path,
+        fingerprint=candidate.fingerprint,
     )
 
 
@@ -783,7 +855,24 @@ def _candidate_key(candidate: RecommendedSkill) -> str:
 
 
 def _is_external_candidate(candidate: RecommendedSkill) -> bool:
-    return candidate.source_kind.startswith("github") or candidate.source_kind == "known_github"
+    return (
+        candidate.source_kind.startswith("github")
+        or candidate.source_kind in {"known_github", "evermind"}
+    )
+
+
+def _source_label(candidate: RecommendedSkill, lang: str) -> str:
+    labels = {
+        "local_installed": ("Locally installed", "本地已安装"),
+        "evermind": ("EverMind Skill Hub", "EverMind Skill Hub"),
+        "known_github": ("Known GitHub", "已知 GitHub"),
+        "github_seed": ("GitHub seed", "GitHub seed"),
+        "github_discovered": ("GitHub discovery", "GitHub discovery"),
+        "local_curated": ("ForkProbe curated", "ForkProbe 精选"),
+        "local_baseline": ("Local baseline", "本地 baseline"),
+    }
+    english, chinese = labels.get(candidate.source_kind, (candidate.source_kind, candidate.source_kind))
+    return english if lang == "en" else chinese
 
 
 def _rank_and_limit(candidates: list[RecommendedSkill], max_candidates: int) -> list[RecommendedSkill]:
@@ -804,6 +893,30 @@ def _rank_and_limit(candidates: list[RecommendedSkill], max_candidates: int) -> 
     others.sort(key=lambda candidate: (candidate.score, candidate.stars), reverse=True)
 
     selected = (baseline[:1] + others)[:max_candidates]
+
+    # With a normal 4-5 candidate shortlist, preserve source diversity so an
+    # installed local match and a Skill Hub match are not silently crowded out
+    # by several near-identical curated entries.
+    if max_candidates >= 4:
+        protected_kinds: set[str] = set()
+        for source_kind in ("local_installed", "evermind"):
+            source_candidates = [candidate for candidate in others if candidate.source_kind == source_kind]
+            if not source_candidates or any(candidate.source_kind == source_kind for candidate in selected):
+                if source_candidates:
+                    protected_kinds.add(source_kind)
+                continue
+            replacement_index = next(
+                (
+                    index for index in range(len(selected) - 1, 0, -1)
+                    if selected[index].source_kind not in protected_kinds
+                    and selected[index].source_kind not in {"local_installed", "evermind"}
+                ),
+                None,
+            )
+            if replacement_index is not None:
+                selected[replacement_index] = source_candidates[0]
+                protected_kinds.add(source_kind)
+
     online = [candidate for candidate in others if _is_external_candidate(candidate)]
     has_online = any(_is_external_candidate(candidate) for candidate in selected)
     if online and not has_online and len(selected) >= max_candidates and max_candidates > 1:
@@ -931,6 +1044,9 @@ def recommend_candidates(
     max_candidates: int = 5,
     online_discovery: bool = True,
     local_only: Optional[bool] = None,
+    local_skill_discovery: bool = True,
+    evermind_discovery: bool = True,
+    refresh_sources: bool = False,
 ) -> Recommendation:
     """Return a small candidate set for the user's task description."""
     catalog = load_catalog(domain)
@@ -945,13 +1061,21 @@ def recommend_candidates(
     notes_en: list[str] = []
     discovery_queries: list[str] = []
     local_only = wants_local_only(task_text) if local_only is None else local_only
-    online_enabled = (
+    if local_only:
+        notes_zh.append("用户要求只用本地发现，已启用 ForkProbe 精选与本地 Skill 自动扫描，并跳过 GitHub 实时搜索和 EverMind 查询；精选目录中的外部条目仍会标明来源，执行前需单独确认。")
+        notes_en.append("User requested local-only discovery; ForkProbe curated and locally installed Skills remain enabled while live GitHub and EverMind queries are skipped. Curated external entries remain source-labeled and require separate confirmation before execution.")
+    network_enabled = (
         online_discovery
         and not local_only
         and os.environ.get("FORKPROBE_DISCOVERY_OFFLINE") != "1"
+    )
+    online_enabled = (
+        network_enabled
         and discover_online_skills is not None
     )
+    evermind_enabled = network_enabled and evermind_discovery
     pool_limit = max(max_candidates * 3, 12)
+    provider_query = build_provider_query(deliverable_type, signals)
 
     def add_catalog(skill_id: str, reason_override: Optional[str] = None) -> None:
         _append_unique(candidates, _catalog_skill(skill_id, catalog, reason_override), pool_limit)
@@ -999,8 +1123,6 @@ def recommend_candidates(
     def add_online_candidates() -> None:
         nonlocal discovery_queries
         if local_only:
-            notes_zh.append("用户要求只用本地候选，已跳过 GitHub/网络 discovery。")
-            notes_en.append("User requested local-only candidates, so GitHub/network discovery was skipped.")
             return
         if not online_enabled:
             notes_zh.append("当前环境未启用 GitHub/网络 discovery，已使用本地 curated 候选。")
@@ -1016,6 +1138,44 @@ def recommend_candidates(
             _append_unique(candidates, _skill_from_online_discovery(candidate, deliverable_type), pool_limit)
         notes_zh.extend(getattr(discovery, "notes_zh", []))
         notes_en.extend(getattr(discovery, "notes_en", []))
+
+    def add_provider_candidates() -> None:
+        if local_skill_discovery:
+            try:
+                local_result = LocalSkillProvider().discover(
+                    provider_query,
+                    limit=min(2, max(1, max_candidates - 1)),
+                    refresh=refresh_sources,
+                )
+                for provider_candidate in local_result.candidates:
+                    _append_unique(
+                        candidates,
+                        _skill_from_provider(provider_candidate, deliverable_type),
+                        pool_limit,
+                    )
+                notes_zh.extend(local_result.notes_zh)
+                notes_en.extend(local_result.notes_en)
+            except (OSError, ValueError) as exc:
+                notes_zh.append(f"本地 Skill 自动扫描失败，已继续使用其他来源：{exc}")
+                notes_en.append(f"Local Skill scanning failed; continued with other providers: {exc}")
+        if evermind_enabled:
+            try:
+                evermind_result = EverMindSkillHubProvider().discover(
+                    provider_query,
+                    limit=min(2, max(1, max_candidates - 1)),
+                    refresh=refresh_sources,
+                )
+                for provider_candidate in evermind_result.candidates:
+                    _append_unique(
+                        candidates,
+                        _skill_from_provider(provider_candidate, deliverable_type),
+                        pool_limit,
+                    )
+                notes_zh.extend(evermind_result.notes_zh)
+                notes_en.extend(evermind_result.notes_en)
+            except (OSError, ValueError) as exc:
+                notes_zh.append(f"EverMind Skill Hub 暂时不可用，已继续使用其他来源：{exc}")
+                notes_en.append(f"EverMind Skill Hub was unavailable; continued with other providers: {exc}")
 
     if deliverable_type == "video_artifact":
         video_family = _detect_video_family(task_text)
@@ -1039,6 +1199,7 @@ def recommend_candidates(
         }
         for pipeline_id in video_pipeline_ids[video_family]:
             add_video_pipeline(pipeline_id)
+        add_provider_candidates()
         candidates = _rank_and_limit(candidates, max_candidates)
         family_zh = {
             "product_promo": "产品宣传片",
@@ -1091,6 +1252,7 @@ def recommend_candidates(
         }
         for pipeline_id in web_pipeline_ids[web_family]:
             add_web_pipeline(pipeline_id)
+        add_provider_candidates()
         add_online_candidates()
         candidates = _rank_and_limit(candidates, max_candidates)
         notes_zh.append("交互式使用时，必须先展示网页候选和适用差异，等待用户确认后再执行 suggested command。")
@@ -1129,6 +1291,7 @@ def recommend_candidates(
         else:
             for pipeline_id in ["baseline-research-report", "source-first-research", "analyst-style-report", "evidence-table-report"]:
                 add_research_pipeline(pipeline_id)
+        add_provider_candidates()
         candidates = _rank_and_limit(candidates, max_candidates)
         notes_zh.append("交互式使用时，必须先把这组调研报告候选展示给用户并等待确认；用户确认后再运行 suggested command。")
         notes_zh.append("这是调研报告成品对比模式：确认后应让每条 pipeline 各生成一个 research package，再用 artifact report 展示报告预览、sources.json、evidence table、claim checks、limitations 和 AI 评审。")
@@ -1166,6 +1329,7 @@ def recommend_candidates(
             add_pipeline("nature-paper2ppt-presentations")
             add_pipeline("pptx-direct")
             add_pipeline("storyboard-presentations")
+        add_provider_candidates()
         add_online_candidates()
         candidates = _rank_and_limit(candidates, max_candidates)
         _note_if_no_new_external(candidates, notes_zh, notes_en)
@@ -1200,6 +1364,7 @@ def recommend_candidates(
         else:
             for pipeline_id in ["baseline-python-figure", "nature-figure-python", "plot-code-python", "schematic-svg"]:
                 add_figure_pipeline(pipeline_id)
+        add_provider_candidates()
         add_online_candidates()
         candidates = _rank_and_limit(candidates, max_candidates)
         _note_if_no_new_external(candidates, notes_zh, notes_en)
@@ -1272,6 +1437,7 @@ def recommend_candidates(
         if "zh" not in signal_set:
             add_catalog("humanizer")
 
+    add_provider_candidates()
     add_online_candidates()
     candidates = _rank_and_limit(candidates, max_candidates)
     _note_if_no_new_external(candidates, notes_zh, notes_en)
@@ -1318,10 +1484,13 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
             author = f" · {candidate.author}" if candidate.author else ""
             lines.append(f"{idx}. {candidate.name}{author}")
             lines.append(f"   {candidate.reason_en}")
-            if _is_external_candidate(candidate):
-                source_label = "known GitHub" if candidate.source_kind == "known_github" else ("GitHub seed" if candidate.source_kind == "github_seed" else "GitHub discovery")
+            if _is_external_candidate(candidate) or candidate.source_kind == "local_installed":
+                source_label = _source_label(candidate, "en")
                 stars = f" · {candidate.stars} stars" if candidate.stars else ""
-                lines.append(f"   Source: {source_label} · score {candidate.score}/100{stars}")
+                benchmark = f" · public prior {candidate.benchmark_score:.1f}/5" if candidate.benchmark_score is not None else ""
+                installed = " · installed" if candidate.installed else ""
+                license_name = f" · {candidate.license}" if candidate.license else ""
+                lines.append(f"   Source: {source_label} · match {candidate.score}/100{benchmark}{stars}{installed}{license_name}")
             if candidate.pipeline_steps:
                 lines.append(f"   Pipeline: {' → '.join(candidate.pipeline_steps)}")
             if candidate.caution_en:
@@ -1366,10 +1535,13 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
         author = f" · {candidate.author}" if candidate.author else ""
         lines.append(f"{idx}. {candidate.name}{author}")
         lines.append(f"   {candidate.reason_zh}")
-        if _is_external_candidate(candidate):
-            source_label = "已知 GitHub" if candidate.source_kind == "known_github" else ("GitHub seed" if candidate.source_kind == "github_seed" else "GitHub discovery")
+        if _is_external_candidate(candidate) or candidate.source_kind == "local_installed":
+            source_label = _source_label(candidate, "zh")
             stars = f" · {candidate.stars} stars" if candidate.stars else ""
-            lines.append(f"   来源: {source_label} · score {candidate.score}/100{stars}")
+            benchmark = f" · 公共先验 {candidate.benchmark_score:.1f}/5" if candidate.benchmark_score is not None else ""
+            installed = " · 已安装" if candidate.installed else ""
+            license_name = f" · {candidate.license}" if candidate.license else ""
+            lines.append(f"   来源: {source_label} · 匹配 {candidate.score}/100{benchmark}{stars}{installed}{license_name}")
         if candidate.pipeline_steps:
             lines.append(f"   Pipeline: {' → '.join(candidate.pipeline_steps)}")
         if candidate.caution_zh:
@@ -1407,7 +1579,10 @@ def main() -> int:
     parser.add_argument("--domain", default="academic-writing", help="Catalog domain")
     parser.add_argument("--max-candidates", type=int, default=5, help="Maximum candidates including baseline")
     parser.add_argument("--lang", choices=["zh", "en"], default="zh", help="Output language")
-    parser.add_argument("--local-only", action="store_true", help="Skip GitHub/network discovery and use local candidates only")
+    parser.add_argument("--local-only", action="store_true", help="Use curated and locally installed Skills; skip GitHub, EverMind, and other network discovery")
+    parser.add_argument("--no-local-skills", action="store_true", help="Do not scan installed local Skill directories")
+    parser.add_argument("--no-evermind", action="store_true", help="Skip EverMind Skill Hub while keeping other enabled sources")
+    parser.add_argument("--refresh-sources", action="store_true", help="Refresh local and external provider indexes instead of preferring cached data")
     parser.add_argument("--json", action="store_true", help="Print JSON instead of human-readable text")
     args = parser.parse_args()
 
@@ -1426,6 +1601,9 @@ def main() -> int:
         domain=args.domain,
         max_candidates=args.max_candidates,
         local_only=args.local_only,
+        local_skill_discovery=not args.no_local_skills,
+        evermind_discovery=not args.no_evermind,
+        refresh_sources=args.refresh_sources,
     )
     if args.json:
         print(json.dumps(asdict(recommendation), ensure_ascii=False, indent=2))

@@ -14,6 +14,7 @@ import sys
 import tempfile
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from unittest.mock import patch
@@ -119,6 +120,154 @@ class TestSkillLoader(unittest.TestCase):
         fm, body = _parse_yaml_frontmatter("Just markdown.")
         self.assertEqual(fm, {})
         self.assertEqual(body, "Just markdown.")
+
+
+class TestCandidateProviders(unittest.TestCase):
+    def test_provider_query_contains_scene_terms_not_raw_task(self):
+        from candidate_providers import build_provider_query
+
+        raw_secret = "Confidential Project Atlas customer list"
+        query = build_provider_query("web_artifact", ["web_artifact"])
+        self.assertIn("frontend", query.search_text)
+        self.assertNotIn(raw_secret.lower(), query.search_text.lower())
+
+    def test_local_provider_scans_dedupes_and_excludes_system_skills(self):
+        from candidate_providers import LocalSkillProvider, build_provider_query
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skills"
+            skill = root / "scientific-figure"
+            duplicate = root / "duplicate"
+            excluded = root / ".system" / "hidden"
+            for directory in (skill, duplicate, excluded):
+                directory.mkdir(parents=True)
+            content = (
+                "---\n"
+                "name: local-scientific-figure\n"
+                "description: Create publication-ready scientific figures, SVG diagrams, and captions.\n"
+                "version: 1.2\n"
+                "license: MIT\n"
+                "---\n"
+                "# Figure workflow\n"
+            )
+            (skill / "SKILL.md").write_text(content, encoding="utf-8")
+            (duplicate / "SKILL.md").write_text(content, encoding="utf-8")
+            (excluded / "SKILL.md").write_text(
+                content.replace("local-scientific-figure", "hidden-system-skill"),
+                encoding="utf-8",
+            )
+            index_path = Path(tmp) / "index" / "local-skills.json"
+            provider = LocalSkillProvider(roots=[root], index_path=index_path)
+            result = provider.discover(build_provider_query("visual_artifact", ["figure"]), limit=5)
+
+            self.assertEqual([candidate.name for candidate in result.candidates], ["local-scientific-figure"])
+            candidate = result.candidates[0]
+            self.assertTrue(candidate.installed)
+            self.assertEqual(candidate.license, "MIT")
+            self.assertEqual(candidate.version, "1.2")
+            self.assertTrue(Path(candidate.command_arg).is_dir())
+            index = json.loads(index_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(index["skills"]), 1)
+
+    def test_evermind_provider_uses_sanitized_query_and_normalizes_github_source(self):
+        from candidate_providers import EverMindSkillHubProvider, build_provider_query
+
+        payload = {
+            "status": 0,
+            "result": {
+                "items": [{
+                    "id": "hub-1",
+                    "name": "scientific-visualization",
+                    "description": "Create publication-ready scientific figures and visualizations.",
+                    "category": "DATA",
+                    "quality_score": 0.82,
+                    "tags": ["scientific", "figure", "visualization"],
+                    "source_url": "https://github.com/example/science-skills/tree/main/skills/scientific-visualization",
+                    "github_star": 321,
+                    "license": "MIT",
+                }]
+            },
+        }
+        captured_urls: list[str] = []
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps(payload).encode("utf-8")
+
+        def fake_urlopen(request, timeout):
+            captured_urls.append(request.full_url)
+            return FakeResponse()
+
+        with tempfile.TemporaryDirectory() as tmp, patch("candidate_providers.urllib.request.urlopen", side_effect=fake_urlopen):
+            provider = EverMindSkillHubProvider(cache_dir=Path(tmp), timeout=1)
+            query = build_provider_query("visual_artifact", ["figure"])
+            result = provider.discover(query, limit=2, refresh=True)
+
+        self.assertEqual(len(result.candidates), 1)
+        candidate = result.candidates[0]
+        self.assertEqual(
+            candidate.command_arg,
+            "https://github.com/example/science-skills#skills/scientific-visualization",
+        )
+        self.assertEqual(candidate.benchmark_score, 4.1)
+        self.assertEqual(candidate.license, "MIT")
+        self.assertEqual(len(captured_urls), 1)
+        self.assertIn("scientific", urllib.parse.unquote(captured_urls[0]))
+        self.assertNotIn("Confidential", urllib.parse.unquote(captured_urls[0]))
+
+    def test_evermind_provider_falls_back_to_stale_cache(self):
+        from candidate_providers import EverMindSkillHubProvider, build_provider_query
+
+        payload = {
+            "result": {"items": [{
+                "id": "hub-cache",
+                "name": "frontend-design",
+                "description": "Build frontend website interfaces and web design systems.",
+                "category": "FRONTEND UI",
+                "quality_score": 0.8,
+                "tags": ["frontend", "website"],
+                "source_url": "https://github.com/example/frontend/tree/main/skills/frontend-design",
+                "license": "MIT",
+            }]}
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            provider = EverMindSkillHubProvider(cache_dir=Path(tmp), timeout=1)
+            query = build_provider_query("web_artifact", ["web_artifact"])
+            with patch.object(provider, "_fetch", return_value=payload):
+                first = provider.discover(query, limit=2, refresh=True)
+            with patch.object(provider, "_fetch", side_effect=urllib.error.URLError("offline")):
+                second = provider.discover(query, limit=2, refresh=True)
+
+        self.assertEqual(len(first.candidates), 1)
+        self.assertEqual(len(second.candidates), 1)
+        self.assertTrue(second.used_cache)
+
+    def test_evermind_provider_rejects_ambiguous_repo_root_for_nested_skill(self):
+        from candidate_providers import EverMindSkillHubProvider, build_provider_query
+
+        provider = EverMindSkillHubProvider()
+        candidate = provider._candidate(
+            {
+                "id": "nested-figure",
+                "skill_id": "owner/repository/scientific-figure",
+                "name": "Scientific Figure",
+                "description": "Create scientific figures and visualizations.",
+                "quality_score": 0.9,
+                "source_url": "https://github.com/owner/repository",
+            },
+            build_provider_query("visual_artifact", ["figure"]),
+        )
+
+        self.assertIsNone(candidate)
+
+
+class TestSkillLoaderFiles(unittest.TestCase):
 
     def test_load_local_skill(self):
         """Create a tiny SKILL.md on disk and load it."""
@@ -229,6 +378,16 @@ class TestCatalog(unittest.TestCase):
 
 
 class TestRecommendations(unittest.TestCase):
+    def setUp(self):
+        self.provider_env = patch.dict(
+            os.environ,
+            {"FORKPROBE_LOCAL_SKILLS": "0", "FORKPROBE_EVERMIND_OFFLINE": "1"},
+        )
+        self.provider_env.start()
+
+    def tearDown(self):
+        self.provider_env.stop()
+
     def test_recommend_chinese_academic_writing(self):
         from recommend import recommend_candidates
         rec = recommend_candidates("我想比较几个科研写作 skill，帮我润色中文 SCI 论文段落。", online_discovery=False)
@@ -523,6 +682,41 @@ class TestRecommendations(unittest.TestCase):
 
         discovery.assert_not_called()
         self.assertTrue(any("只用本地" in note for note in rec.notes_zh))
+
+    def test_recommend_automatically_adds_matching_local_skill(self):
+        from recommend import recommend_candidates
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "skills"
+            skill = root / "local-web-design"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text(
+                "---\n"
+                "name: local-web-design\n"
+                "description: Build responsive frontend websites, landing pages, and web interfaces.\n"
+                "license: MIT\n"
+                "---\n"
+                "# Local web design\n",
+                encoding="utf-8",
+            )
+            with patch.dict(
+                os.environ,
+                {
+                    "FORKPROBE_LOCAL_SKILLS": "1",
+                    "FORKPROBE_LOCAL_SKILL_ROOTS": str(root),
+                    "FORKPROBE_LOCAL_SKILL_INDEX": str(Path(tmp) / "local-index.json"),
+                },
+            ):
+                rec = recommend_candidates(
+                    "请制作一个完整可运行的响应式产品官网网页成品。",
+                    online_discovery=False,
+                )
+
+        local = next(candidate for candidate in rec.candidates if candidate.source_kind == "local_installed")
+        self.assertEqual(local.name, "local-web-design")
+        self.assertTrue(local.installed)
+        self.assertIn("--skill-source", rec.suggested_command)
+        self.assertIn(local.command_arg, rec.suggested_command)
 
     def test_recommend_video_scenes_route_to_distinct_artifact_pools(self):
         from recommend import recommend_candidates
