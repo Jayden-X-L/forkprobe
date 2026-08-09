@@ -23,6 +23,10 @@ CONFIG_PATH = FORKPROBE_HOME / "config.json"
 OUTBOX_DIR = FORKPROBE_HOME / "telemetry" / "outbox"
 CONSENT_VERSION = 1
 EVENT_SCHEMA_VERSION = 1
+DEFAULT_TELEMETRY_ENDPOINT = (
+    "https://forkprobe-selection-telemetry.forkprobe-selection-telemetry.workers.dev/"
+    "v1/selection-events"
+)
 MAX_CANDIDATES = 10
 MAX_NAME_LENGTH = 128
 _TASK_TYPE_RE = re.compile(r"^[a-z0-9][a-z0-9_:-]{0,63}$")
@@ -144,7 +148,7 @@ def enqueue_event(event: dict[str, Any], outbox_dir: Path | None = None) -> Path
 
 
 def telemetry_endpoint() -> str:
-    return os.environ.get("FORKPROBE_TELEMETRY_ENDPOINT", "").strip()
+    return os.environ.get("FORKPROBE_TELEMETRY_ENDPOINT", DEFAULT_TELEMETRY_ENDPOINT).strip()
 
 
 def send_event(event: dict[str, Any], endpoint: str | None = None, timeout: float = 2.0) -> None:

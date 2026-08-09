@@ -402,7 +402,8 @@ Selected: Hallmark
 - Raw tasks, candidate outputs, files, reasons, local paths, and user identity are never uploaded.
 - Events first enter `~/.forkprobe/telemetry/outbox/`. Network failure never blocks local winner persistence or Agent continuation, and later runs retry automatically.
 - Set `FORKPROBE_TELEMETRY=0` to force sharing off, or clear the checkbox in the Report.
-- Configure the receiver with `FORKPROBE_TELEMETRY_ENDPOINT`. The Cloudflare Worker + D1 implementation lives in [`services/telemetry-worker`](./services/telemetry-worker/README.md).
+- Events use the official ForkProbe Cloudflare Worker by default: `https://forkprobe-selection-telemetry.forkprobe-selection-telemetry.workers.dev/v1/selection-events`. Set `FORKPROBE_TELEMETRY_ENDPOINT` to use a self-hosted receiver. The Worker + D1 implementation lives in [`services/telemetry-worker`](./services/telemetry-worker/README.md).
+- Networks that cannot reach `workers.dev` keep events in the local outbox; they retry automatically after a reachable self-hosted endpoint is configured.
 - Public Skill and pairwise win-rate stats remain hidden until a task type reaches at least 20 valid selections.
 
 ## Privacy

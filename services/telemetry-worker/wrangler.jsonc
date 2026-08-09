@@ -6,11 +6,21 @@
   "vars": {
     "MIN_PUBLIC_SAMPLES": "20"
   },
+  "ratelimits": [
+    {
+      "name": "SELECTION_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": {
+        "limit": 10,
+        "period": 60
+      }
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "forkprobe-selection-telemetry",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "933c63db-8b87-4442-9805-c77f7b862363",
       "migrations_dir": "migrations"
     }
   ]

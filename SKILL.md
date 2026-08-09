@@ -577,7 +577,7 @@ Schema:
 - Anonymous selection sharing uploads only the privacy-safe task category, all compared Skill names, and the final choice. A random event ID and schema version are technical deduplication fields.
 - Never upload raw task text, candidate output, generated files, reasons, local paths, or user identity.
 - Queue opted-in events under `~/.forkprobe/telemetry/outbox/`; network failure must not block local continuation.
-- `FORKPROBE_TELEMETRY=0` is a process-level force-off switch. `FORKPROBE_TELEMETRY_ENDPOINT` configures the Worker endpoint.
+- `FORKPROBE_TELEMETRY=0` is a process-level force-off switch. ForkProbe uses its official Cloudflare Worker by default; `FORKPROBE_TELEMETRY_ENDPOINT` overrides it for self-hosting.
 - Community selection statistics are aggregate signals, distinct from EverMind Skill Hub quality and SkillsBench/public benchmark priors. Do not expose community rates below the configured minimum sample threshold.
 - For academic users: this is a comparison tool, not a writing assistant. Users are responsible for confirming AI use is permitted by their target journal.
 

@@ -94,6 +94,29 @@ test("POST stores an idempotent event and candidate rows", async () => {
   assert.deepEqual(await duplicate.json(), { ok: true, accepted: false, duplicate: true });
 });
 
+test("POST applies the edge rate limiter before writing to D1", async () => {
+  const db = new FakeDB();
+  const rateLimiter = {
+    keys: [],
+    async limit({ key }) {
+      this.keys.push(key);
+      return { success: false };
+    },
+  };
+  const response = await handleRequest(new Request("https://worker.test/v1/selection-events", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "CF-Connecting-IP": "192.0.2.10",
+    },
+    body: JSON.stringify(VALID_EVENT),
+  }), { DB: db, MIN_PUBLIC_SAMPLES: "20", SELECTION_RATE_LIMITER: rateLimiter });
+  assert.equal(response.status, 429);
+  assert.deepEqual(await response.json(), { error: "rate limit exceeded" });
+  assert.deepEqual(rateLimiter.keys, ["192.0.2.10"]);
+  assert.equal(db.batches.length, 0);
+});
+
 test("stats remain hidden below the public sample threshold", async () => {
   const db = new FakeDB();
   db.sampleSize = 19;

@@ -13,11 +13,13 @@ forkprobe is designed as a local-first skill comparison workflow. These notes de
 
 - The Report sends verdicts only to the tokenized loopback server. It never sends telemetry directly from browser JavaScript.
 - Anonymous sharing is controlled inline beside the Continue action. First use defaults to checked; the user's explicit Continue preference is stored in `~/.forkprobe/config.json`.
+- Enabled events use ForkProbe's official Cloudflare Worker by default. `FORKPROBE_TELEMETRY_ENDPOINT` can replace it with a self-hosted receiver, and `FORKPROBE_TELEMETRY=0` disables all sending.
 - The outbound event contains only a privacy-safe task type, compared Skill names, and final choice, plus a random event ID and schema version for idempotency.
-- Raw task text, candidate output, generated files, reasons, local paths, and identity fields are never included. The Worker rejects unexpected fields.
+- Raw task text, candidate output, generated files, reasons, local paths, and identity fields are never included in the application payload. The Worker rejects unexpected fields.
 - Opted-in events are queued in `~/.forkprobe/telemetry/outbox/` before transmission. Network or receiver failures do not block local verdict persistence or Agent continuation.
 - Set `FORKPROBE_TELEMETRY=0` to force sharing off. Configure a self-hosted or project receiver with `FORKPROBE_TELEMETRY_ENDPOINT`.
-- The reference Cloudflare Worker stores raw anonymous events in D1 and exposes aggregate statistics only after the minimum sample threshold. It does not store request IP addresses in D1.
+- Cloudflare receives standard request metadata. The Worker uses the source IP only as a transient edge rate-limit key (10 writes per minute) and never stores it in D1.
+- The reference Cloudflare Worker stores raw anonymous selection events in D1 and exposes aggregate statistics only after the minimum sample threshold.
 
 ## Remote Discovery And Skill Fetching
 

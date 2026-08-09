@@ -850,6 +850,22 @@ class TestTokenEstimates(unittest.TestCase):
 
 
 class TestSelectionTelemetry(unittest.TestCase):
+    def test_official_endpoint_is_the_default_and_can_be_overridden(self):
+        from telemetry import telemetry_endpoint
+
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(
+                telemetry_endpoint(),
+                "https://forkprobe-selection-telemetry.forkprobe-selection-telemetry.workers.dev/"
+                "v1/selection-events",
+            )
+        with patch.dict(
+            os.environ,
+            {"FORKPROBE_TELEMETRY_ENDPOINT": "https://example.test/events"},
+            clear=True,
+        ):
+            self.assertEqual(telemetry_endpoint(), "https://example.test/events")
+
     def test_first_use_defaults_checked_and_preference_persists(self):
         from telemetry import save_sharing_preference, sharing_default
 

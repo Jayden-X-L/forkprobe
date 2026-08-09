@@ -124,6 +124,13 @@ export function buildPublicStats(taskType, sampleSize, minimum, skillRows, pairR
 }
 
 async function postSelectionEvent(request, env) {
+  if (env.SELECTION_RATE_LIMITER) {
+    const rateLimitKey = request.headers.get("CF-Connecting-IP") || "unknown";
+    const { success } = await env.SELECTION_RATE_LIMITER.limit({ key: rateLimitKey });
+    if (!success) {
+      return jsonResponse({ error: "rate limit exceeded" }, 429);
+    }
+  }
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > MAX_BODY_BYTES) {
     return jsonResponse({ error: "request body too large" }, 413);

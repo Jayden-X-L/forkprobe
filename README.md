@@ -398,7 +398,8 @@ Report 选择 winner 后会显示：
 - 不上传任务原文、候选输出、文件、评价理由、本地路径或用户身份。
 - 事件先写入 `~/.forkprobe/telemetry/outbox/`，网络失败不会阻止 winner 保存或 Agent 继续，后续运行会自动重试。
 - 设置 `FORKPROBE_TELEMETRY=0` 可强制关闭匿名分享；也可以在 Report 中取消勾选。
-- 生产接收端通过 `FORKPROBE_TELEMETRY_ENDPOINT` 配置。Cloudflare Worker + D1 实现在 [`services/telemetry-worker`](./services/telemetry-worker/README.md)。
+- 默认发送到 ForkProbe 官方 Cloudflare Worker：`https://forkprobe-selection-telemetry.forkprobe-selection-telemetry.workers.dev/v1/selection-events`。可通过 `FORKPROBE_TELEMETRY_ENDPOINT` 改为自托管接收端；Worker + D1 实现在 [`services/telemetry-worker`](./services/telemetry-worker/README.md)。
+- 部分网络可能无法访问 `workers.dev`；事件会继续留在本地 outbox，使用可访问的自托管域名覆盖接收端后会自动重试。
 - 统计按任务类型聚合，至少达到 20 次有效选择后才通过公共统计 API 返回 Skill 胜率和两两胜率。
 
 ## 隐私
