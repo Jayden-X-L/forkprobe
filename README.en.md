@@ -20,7 +20,7 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.7" src="https://img.shields.io/badge/version-v0.7-2563eb">
+  <img alt="Version v0.8" src="https://img.shields.io/badge/version-v0.8-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
   <a href="https://github.com/openai/codex"><img alt="Built with OpenAI Codex" src="https://img.shields.io/badge/built%20with-OpenAI%20Codex-111827"></a>
@@ -28,7 +28,7 @@
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.7 adds multi-source candidate discovery:** ForkProbe automatically scans `~/.codex/skills`, `~/.agents/skills`, `~/.claude/skills`, and project-level Skill directories. It merges matching installed Skills with the curated catalog, EverMind Skill Hub, GitHub discovery, and user-provided sources, then deduplicates and ranks them. External discovery receives sanitized scene terms only, never the raw task. The v0.6 finished-video workflow and all earlier webpage, writing, PPTX, scientific-figure, and research-report modes remain supported.
+**v0.8 adds an anonymous Winner feedback loop:** after choosing a result in the Report, users can continue the Agent workflow with the winning Skill and decide whether to share the task type, compared Skill names, and final choice anonymously. ForkProbe aggregates community selections with Cloudflare Worker + D1 and exposes Skill and pairwise win rates after the minimum sample threshold. v0.7 local Skill scanning and multi-source discovery through EverMind Skill Hub, GitHub, curated catalogs, and user-provided sources remain supported alongside the existing video, webpage, writing, PPTX, scientific-figure, and research-report workflows.
 
 After a winner is selected, the Report's continue action saves the local handoff and lets the Agent continue with the winning Skill. The same panel lets the user choose whether to share that anonymous Skill selection to improve future community priors.
 

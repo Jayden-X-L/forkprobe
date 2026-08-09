@@ -103,7 +103,7 @@ def spawn_subagent(
             output="",
             tokens_used=0,
             latency_seconds=0.0,
-            error=f"Unknown platform: {platform}. forkprobe v0.7 supports Claude Code and Codex only.",
+            error=f"Unknown platform: {platform}. forkprobe v0.8 supports Claude Code and Codex only.",
         )
 
 

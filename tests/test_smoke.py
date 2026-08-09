@@ -2133,7 +2133,7 @@ class TestRenderReport(unittest.TestCase):
                 self.assertEqual(html.count("<video controls"), 1)
                 self.assertIn("video.mp4", html)
                 self.assertIn("100/100", html)
-                self.assertIn("v0.7", html)
+                self.assertIn("v0.8", html)
 
                 run_result_path = Path(workspace["output_dir"]) / "candidates" / "baseline-remotion-agent" / "run-result.json"
                 timed_out = json.loads(run_result_path.read_text(encoding="utf-8"))

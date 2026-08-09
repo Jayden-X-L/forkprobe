@@ -20,7 +20,7 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.7" src="https://img.shields.io/badge/version-v0.7-2563eb">
+  <img alt="Version v0.8" src="https://img.shields.io/badge/version-v0.8-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/report-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
   <a href="https://github.com/openai/codex"><img alt="Built with OpenAI Codex" src="https://img.shields.io/badge/built%20with-OpenAI%20Codex-111827"></a>
@@ -28,7 +28,7 @@
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
-**v0.7 新增多来源候选发现：** ForkProbe 会自动扫描 `~/.codex/skills`、`~/.agents/skills`、`~/.claude/skills` 和项目内 Skill 目录，并把匹配的已安装 Skill 与 curated 目录、EverMind Skill Hub、GitHub 搜索及用户自带路径合并、去重和排序。外部查询只发送脱敏后的场景词，不发送原始任务内容。v0.6 的视频成品对比以及此前的网页、写作、PPTX、科研绘图和调研报告能力继续支持。
+**v0.8 新增匿名 Winner 反馈闭环：** 用户在 Report 中选定结果后，可在同一个动作里让 Agent 沿胜出 Skill 继续任务，并决定是否匿名分享任务类型、参与比较的 Skill 名称和最终选择。ForkProbe 使用 Cloudflare Worker + D1 汇总社区选择，达到最小样本量后提供 Skill 胜率和两两胜率。v0.7 的本机 Skill 自动扫描、EverMind Skill Hub、GitHub 与 curated 多来源发现，以及此前的视频、网页、写作、PPTX、科研绘图和调研报告能力继续支持。
 
 选定 winner 后，Report 的“继续”按钮会同时保存本地 handoff，并让 Agent 沿胜出 Skill 继续任务。用户可以在同一区域选择是否匿名分享本次 Skill 选择，为未来的社区推荐先验积累样本。
 
