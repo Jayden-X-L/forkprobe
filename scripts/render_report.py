@@ -10,6 +10,8 @@ import webbrowser
 from pathlib import Path
 from typing import Optional
 
+from telemetry import CONSENT_VERSION, sharing_default as telemetry_sharing_default
+
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_DIR = SCRIPT_DIR.parent
 TEMPLATES_DIR = PROJECT_DIR / "templates"
@@ -78,6 +80,7 @@ def render(
     auto_open: bool = True,
     verdict_url: Optional[str] = None,
     judge_result: Optional[dict] = None,
+    share_default: Optional[bool] = None,
 ) -> Path:
     """
     Render the comparison report as a self-contained HTML file.
@@ -91,6 +94,8 @@ def render(
         verdict_url: optional tokenized loopback endpoint; when provided,
                      the report posts verdict data back to the local run
         judge_result: optional dict from compare.py's JudgeResult
+        share_default: initial anonymous-selection checkbox state; defaults to
+                       the locally stored ForkProbe preference
 
     Returns:
         Path to written report
@@ -127,6 +132,11 @@ def render(
         total_estimated_tokens=total_estimated_tokens,
         total_estimated_tokens_display=f"{total_estimated_tokens:,}",
         verdict_url=verdict_url or "",
+        verdict_connected_json=json.dumps(bool(verdict_url)),
+        share_default_json=json.dumps(
+            telemetry_sharing_default() if share_default is None else bool(share_default)
+        ),
+        telemetry_consent_version=CONSENT_VERSION,
         judge_result=judge_result,
         candidates_json=json.dumps(candidates_by_id, ensure_ascii=False).replace("</", "<\\/"),
     )

@@ -498,9 +498,26 @@ Tell the user:
 
 Auto-open the report (or instruct user how to open it).
 
-### Step 6: Capture verdict
+### Step 6: Continue with the verdict
 
-After the user clicks "Pick" in the HTML UI, the verdict is written to:
+After the user picks a candidate, the Report must show one combined continuation panel. Do not require a separate Submit action:
+
+```text
+Selected: Hallmark
+
+☑ Anonymously share this Skill choice to improve ForkProbe recommendations
+  Only uploads the task type, compared Skill names, and final choice
+
+[Back to comparison]                  [Continue with Hallmark]
+```
+
+The first-use sharing default is checked. Clicking Continue must persist the
+local verdict and handoff first, then resume the Agent workflow. Anonymous
+sharing is asynchronous and must never block continuation. If the user clears
+the checkbox, keep the verdict local and remember that preference for later
+reports.
+
+The verdict is written to:
 
 ```
 ./forkprobe-logs/<timestamp>-<uuid>.json
@@ -525,7 +542,7 @@ When the user says they have already picked a winner, do **not** ask them to rep
 python scripts/resume_verdict.py --latest
 ```
 
-If a verdict exists, continue using the reported winner and handoff. If no verdict is found, tell the user the page may have been in demo mode, they may have clicked "Pick" without "Submit", or the verdict server may have timed out.
+If a verdict exists, continue using the reported winner and handoff. If no verdict is found, tell the user the page may have been in demo mode, they may have selected a candidate without clicking Continue, or the verdict server may have timed out.
 
 Schema:
 ```json
@@ -557,6 +574,11 @@ Schema:
 - If the user asks for local-only/offline mode, skip EverMind/GitHub discovery while keeping curated and installed-local candidates.
 - Verdict logs contain hashes and metadata only — never user task content.
 - Handoff files contain the selected winner and user-provided reason, never the original task or candidate outputs.
+- Anonymous selection sharing uploads only the privacy-safe task category, all compared Skill names, and the final choice. A random event ID and schema version are technical deduplication fields.
+- Never upload raw task text, candidate output, generated files, reasons, local paths, or user identity.
+- Queue opted-in events under `~/.forkprobe/telemetry/outbox/`; network failure must not block local continuation.
+- `FORKPROBE_TELEMETRY=0` is a process-level force-off switch. `FORKPROBE_TELEMETRY_ENDPOINT` configures the Worker endpoint.
+- Community selection statistics are aggregate signals, distinct from EverMind Skill Hub quality and SkillsBench/public benchmark priors. Do not expose community rates below the configured minimum sample threshold.
 - For academic users: this is a comparison tool, not a writing assistant. Users are responsible for confirming AI use is permitted by their target journal.
 
 ## Architecture

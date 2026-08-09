@@ -4,7 +4,7 @@ forkprobe main orchestration: run a task in parallel with and without skill(s).
 Usage:
     python compare.py --input task.txt --skill baseline --skill humanizer --output report.html
 
-v0.6 status: video artifact comparison, expanded candidate catalogs, parallel execution, HTML report,
+v0.7 status: multi-source candidate discovery, video artifact comparison, parallel execution, HTML report,
 research-report and webpage artifact routing, and local HTML reports
 rendering, local verdict capture, and first artifact comparison flows.
 """
@@ -452,7 +452,13 @@ def run_judge(task_input: str, results: list[RunResult], rubric: Optional[str] =
 
 # --- Logging ---
 
-def write_log(task_input: str, results: list[RunResult], output_path: Path, judge_result: Optional[JudgeResult] = None) -> Path:
+def write_log(
+    task_input: str,
+    results: list[RunResult],
+    output_path: Path,
+    judge_result: Optional[JudgeResult] = None,
+    task_type: str = "text_general",
+) -> Path:
     """Append a log entry to forkprobe-logs/. Stores HASH only, never content."""
     LOGS_DIR.mkdir(exist_ok=True)
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -463,6 +469,7 @@ def write_log(task_input: str, results: list[RunResult], output_path: Path, judg
         "timestamp": timestamp,
         "run_id": run_id,
         "platform": detect_platform().value,
+        "task_type": task_type,
         "task_input_hash": "sha256:" + hashlib.sha256(task_input.encode("utf-8")).hexdigest(),
         "task_input_chars": len(task_input),
         "candidates": [
@@ -497,6 +504,8 @@ def main():
                         help="Skill ID (from catalog) or path/URL (BYO). Repeat for multiple. Use 'baseline' for bare model.")
     parser.add_argument("--output", default="./report.html", help="Output HTML report path")
     parser.add_argument("--domain", default="academic-writing", help="Catalog domain (default: academic-writing)")
+    parser.add_argument("--task-type", default="text_general",
+                        help="Privacy-safe task category used for anonymous aggregate selection stats")
     parser.add_argument("--no-server", action="store_true",
                         help="Skip the verdict-capture server (report still renders, but verdict goes to browser console only)")
     parser.add_argument("--verdict-timeout", type=int, default=600,
@@ -529,7 +538,7 @@ def main():
         print(f"Error resolving skill: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[forkprobe] v0.6")
+    print(f"[forkprobe] v0.7")
     print(f"[forkprobe] Task input: {len(task_input)} chars from {input_path}")
     print(f"[forkprobe] Skills to compare: {[s.id for s in skills]}")
     print()
@@ -552,7 +561,13 @@ def main():
 
     # Log first so the verdict server can write back to it
     output_path = Path(args.output)
-    log_file = write_log(task_input, results, output_path, judge_result=judge_result)
+    log_file = write_log(
+        task_input,
+        results,
+        output_path,
+        judge_result=judge_result,
+        task_type=args.task_type,
+    )
     print(f"[forkprobe] Log: {log_file}")
 
     # Start verdict-capture server (D4)

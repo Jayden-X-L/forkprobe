@@ -9,8 +9,11 @@ optional previews, judge notes, and winner selection.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
+import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +21,10 @@ SCRIPT_DIR = Path(__file__).parent
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from render_report import render
+
+
+PROJECT_DIR = SCRIPT_DIR.parent
+LOGS_DIR = PROJECT_DIR / "forkprobe-logs"
 
 
 def _read_task_input(manifest: dict[str, Any], manifest_dir: Path) -> str:
@@ -124,7 +131,77 @@ def _normalize_candidate(candidate: dict[str, Any], manifest_dir: Path) -> dict[
     }
 
 
-def render_from_manifest(manifest_path: Path, output_path: Path, auto_open: bool = True) -> Path:
+def artifact_task_type(manifest: dict[str, Any]) -> str:
+    """Derive a stable task category without exposing the user's task text."""
+    deliverable = str(manifest.get("deliverable_type") or "artifact").strip().lower()
+    dimension_by_deliverable = {
+        "visual_artifact": "figure_type",
+        "research_report": "research_type",
+        "web_artifact": "web_family",
+        "video_artifact": "video_type",
+    }
+    prefix_by_deliverable = {
+        "visual_artifact": "figure",
+        "research_report": "research",
+        "web_artifact": "web",
+        "video_artifact": "video",
+    }
+    if deliverable == "pptx":
+        return "pptx_generation"
+    dimension_key = dimension_by_deliverable.get(deliverable)
+    if dimension_key:
+        dimension = str(manifest.get(dimension_key) or "general").strip().lower()
+        safe_dimension = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in dimension).strip("_")
+        return f"{prefix_by_deliverable[deliverable]}_{safe_dimension or 'general'}"
+    return "artifact_general"
+
+
+def write_artifact_log(
+    manifest_path: Path,
+    output_path: Path,
+    manifest: dict[str, Any],
+    task_input: str,
+    results: list[dict[str, Any]],
+) -> Path:
+    """Write the privacy-preserving local state needed for winner continuation."""
+    LOGS_DIR.mkdir(exist_ok=True)
+    timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    run_id = str(uuid.uuid4())[:8]
+    log_path = LOGS_DIR / f"{timestamp.replace(':', '')}-{run_id}.json"
+    log = {
+        "timestamp": timestamp,
+        "run_id": run_id,
+        "platform": "artifact",
+        "task_type": artifact_task_type(manifest),
+        "task_input_hash": "sha256:" + hashlib.sha256(task_input.encode("utf-8")).hexdigest(),
+        "task_input_chars": len(task_input),
+        "candidates": [
+            {
+                "id": candidate.get("skill_id"),
+                "name": candidate.get("skill_name"),
+                "tokens_used": int(candidate.get("tokens_used") or 0),
+                "provider_tokens_used": int(candidate.get("provider_tokens_used") or 0),
+                "estimated_tokens_used": int(candidate.get("estimated_tokens_used") or 0),
+                "latency_seconds": float(candidate.get("latency_seconds") or 0.0),
+                "had_error": bool(candidate.get("error")),
+            }
+            for candidate in results
+        ],
+        "judge": manifest.get("judge"),
+        "verdict": None,
+        "manifest_path": str(manifest_path.resolve()),
+        "report_path": str(output_path.resolve()),
+    }
+    log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
+    return log_path
+
+
+def render_from_manifest(
+    manifest_path: Path,
+    output_path: Path,
+    auto_open: bool = True,
+    verdict_url: str | None = None,
+) -> Path:
     manifest_path = manifest_path.expanduser().resolve()
     manifest_dir = manifest_path.parent
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -141,9 +218,71 @@ def render_from_manifest(manifest_path: Path, output_path: Path, auto_open: bool
         duration_seconds=float(manifest.get("duration_seconds") or 0.0),
         output_path=output_path,
         auto_open=auto_open,
-        verdict_url=manifest.get("verdict_url") or "",
+        verdict_url=(manifest.get("verdict_url") or "") if verdict_url is None else verdict_url,
         judge_result=manifest.get("judge"),
     )
+
+
+def render_session_from_manifest(
+    manifest_path: Path,
+    output_path: Path,
+    auto_open: bool = True,
+    no_server: bool = False,
+    verdict_timeout: int = 600,
+) -> dict[str, Any]:
+    """Render an artifact report and capture one local continuation verdict."""
+    manifest_path = manifest_path.expanduser().resolve()
+    output_path = output_path.expanduser()
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    task_input = _read_task_input(manifest, manifest_path.parent)
+    results = [_normalize_candidate(candidate, manifest_path.parent) for candidate in manifest.get("candidates", [])]
+    if not results:
+        raise ValueError("Artifact manifest must contain at least one candidate.")
+
+    log_path = write_artifact_log(manifest_path, output_path, manifest, task_input, results)
+    verdict_url = ""
+    wait_for_verdict = None
+    stop_server = None
+    if not no_server:
+        try:
+            from verdict_server import build_verdict_url, start_server, stop_server as stop, wait_for_verdict as wait
+
+            port = start_server(log_path)
+            verdict_url = build_verdict_url(port)
+            wait_for_verdict = wait
+            stop_server = stop
+            print(f"[forkprobe] Verdict server: loopback-only endpoint ready on port {port}", file=sys.stderr)
+        except Exception as exc:
+            print(f"[forkprobe] Could not start verdict server ({exc}). Continuing without it.", file=sys.stderr)
+
+    try:
+        report_path = render_from_manifest(
+            manifest_path=manifest_path,
+            output_path=output_path,
+            auto_open=auto_open,
+            verdict_url=verdict_url,
+        )
+        verdict = None
+        if verdict_url and wait_for_verdict:
+            print(f"[forkprobe] Waiting up to {verdict_timeout}s for your choice in the browser...", file=sys.stderr)
+            verdict = wait_for_verdict(timeout_seconds=verdict_timeout)
+            if verdict:
+                print(
+                    f"[forkprobe] ✓ Verdict captured: winner={verdict.get('winner')}, "
+                    f"type={verdict.get('verdict_type')}",
+                    file=sys.stderr,
+                )
+            else:
+                print("[forkprobe] No verdict received before timeout. Local log retained.", file=sys.stderr)
+        return {
+            "report_path": str(report_path.resolve()),
+            "log_path": str(log_path.resolve()),
+            "task_type": artifact_task_type(manifest),
+            "verdict": verdict,
+        }
+    finally:
+        if stop_server:
+            stop_server()
 
 
 def main() -> int:
@@ -151,14 +290,19 @@ def main() -> int:
     parser.add_argument("--manifest", required=True, help="Path to artifact comparison manifest JSON")
     parser.add_argument("--output", default="./artifact-report.html", help="Output HTML path")
     parser.add_argument("--no-open", action="store_true", help="Do not open the report in a browser")
+    parser.add_argument("--no-server", action="store_true", help="Do not start the local continuation server")
+    parser.add_argument("--verdict-timeout", type=int, default=600, help="Seconds to wait for a browser choice")
     args = parser.parse_args()
 
-    output = render_from_manifest(
+    session = render_session_from_manifest(
         manifest_path=Path(args.manifest),
         output_path=Path(args.output),
         auto_open=not args.no_open,
+        no_server=args.no_server,
+        verdict_timeout=args.verdict_timeout,
     )
-    print(f"[forkprobe] Artifact report: {output.resolve()}")
+    print(f"[forkprobe] Artifact report: {session['report_path']}")
+    print(f"[forkprobe] Verdict log: {session['log_path']}")
     return 0
 
 

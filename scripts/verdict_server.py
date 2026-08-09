@@ -23,6 +23,13 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import parse_qs, urlencode, urlsplit
 
+from telemetry import (
+    enqueue_and_flush_async,
+    flush_outbox_async,
+    save_sharing_preference,
+    sharing_allowed,
+)
+
 
 # Module-level state for the running server
 _server_thread: Optional[threading.Thread] = None
@@ -209,7 +216,10 @@ class _VerdictHandler(BaseHTTPRequestHandler):
             return
 
         verdict["handoff_text"] = build_handoff_text(verdict)
-        response = {"ok": True}
+        requested_sharing = verdict.get("share_anonymous")
+        if not isinstance(requested_sharing, bool):
+            requested_sharing = None
+        response = {"ok": True, "telemetry_queued": False}
 
         # Persist verdict into the log file (if available)
         log_path = _log_path_holder.get("path")
@@ -231,6 +241,12 @@ class _VerdictHandler(BaseHTTPRequestHandler):
                 latest_log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
                 response["handoff_path"] = verdict["handoff_path"]
                 response["latest_log_path"] = log["latest_log_path"]
+
+                if requested_sharing is not None:
+                    save_sharing_preference(requested_sharing)
+                    if sharing_allowed(requested_sharing):
+                        enqueue_and_flush_async(log, verdict)
+                        response["telemetry_queued"] = True
             except Exception as e:
                 # Non-fatal — still record in memory
                 print(f"[verdict_server] could not update log: {e}")
@@ -269,6 +285,7 @@ def start_server(log_path: Path, token: Optional[str] = None) -> int:
     _httpd = HTTPServer((_BIND_HOST, port), _VerdictHandler)
     _server_thread = threading.Thread(target=_httpd.serve_forever, daemon=True)
     _server_thread.start()
+    flush_outbox_async()
     return port
 
 

@@ -718,6 +718,22 @@ def wants_local_only(task_text: str) -> bool:
     return _has_compact_any(task_text, LOCAL_ONLY_HINTS)
 
 
+def text_task_type(deliverable_type: str, signals: list[str]) -> str:
+    """Return a stable, privacy-safe category for community selection stats."""
+    signal_set = set(signals)
+    if "rebuttal" in signal_set:
+        return "reviewer_response"
+    if "anti_ai" in signal_set:
+        return "anti_ai_writing"
+    if "figure" in signal_set:
+        return "figure_caption"
+    if deliverable_type == "ppt_outline" or "slides" in signal_set:
+        return "ppt_outline"
+    if signal_set.intersection({"chinese_academic", "english", "nature"}):
+        return "academic_polishing"
+    return "text_general"
+
+
 def _catalog_skill(skill_id: str, catalog: dict, reason_override: Optional[str] = None) -> RecommendedSkill:
     if skill_id == "baseline":
         meta = CATALOG_COPY["baseline"]
@@ -1453,7 +1469,10 @@ def recommend_candidates(
     candidates = _rank_and_limit(candidates, max_candidates)
     _note_if_no_new_external(candidates, notes_zh, notes_en)
 
-    command = ["python3", "scripts/compare.py", "--input", "<input.txt>"]
+    command = [
+        "python3", "scripts/compare.py", "--input", "<input.txt>",
+        "--task-type", text_task_type(deliverable_type, signals),
+    ]
     for candidate in candidates:
         if candidate.runnable:
             command.extend(["--skill", candidate.command_arg])

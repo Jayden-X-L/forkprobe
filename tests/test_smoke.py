@@ -424,6 +424,8 @@ class TestRecommendations(unittest.TestCase):
         self.assertIn("writing-anti-ai", ids)
         self.assertIn("humanizer-zh", ids)
         self.assertIn("remove-ai-flavor-writing-skill", ids)
+        task_type_index = rec.suggested_command.index("--task-type")
+        self.assertEqual(rec.suggested_command[task_type_index + 1], "anti_ai_writing")
         self.assertTrue(any("v0.4" in note for note in rec.notes_zh))
 
     def test_recommend_english_anti_ai_writing_uses_humanizer_pool(self):
@@ -604,6 +606,7 @@ class TestRecommendations(unittest.TestCase):
                     "source-first-research",
                     "--run",
                     "--no-open",
+                    "--no-server",
                     "--json",
                 ],
                 text=True,
@@ -658,6 +661,26 @@ class TestRecommendations(unittest.TestCase):
         command_args = [c.command_arg for c in rec.candidates]
         self.assertIn("https://github.com/Yuan1z0825/nature-skills#skills/nature-paper2ppt", command_args)
         self.assertIn("--judge", rec.suggested_command)
+        task_type_index = rec.suggested_command.index("--task-type")
+        self.assertEqual(rec.suggested_command[task_type_index + 1], "ppt_outline")
+
+    def test_text_task_type_distinguishes_rebuttal_and_academic_polishing(self):
+        from recommend import recommend_candidates
+
+        rebuttal = recommend_candidates(
+            "请对审稿人意见生成 response letter，并比较几个 Skill。",
+            online_discovery=False,
+        )
+        academic = recommend_candidates(
+            "请比较几个 Skill 润色这段 SCI 论文英文摘要。",
+            online_discovery=False,
+        )
+        for recommendation, expected in (
+            (rebuttal, "reviewer_response"),
+            (academic, "academic_polishing"),
+        ):
+            index = recommendation.suggested_command.index("--task-type")
+            self.assertEqual(recommendation.suggested_command[index + 1], expected)
 
     def test_recommend_merges_local_and_online_discovery(self):
         from discover_skills import OnlineDiscoveryReport, OnlineSkillCandidate
@@ -826,6 +849,81 @@ class TestTokenEstimates(unittest.TestCase):
         self.assertGreater(long, 500)
 
 
+class TestSelectionTelemetry(unittest.TestCase):
+    def test_first_use_defaults_checked_and_preference_persists(self):
+        from telemetry import save_sharing_preference, sharing_default
+
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("FORKPROBE_TELEMETRY", None)
+            config_path = Path(tmp) / "config.json"
+            self.assertTrue(sharing_default(config_path))
+            save_sharing_preference(False, config_path)
+            self.assertFalse(sharing_default(config_path))
+            save_sharing_preference(True, config_path)
+            self.assertTrue(sharing_default(config_path))
+
+    def test_environment_can_force_sharing_off(self):
+        from telemetry import sharing_allowed, sharing_default, sharing_forced_off
+
+        with patch.dict(os.environ, {"FORKPROBE_TELEMETRY": "0"}):
+            self.assertFalse(sharing_default())
+            self.assertTrue(sharing_forced_off())
+            self.assertFalse(sharing_allowed(True))
+
+    def test_event_contains_only_allowed_selection_fields(self):
+        from telemetry import build_selection_event
+
+        event = build_selection_event(
+            {
+                "task_type": "web_landing",
+                "task_input": "private launch brief",
+                "report_path": "/private/report.html",
+                "candidates": [
+                    {"id": "baseline-web", "name": "Baseline Web", "output": "secret"},
+                    {"id": "hallmark", "name": "Hallmark", "local_path": "/private/skill"},
+                ],
+            },
+            {
+                "winner": "hallmark",
+                "winner_name": "Hallmark",
+                "verdict_type": "pick",
+                "reason": "private opinion",
+                "handoff_text": "private continuation",
+            },
+        )
+        self.assertEqual(event["task_type"], "web_landing")
+        self.assertEqual(event["candidate_skill_names"], ["Baseline Web", "Hallmark"])
+        self.assertEqual(event["final_choice"], "Hallmark")
+        self.assertEqual(
+            set(event),
+            {"schema_version", "event_id", "task_type", "candidate_skill_names", "final_choice"},
+        )
+        serialized = json.dumps(event)
+        for private_value in ("private launch brief", "/private/report.html", "private opinion", "secret"):
+            self.assertNotIn(private_value, serialized)
+
+    def test_outbox_retries_and_removes_only_sent_events(self):
+        from telemetry import enqueue_event, flush_outbox
+
+        event = {
+            "schema_version": 1,
+            "event_id": "event-1",
+            "task_type": "web_landing",
+            "candidate_skill_names": ["Baseline Web", "Hallmark"],
+            "final_choice": "Hallmark",
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            outbox = Path(tmp)
+            path = enqueue_event(event, outbox)
+            with patch("telemetry.send_event", side_effect=urllib.error.URLError("offline")):
+                self.assertEqual(flush_outbox(outbox, endpoint="https://example.test"), {"sent": 0, "failed": 1})
+            self.assertTrue(path.exists())
+            with patch("telemetry.send_event") as send:
+                self.assertEqual(flush_outbox(outbox, endpoint="https://example.test"), {"sent": 1, "failed": 0})
+                send.assert_called_once()
+            self.assertFalse(path.exists())
+
+
 class TestVerdictServer(unittest.TestCase):
     def test_imports(self):
         from verdict_server import build_verdict_url, start_server, wait_for_verdict, stop_server
@@ -906,6 +1004,93 @@ class TestVerdictServer(unittest.TestCase):
                 self.assertEqual(latest["verdict"]["winner"], "humanizer")
                 self.assertEqual(latest["source_log_path"], str(log_path.resolve()))
                 self.assertIn("Please continue using Humanizer.", latest_handoff.read_text(encoding="utf-8"))
+            finally:
+                stop_server()
+
+    def test_verdict_queues_anonymous_selection_only_when_checked(self):
+        from verdict_server import build_verdict_url, start_server, stop_server
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "run.json"
+            log_path.write_text(json.dumps({
+                "timestamp": "test",
+                "task_type": "web_landing",
+                "candidates": [
+                    {"id": "baseline-web", "name": "Baseline Web"},
+                    {"id": "hallmark", "name": "Hallmark"},
+                ],
+                "report_path": "/tmp/report.html",
+                "verdict": None,
+            }), encoding="utf-8")
+            try:
+                with patch("verdict_server.save_sharing_preference") as save_pref, \
+                     patch("verdict_server.enqueue_and_flush_async") as enqueue:
+                    port = start_server(log_path)
+                    payload = {
+                        "winner": "hallmark",
+                        "winner_name": "Hallmark",
+                        "verdict_type": "pick",
+                        "reason": "local only",
+                        "share_anonymous": True,
+                    }
+                    req = urllib.request.Request(
+                        build_verdict_url(port),
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        response = json.loads(resp.read().decode("utf-8"))
+                    self.assertTrue(response["telemetry_queued"])
+                    save_pref.assert_called_once_with(True)
+                    enqueue.assert_called_once()
+                    queued_log, queued_verdict = enqueue.call_args.args
+                    self.assertEqual(queued_log["task_type"], "web_landing")
+                    self.assertEqual(queued_verdict["winner"], "hallmark")
+            finally:
+                stop_server()
+
+    def test_verdict_continues_without_queue_when_anonymous_sharing_is_unchecked(self):
+        from verdict_server import build_verdict_url, start_server, stop_server
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "run.json"
+            log_path.write_text(json.dumps({
+                "timestamp": "test",
+                "task_type": "web_landing",
+                "candidates": [
+                    {"id": "baseline-web", "name": "Baseline Web"},
+                    {"id": "hallmark", "name": "Hallmark"},
+                ],
+                "report_path": "/tmp/report.html",
+                "verdict": None,
+            }), encoding="utf-8")
+            try:
+                with patch("verdict_server.save_sharing_preference") as save_pref, \
+                     patch("verdict_server.enqueue_and_flush_async") as enqueue:
+                    port = start_server(log_path)
+                    payload = {
+                        "winner": "hallmark",
+                        "winner_name": "Hallmark",
+                        "verdict_type": "pick",
+                        "reason": "keep this local",
+                        "share_anonymous": False,
+                    }
+                    req = urllib.request.Request(
+                        build_verdict_url(port),
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        response = json.loads(resp.read().decode("utf-8"))
+                    self.assertFalse(response["telemetry_queued"])
+                    save_pref.assert_called_once_with(False)
+                    enqueue.assert_not_called()
+
+                    updated = json.loads(log_path.read_text(encoding="utf-8"))
+                    self.assertEqual(updated["verdict"]["winner"], "hallmark")
+                    self.assertTrue(Path(updated["handoff_path"]).exists())
             finally:
                 stop_server()
 
@@ -1042,6 +1227,103 @@ class TestRenderReport(unittest.TestCase):
             self.assertIn("Generated artifacts", html)
             self.assertIn("candidate.pptx", html)
             self.assertIn("baseline-presentations", html)
+
+    def test_artifact_task_types_are_privacy_safe_and_stable(self):
+        from render_artifact_report import artifact_task_type
+
+        self.assertEqual(
+            artifact_task_type({"deliverable_type": "visual_artifact", "figure_type": "schematic"}),
+            "figure_schematic",
+        )
+        self.assertEqual(
+            artifact_task_type({"deliverable_type": "research_report", "research_type": "market"}),
+            "research_market",
+        )
+        self.assertEqual(
+            artifact_task_type({"deliverable_type": "web_artifact", "web_family": "landing"}),
+            "web_landing",
+        )
+        self.assertEqual(
+            artifact_task_type({"deliverable_type": "video_artifact", "video_type": "product_promo"}),
+            "video_product_promo",
+        )
+        self.assertEqual(artifact_task_type({"deliverable_type": "pptx"}), "pptx_generation")
+
+    def test_artifact_report_session_captures_winner_and_queues_sharing(self):
+        import re
+        import threading
+        import time as time_module
+
+        import render_artifact_report
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            manifest_path = tmp_path / "manifest.json"
+            report_path = tmp_path / "artifact.html"
+            manifest_path.write_text(json.dumps({
+                "deliverable_type": "web_artifact",
+                "web_family": "landing",
+                "task_input": "private landing page brief",
+                "candidates": [
+                    {"id": "baseline-web", "name": "Baseline Web", "summary": "private output one"},
+                    {"id": "hallmark", "name": "Hallmark", "summary": "private output two"},
+                ],
+            }), encoding="utf-8")
+            result_holder: dict[str, object] = {}
+            error_holder: list[BaseException] = []
+
+            def run_session():
+                try:
+                    result_holder.update(render_artifact_report.render_session_from_manifest(
+                        manifest_path,
+                        report_path,
+                        auto_open=False,
+                        verdict_timeout=5,
+                    ))
+                except BaseException as exc:  # pragma: no cover - surfaced below
+                    error_holder.append(exc)
+
+            with patch.object(render_artifact_report, "LOGS_DIR", tmp_path / "logs"), \
+                 patch("verdict_server.save_sharing_preference") as save_pref, \
+                 patch("verdict_server.enqueue_and_flush_async") as enqueue:
+                thread = threading.Thread(target=run_session)
+                thread.start()
+                for _ in range(100):
+                    if report_path.exists():
+                        break
+                    time_module.sleep(0.02)
+                self.assertTrue(report_path.exists())
+                html = report_path.read_text(encoding="utf-8")
+                match = re.search(r"http://localhost:\d+/verdict\?token=[A-Za-z0-9_-]+", html)
+                self.assertIsNotNone(match)
+                payload = {
+                    "winner": "hallmark",
+                    "winner_name": "Hallmark",
+                    "verdict_type": "pick",
+                    "reason": "local reason",
+                    "share_anonymous": True,
+                }
+                request = urllib.request.Request(
+                    match.group(0),
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(request, timeout=5) as response:
+                    body = json.loads(response.read().decode("utf-8"))
+                self.assertTrue(body["telemetry_queued"])
+                thread.join(timeout=5)
+                self.assertFalse(thread.is_alive())
+                self.assertFalse(error_holder)
+                save_pref.assert_called_once_with(True)
+                enqueue.assert_called_once()
+
+            log_path = Path(str(result_holder["log_path"]))
+            log = json.loads(log_path.read_text(encoding="utf-8"))
+            self.assertEqual(log["task_type"], "web_landing")
+            self.assertEqual(log["verdict"]["winner"], "hallmark")
+            self.assertNotIn("private landing page brief", log_path.read_text(encoding="utf-8"))
+            self.assertNotIn("private output one", log_path.read_text(encoding="utf-8"))
 
     def test_render_artifact_manifest_shows_artifacts_when_candidate_has_error(self):
         from render_artifact_report import render_from_manifest
@@ -1425,6 +1707,7 @@ class TestRenderReport(unittest.TestCase):
                     "--run",
                     "--render-report",
                     "--no-open",
+                    "--no-server",
                     "--json",
                 ],
                 text=True,
@@ -1834,7 +2117,7 @@ class TestRenderReport(unittest.TestCase):
                 self.assertEqual(html.count("<video controls"), 1)
                 self.assertIn("video.mp4", html)
                 self.assertIn("100/100", html)
-                self.assertIn("v0.6", html)
+                self.assertIn("v0.7", html)
 
                 run_result_path = Path(workspace["output_dir"]) / "candidates" / "baseline-remotion-agent" / "run-result.json"
                 timed_out = json.loads(run_result_path.read_text(encoding="utf-8"))

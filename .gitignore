@@ -9,6 +9,10 @@ __pycache__/
 .venv/
 venv/
 
+# Node / Cloudflare Worker
+node_modules/
+.wrangler/
+
 # forkprobe runtime artifacts
 forkprobe-logs/
 report.html

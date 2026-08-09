@@ -30,6 +30,8 @@ ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gi
 
 **v0.7 adds multi-source candidate discovery:** ForkProbe automatically scans `~/.codex/skills`, `~/.agents/skills`, `~/.claude/skills`, and project-level Skill directories. It merges matching installed Skills with the curated catalog, EverMind Skill Hub, GitHub discovery, and user-provided sources, then deduplicates and ranks them. External discovery receives sanitized scene terms only, never the raw task. The v0.6 finished-video workflow and all earlier webpage, writing, PPTX, scientific-figure, and research-report modes remain supported.
 
+After a winner is selected, the Report's continue action saves the local handoff and lets the Agent continue with the winning Skill. The same panel lets the user choose whether to share that anonymous Skill selection to improve future community priors.
+
 When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe makes the choice visible: compare the real outputs first, then continue with the path you picked.
 
 ## When To Use ForkProbe
@@ -382,12 +384,34 @@ python3 scripts/research_artifact.py \
 
 Expected outputs include `candidate-report.md`, `candidate-report.html`, `sources.json`, `evidence-table.md`, `claim-checks.md`, `limitations.md`, and `summary.md`.
 
+## Optional Anonymous Winner Sharing
+
+After a winner is selected, the Report shows:
+
+```text
+Selected: Hallmark
+
+☑ Anonymously share this Skill choice to improve ForkProbe recommendations
+  Only uploads the task type, compared Skill names, and final choice
+
+[Back to comparison]                  [Continue with Hallmark]
+```
+
+- The checkbox is enabled on first use. The choice made on Continue is stored in `~/.forkprobe/config.json` for later reports.
+- When enabled, only `task_type`, `candidate_skill_names`, and `final_choice` are uploaded. A random event ID and schema version support idempotent deduplication.
+- Raw tasks, candidate outputs, files, reasons, local paths, and user identity are never uploaded.
+- Events first enter `~/.forkprobe/telemetry/outbox/`. Network failure never blocks local winner persistence or Agent continuation, and later runs retry automatically.
+- Set `FORKPROBE_TELEMETRY=0` to force sharing off, or clear the checkbox in the Report.
+- Configure the receiver with `FORKPROBE_TELEMETRY_ENDPOINT`. The Cloudflare Worker + D1 implementation lives in [`services/telemetry-worker`](./services/telemetry-worker/README.md).
+- Public Skill and pairwise win-rate stats remain hidden until a task type reaches at least 20 valid selections.
+
 ## Privacy
 
 - Task content stays local in the report and local logs.
 - GitHub and EverMind Skill Hub receive sanitized scene terms only, never raw tasks, documents, or local paths.
 - Local discovery reads `SKILL.md` metadata and instructions for indexing and matching; it does not install or execute a Skill automatically.
-- Local verdict logs store the selected winner, optional reason, report path, and continuation handoff.
+- Local verdict logs store the task hash, candidate metadata, selected winner, optional reason, report path, and continuation handoff.
+- Anonymous winner sharing is controlled by the Report checkbox; task content and artifacts remain local even when it is enabled.
 - Use `--local-only` or ask for local-only candidates to skip network discovery.
 - Use `--no-server` to render reports without the local verdict-capture server.
 - See [SECURITY.md](./SECURITY.md) for loopback server, token, CORS, remote fetch, and command-execution notes.
@@ -412,6 +436,7 @@ scripts/    comparison, recommendation, report, and verdict helpers
 templates/  HTML report template
 catalog/    curated skill and artifact-pipeline catalogs
 tests/      smoke and integration tests
+services/   optional Cloudflare Worker + D1 anonymous aggregation service
 SKILL.md    Agent skill instructions
 ```
 

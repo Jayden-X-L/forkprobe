@@ -1031,6 +1031,43 @@
       color: #087267;
     }
 
+    .demo-share-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+      margin-top: 0.9rem;
+      padding: 0.9rem;
+      border: 1px solid #d7e4f3;
+      border-radius: 8px;
+      color: #344054;
+      background: #fff;
+    }
+
+    .demo-share-option input {
+      width: 1rem;
+      height: 1rem;
+      margin-top: 0.15rem;
+      accent-color: var(--blue);
+      flex: 0 0 auto;
+    }
+
+    .demo-share-option strong,
+    .demo-share-option span {
+      display: block;
+    }
+
+    .demo-share-option strong {
+      color: #1f2a44;
+      font-size: 0.84rem;
+    }
+
+    .demo-share-option span {
+      margin-top: 0.25rem;
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.5;
+    }
+
     .demo-handoff-label {
       display: block;
       margin: 1rem 0 0.45rem;
@@ -1357,7 +1394,7 @@
         <h1>ForkProbe</h1>
         <p class="hero-subtitle">别猜哪个 AI Skill 有用，直接并排看结果。</p>
         <p class="hero-lede">
-          ForkProbe 是一个 AI Skill 选型与试跑工具。v0.7 会自动扫描本机已安装 Skill，并合并 curated 目录、EverMind Skill Hub、GitHub 和用户自带来源；确认候选后再并行试跑。外部发现只发送脱敏场景词，不发送原始任务。
+          ForkProbe 是一个 AI Skill 选型与试跑工具。v0.7 会自动扫描本机已安装 Skill，并合并 curated 目录、EverMind Skill Hub、GitHub 和用户自带来源；确认候选后再并行试跑。选定 winner 后直接继续任务，并可选择匿名分享 Skill 选择。
         </p>
         <div class="hero-actions">
           <a class="button button-primary" href="#report-demo">查看预览</a>
@@ -1625,7 +1662,7 @@
           <p class="section-kicker">实际使用时</p>
           <h2>使用 forkprobe，同一个任务、多个 skill 的结果清晰可见，轻松选择 winner。</h2>
           <p class="section-lede">
-            左侧是原始输入和 forkprobe 基于任务推荐的候选 skill，中间展示每一路完整输出，右侧给出 AI 评审建议。选定 winner 后，forkprobe 会生成 continuation handoff，让当前会话沿着你选中的结果继续执行。
+            左侧是原始输入和 forkprobe 基于任务推荐的候选 skill，中间展示每一路完整输出，右侧给出 AI 评审建议。选定 winner 后，可在同一个动作中保存 handoff、继续任务，并决定是否匿名分享本次 Skill 选择。
           </p>
 
           <div class="demo-report" aria-label="forkprobe 交互式报告示例">
@@ -1721,6 +1758,14 @@
                   <p id="demoVerdictReason">先点击中间下方的“选择这个”，这里会生成下一步交接文本。</p>
                 </div>
 
+                <label class="demo-share-option">
+                  <input type="checkbox" checked>
+                  <span>
+                    <strong id="demoShareTitle">匿名分享 Skill 选择，帮助 ForkProbe 改进推荐</strong>
+                    <span id="demoShareDetail">仅上传任务类型、参与比较的 Skill 名称和最终选择</span>
+                  </span>
+                </label>
+
                 <label class="demo-handoff-label" for="demoHandoff">Continuation handoff</label>
                 <textarea class="demo-handoff" id="demoHandoff" readonly>请选择一个候选结果。选中后，这里会生成一段可以粘贴回当前 Agent 会话的继续执行文本。</textarea>
                 <button class="demo-copy-button" type="button" id="demoCopyHandoff">复制 handoff</button>
@@ -1748,7 +1793,7 @@
     <footer class="footer">
       <div class="footer-inner">
         <span>ForkProbe v0.7 · AI Skill 选型与试跑工具</span>
-        <span>GitHub Pages ready · Local-first comparison reports</span>
+        <span>任务内容保留本地 · 匿名选择由用户决定</span>
       </div>
     </footer>
     <div class="toast" id="downloadToast" role="status" aria-live="polite" aria-atomic="true">已为你下载Skill。</div>
@@ -1770,7 +1815,7 @@
           'nav.start': 'Start',
           'hero.eyebrow': 'ForkProbe v0.7: AI Skill selection and trial-run tool.',
           'hero.subtitle': 'Stop guessing which AI Skill works. Compare the real outputs side by side.',
-          'hero.lede': 'ForkProbe is an AI Skill selection and trial-run tool for Agent workflows. v0.7 automatically scans installed local Skills and merges them with the curated catalog, EverMind Skill Hub, GitHub, and user-provided sources. External discovery receives sanitized scene terms only, never the raw task.',
+          'hero.lede': 'ForkProbe is an AI Skill selection and trial-run tool for Agent workflows. v0.7 scans installed local Skills and merges them with curated, EverMind Skill Hub, GitHub, and user-provided sources. Choose a winner, continue in one action, and optionally share the anonymous Skill selection.',
           'hero.previewButton': 'View preview',
           'hero.usecasesButton': 'Use cases',
           'hero.visualAria': 'Preview of a forkprobe comparison report',
@@ -1851,7 +1896,7 @@
           'capability.roughCut.report': 'Rough-cut MP4, captions, transcript, cut list/timeline, duration change, and media QA.',
           'demo.kicker': 'In practice',
           'demo.title': 'One task, multiple skills, visible results, and a winner you can continue from.',
-          'demo.lede': 'The left panel shows the original task and the skills forkprobe recommended for it. The center shows each complete output. The right panel gives an AI judge recommendation. After you choose a winner, forkprobe creates a continuation handoff so the current Agent session can keep working from the selected result.',
+          'demo.lede': 'The left panel shows the original task and recommended skills. The center shows each complete output, and the right panel gives an AI judge recommendation. One action saves the handoff, continues the task, and lets you decide whether to share the anonymous Skill selection.',
           'demo.reportAria': 'Interactive forkprobe report example',
           'demo.reportTitle': 'forkprobe report · launch-copy',
           'demo.reportSubtitle': 'Generated locally · choose a result and continue',
@@ -1878,13 +1923,15 @@
           'demo.emptyHandoff': 'Choose a candidate result. After selection, this box will contain a continuation handoff you can paste back into the current Agent session.',
           'demo.handoffLabel': 'Continuation handoff',
           'demo.copyHandoff': 'Copy handoff',
+          'demo.shareTitle': 'Anonymously share this Skill choice to improve ForkProbe recommendations',
+          'demo.shareDetail': 'Only uploads the task type, compared Skill names, and final choice',
           'cta.kicker': 'Start skill comparison in one sentence',
           'cta.title': 'Before handing a task to your Agent, say: "compare a few skills first."',
           'cta.lede': 'Whether you use Claude Code, Codex, OpenClaw, WorkBuddy, OpenCode, or another Agent surface, forkprobe can recommend candidates, run comparisons, generate a report, and let you decide which skill to continue with.',
           'cta.prompt': 'Compare a few skills first and see which one fits the current task better. Or: use forkprobe to recommend candidates, wait for my confirmation, run them side by side, generate a report, and let me choose the winner.',
           'cta.copy': 'Copy',
           'footer.left': 'ForkProbe v0.7 · AI Skill selection and trial-run tool',
-          'footer.right': 'GitHub Pages ready · Local-first comparison reports',
+          'footer.right': 'Task content stays local · anonymous selection is optional',
           'toast.downloaded': 'Skill download started.',
           'ui.copied': 'Copied',
           'ui.manualCopy': 'Copy manually',
@@ -1955,7 +2002,7 @@
           'nav.start': '开始',
           'hero.eyebrow': 'ForkProbe v0.7：AI Skill 选型与试跑工具。',
           'hero.subtitle': '别猜哪个 AI Skill 有用，直接并排看结果。',
-          'hero.lede': 'ForkProbe 是一个 AI Skill 选型与试跑工具。v0.7 会自动扫描本机已安装 Skill，并合并 curated 目录、EverMind Skill Hub、GitHub 和用户自带来源；确认候选后再并行试跑。外部发现只发送脱敏场景词，不发送原始任务。',
+          'hero.lede': 'ForkProbe 是一个 AI Skill 选型与试跑工具。v0.7 会自动扫描本机已安装 Skill，并合并 curated 目录、EverMind Skill Hub、GitHub 和用户自带来源；确认候选后再并行试跑。选定 winner 后直接继续任务，并可选择匿名分享 Skill 选择。',
           'hero.previewButton': '查看预览',
           'hero.usecasesButton': '适用场景',
           'hero.visualAria': 'forkprobe 对比报告界面预览',
@@ -2036,7 +2083,7 @@
           'capability.roughCut.report': '粗剪 MP4、字幕、转写稿、剪辑清单/时间线、时长变化和媒体 QA。',
           'demo.kicker': '实际使用时',
           'demo.title': '使用 forkprobe，同一个任务、多个 skill 的结果清晰可见，轻松选择 winner。',
-          'demo.lede': '左侧是原始输入和 forkprobe 基于任务推荐的候选 skill，中间展示每一路完整输出，右侧给出 AI 评审建议。选定 winner 后，forkprobe 会生成 continuation handoff，让当前会话沿着你选中的结果继续执行。',
+          'demo.lede': '左侧是原始输入和 forkprobe 推荐的候选 skill，中间展示完整输出，右侧给出 AI 评审建议。一次操作即可保存 handoff、继续任务，并决定是否匿名分享本次 Skill 选择。',
           'demo.reportAria': 'forkprobe 交互式报告示例',
           'demo.reportTitle': 'forkprobe report · launch-copy',
           'demo.reportSubtitle': '本地生成 · 选择结果后继续执行',
@@ -2063,13 +2110,15 @@
           'demo.emptyHandoff': '请选择一个候选结果。选中后，这里会生成一段可以粘贴回当前 Agent 会话的继续执行文本。',
           'demo.handoffLabel': 'Continuation handoff',
           'demo.copyHandoff': '复制 handoff',
+          'demo.shareTitle': '匿名分享 Skill 选择，帮助 ForkProbe 改进推荐',
+          'demo.shareDetail': '仅上传任务类型、参与比较的 Skill 名称和最终选择',
           'cta.kicker': '一句话启动 skill 对比',
           'cta.title': '把任务交给 Agent 前，说“先帮我比较几个 skill”。',
           'cta.lede': '不管你用 Claude Code、Codex、OpenClaw、WorkBuddy 还是 OpenCode，都可以先让 forkprobe 找候选、跑对比、给评审，再由你决定继续哪一个 skill。',
           'cta.prompt': '先帮我比较几个 skill，看看哪个更适合当前任务。或者：请用 forkprobe 推荐候选，等我确认后再并排执行并生成 report，让我选择 winner。',
           'cta.copy': '复制',
           'footer.left': 'ForkProbe v0.7 · AI Skill 选型与试跑工具',
-          'footer.right': 'GitHub Pages ready · Local-first comparison reports',
+          'footer.right': '任务内容保留本地 · 匿名选择由用户决定',
           'toast.downloaded': '已为你下载 Skill。',
           'ui.copied': '已复制',
           'ui.manualCopy': '请手动复制',
@@ -2175,6 +2224,8 @@
       ['.demo-bar:nth-child(3) > span:first-child', 'demo.scoreSpread'],
       ['.demo-handoff-label', 'demo.handoffLabel'],
       ['#demoCopyHandoff', 'demo.copyHandoff'],
+      ['#demoShareTitle', 'demo.shareTitle'],
+      ['#demoShareDetail', 'demo.shareDetail'],
       ['#start .section-kicker', 'cta.kicker'],
       ['#start h2', 'cta.title'],
       ['#start .section-lede', 'cta.lede'],

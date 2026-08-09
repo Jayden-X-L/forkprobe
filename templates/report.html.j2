@@ -14,8 +14,12 @@
         verdictType: null,
         reason: '',
         submitted: false,
+        continuing: false,
         submitError: null,
         copiedHandoff: false,
+        shareAnonymous: {{ share_default_json }},
+        verdictConnected: {{ verdict_connected_json }},
+        telemetryQueued: false,
         candidates: {{ candidates_json }},
         messages: {
           en: {
@@ -25,7 +29,7 @@
             total: 'total',
             connected: 'connected to local server',
             noServer: 'Demo mode: your choice stays on this page only',
-            preference: 'Pick the output you prefer · v0.6',
+            preference: 'Pick the output you prefer · v0.7',
             originalInput: 'Original input',
             error: 'error',
             partial: 'artifacts available',
@@ -62,15 +66,22 @@
             tie: 'It is a tie',
             none: 'None are good',
             reasonLabel: 'Why did you pick this one?',
-            reasonOptional: '(optional, but this is gold for skill authors)',
+            reasonOptional: '(optional, stored locally only)',
             reasonPlaceholder: 'e.g. less robotic, kept the original meaning, sounded more like a human researcher...',
-            cancel: 'Cancel',
-            submit: 'Submit verdict',
-            captured: '✓ Verdict captured. Back in chat, say "I picked" and forkprobe can resume from the local log.',
+            backToCompare: 'Back to comparison',
+            continuePickPrefix: 'Continue with',
+            continueTie: 'Combine the strongest parts and continue',
+            continueNone: 'Adjust the task and run again',
+            sharingTitle: 'Anonymously share this Skill choice to improve ForkProbe recommendations',
+            sharingDetail: 'Only uploads the task type, compared Skill names, and final choice',
+            sharingUnavailable: 'Anonymous sharing requires the local continuation service',
+            captured: '✓ Choice saved. ForkProbe can continue from the local handoff.',
+            shared: 'Anonymous selection queued for sharing.',
+            localOnly: 'This selection stays local.',
             closeTab: 'You can close this tab. Latest verdict is in',
             serverError: 'Could not reach forkprobe server',
             serverErrorHint: 'The server may have timed out. Your selection is in the browser console; you can also re-run forkprobe.',
-            privacy: 'Privacy: 100% local in v0.6',
+            privacy: 'Task content and outputs stay local · anonymous selection sharing is optional',
             judgeTitle: 'AI judge recommendation',
             judgeRecommended: 'Recommended',
             judgeConfidence: 'confidence',
@@ -96,7 +107,7 @@
             total: '总耗时',
             connected: '已连接本地记录服务',
             noServer: '演示模式：你的选择只会保留在当前页面',
-            preference: '请选择你更认可的结果 · v0.6',
+            preference: '请选择你更认可的结果 · v0.7',
             originalInput: '原始输入',
             error: '错误',
             partial: '产物已生成',
@@ -133,15 +144,22 @@
             tie: '差不多',
             none: '都不满意',
             reasonLabel: '为什么选这个?',
-            reasonOptional: '(可选,但这对改进 skill 很有价值)',
+            reasonOptional: '(可选，仅保存在本地)',
             reasonPlaceholder: '例如: 没那么像 AI、保留了原意、更像真实研究者写的...',
-            cancel: '取消',
-            submit: '提交选择',
-            captured: '✓ 已记录选择。回到对话说“我选好了”, forkprobe 会从本地日志继续。',
+            backToCompare: '返回比较',
+            continuePickPrefix: '使用',
+            continueTie: '合并候选优点并继续',
+            continueNone: '调整任务并重新试跑',
+            sharingTitle: '匿名分享 Skill 选择，帮助 ForkProbe 改进推荐',
+            sharingDetail: '仅上传任务类型、参与比较的 Skill 名称和最终选择',
+            sharingUnavailable: '匿名分享需要连接本地继续服务',
+            captured: '✓ 已记录选择，ForkProbe 可以从本地交接继续任务。',
+            shared: '匿名选择已进入分享队列。',
+            localOnly: '本次选择仅保存在本地。',
             closeTab: '你可以关闭这个页面。最新选择位置:',
             serverError: '无法连接 forkprobe 本地服务',
             serverErrorHint: '本地服务可能已经超时。你的选择仍在浏览器控制台里; 也可以重新运行 forkprobe。',
-            privacy: '隐私:v0.6 完全本地保存',
+            privacy: '任务内容和产物保留在本地 · 匿名选择可由用户决定是否分享',
             judgeTitle: 'AI 评审推荐',
             judgeRecommended: '推荐',
             judgeConfidence: '置信度',
@@ -281,6 +299,20 @@
           }
           return `${this.t('handoffPickPrefix')} ${skillName} (${this.winner}) for the rest of this task.\n${this.t('handoffReason')}: ${reason}`;
         },
+        continueLabel() {
+          if (this.verdictType === 'tie') return this.t('continueTie');
+          if (this.verdictType === 'none') return this.t('continueNone');
+          const skillName = this.candidateName(this.winner);
+          return this.lang === 'zh'
+            ? `${this.t('continuePickPrefix')} ${skillName} 继续`
+            : `${this.t('continuePickPrefix')} ${skillName}`;
+        },
+        resetSelection() {
+          this.winner = null;
+          this.verdictType = null;
+          this.reason = '';
+          this.submitError = null;
+        },
         async copyHandoff() {
           try {
             await navigator.clipboard.writeText(this.handoffText());
@@ -290,7 +322,10 @@
             this.copiedHandoff = false;
           }
         },
-        async submit() {
+        async continueTask() {
+          if (!this.winner || this.continuing) return;
+          this.continuing = true;
+          this.submitError = null;
           const verdictUrl = '{{ verdict_url }}';
           const payload = {
             winner: this.winner,
@@ -298,11 +333,15 @@
             winner_name: this.candidateName(this.winner),
             reason: this.reason,
             handoff_text: this.handoffText(),
+            share_anonymous: Boolean(this.shareAnonymous && this.verdictConnected),
+            telemetry_consent_version: {{ telemetry_consent_version }},
             submitted_at: new Date().toISOString(),
           };
           if (!verdictUrl) {
             console.log('Verdict (no server attached):', payload);
             this.submitted = true;
+            this.telemetryQueued = false;
+            this.continuing = false;
             return;
           }
           try {
@@ -312,11 +351,15 @@
               body: JSON.stringify(payload),
             });
             if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const response = await resp.json();
             this.submitted = true;
+            this.telemetryQueued = Boolean(response.telemetry_queued);
             this.submitError = null;
           } catch (err) {
             this.submitError = err.message;
             console.error('Verdict submit failed:', err);
+          } finally {
+            this.continuing = false;
           }
         },
       };
@@ -481,7 +524,7 @@
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-        <span x-text="t('preference')">Pick the output you prefer · v0.6</span>
+        <span x-text="t('preference')">Pick the output you prefer · v0.7</span>
         <div class="inline-flex overflow-hidden rounded border border-slate-300 bg-white">
           <button type="button"
                   @click="setLang('zh')"
@@ -803,12 +846,16 @@
     </button>
   </div>
 
-  <!-- Reason input -->
+  <!-- Continue with the selected route -->
   <div x-show="winner && !submitted" x-cloak
        x-transition:enter="transition ease-out duration-300"
        x-transition:enter-start="opacity-0 transform translate-y-2"
        x-transition:enter-end="opacity-100 transform translate-y-0"
-       class="mt-6 bg-white rounded-lg p-4 border border-slate-200 shadow-sm max-w-2xl mx-auto">
+       class="mt-6 bg-white rounded-lg p-5 border border-slate-200 shadow-sm max-w-3xl mx-auto">
+    <p class="text-sm font-semibold text-slate-950">
+      <span x-text="t('selectedLabel')">Selected</span>:
+      <span x-text="candidateName(winner)"></span>
+    </p>
     <label class="block text-sm font-medium text-slate-800 mb-2">
       <span x-text="t('reasonLabel')">Why did you pick this one?</span>
       <span class="text-slate-500 font-normal" x-text="t('reasonOptional')">(optional, but this is gold for skill authors)</span>
@@ -818,20 +865,40 @@
               rows="3"
               :placeholder="t('reasonPlaceholder')"
               placeholder="e.g. less robotic, kept the original meaning, sounded more like a human researcher..."></textarea>
-    <div class="mt-3 flex justify-end gap-2">
-      <button @click="winner = null; verdictType = null; reason = ''"
-              class="px-3 py-2 text-sm text-slate-600 hover:text-slate-950 transition">
-        <span x-text="t('cancel')">Cancel</span>
+
+    <label class="mt-4 flex cursor-pointer items-start gap-3 border-t border-slate-200 pt-4"
+           :class="verdictConnected ? '' : 'cursor-not-allowed opacity-60'">
+      <input type="checkbox"
+             x-model="shareAnonymous"
+             :disabled="!verdictConnected"
+             class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+      <span>
+        <span class="block text-sm font-medium text-slate-900" x-text="t('sharingTitle')">
+          Anonymously share this Skill choice to improve ForkProbe recommendations
+        </span>
+        <span class="mt-1 block text-xs leading-5 text-slate-500"
+              x-text="verdictConnected ? t('sharingDetail') : t('sharingUnavailable')">
+          Only uploads the task type, compared Skill names, and final choice
+        </span>
+      </span>
+    </label>
+
+    <div class="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <button @click="resetSelection()"
+              :disabled="continuing"
+              class="px-3 py-2 text-sm text-slate-600 hover:text-slate-950 transition disabled:opacity-50">
+        <span x-text="t('backToCompare')">Back to comparison</span>
       </button>
-      <button @click="submit()"
-              class="px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-800 text-white rounded transition">
-        <span x-text="t('submit')">Submit verdict</span>
+      <button @click="continueTask()"
+              :disabled="continuing"
+              class="min-h-10 px-4 py-2 text-sm font-medium bg-slate-900 hover:bg-slate-800 text-white rounded transition disabled:cursor-wait disabled:opacity-60">
+        <span x-text="continueLabel()">Continue with selected Skill</span>
       </button>
     </div>
   </div>
 
   <!-- Continuation handoff -->
-  <div x-show="winner" x-cloak
+  <div x-show="submitted" x-cloak
        x-transition:enter="transition ease-out duration-300"
        x-transition:enter-start="opacity-0 transform translate-y-2"
        x-transition:enter-end="opacity-100 transform translate-y-0"
@@ -866,6 +933,8 @@
     <p class="text-blue-800 text-sm" x-text="t('captured')">
       ✓ Verdict captured. Back in chat, say "I picked" and forkprobe can resume from the local log.
     </p>
+    <p class="text-xs text-slate-600 mt-2"
+       x-text="telemetryQueued ? t('shared') : t('localOnly')"></p>
     <p class="text-xs text-slate-600 mt-2">
       <span x-text="t('closeTab')">You can close this tab. Latest verdict is in</span>
       <code class="text-slate-800">./forkprobe-logs/</code>
@@ -885,7 +954,7 @@
   <footer class="mt-12 pt-6 border-t border-slate-200 text-center text-xs text-slate-500">
     forkprobe · MIT ·
     <a href="https://github.com/Jayden-X-L/forkprobe" target="_blank" rel="noopener noreferrer" class="hover:text-slate-800 transition">github</a> ·
-    <span x-text="t('privacy')">Privacy: 100% local in v0.6</span>
+    <span x-text="t('privacy')">Task content and outputs stay local · anonymous selection sharing is optional</span>
   </footer>
 
 </body>

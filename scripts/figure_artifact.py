@@ -823,6 +823,8 @@ def main() -> int:
     parser.add_argument("--judge-rubric", default=None, help="Optional extra rubric text for --judge")
     parser.add_argument("--judge-timeout", type=int, default=120, help="Seconds to wait for the judge subagent (default: 120)")
     parser.add_argument("--no-open", action="store_true", help="Do not auto-open rendered report")
+    parser.add_argument("--no-server", action="store_true", help="Do not start the local continuation server")
+    parser.add_argument("--verdict-timeout", type=int, default=600, help="Seconds to wait for a browser choice")
     parser.add_argument("--json", action="store_true", help="Print JSON summary")
     args = parser.parse_args()
 
@@ -873,17 +875,20 @@ def main() -> int:
 
     if args.render_report or args.run:
         sys.path.insert(0, str(SCRIPT_DIR))
-        from render_artifact_report import render_from_manifest
+        from render_artifact_report import render_session_from_manifest
 
         report_path = Path(args.report_output)
         if not report_path.is_absolute():
             report_path = Path(result["output_dir"]) / report_path
-        render_from_manifest(
+        session = render_session_from_manifest(
             manifest_path=Path(result["manifest_path"]),
             output_path=report_path,
             auto_open=not args.no_open,
+            no_server=args.no_server,
+            verdict_timeout=args.verdict_timeout,
         )
-        result["report_path"] = str(report_path.resolve())
+        result["report_path"] = session["report_path"]
+        result["verdict_log_path"] = session["log_path"]
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

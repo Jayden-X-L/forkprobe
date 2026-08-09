@@ -30,6 +30,8 @@ ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交
 
 **v0.7 新增多来源候选发现：** ForkProbe 会自动扫描 `~/.codex/skills`、`~/.agents/skills`、`~/.claude/skills` 和项目内 Skill 目录，并把匹配的已安装 Skill 与 curated 目录、EverMind Skill Hub、GitHub 搜索及用户自带路径合并、去重和排序。外部查询只发送脱敏后的场景词，不发送原始任务内容。v0.6 的视频成品对比以及此前的网页、写作、PPTX、科研绘图和调研报告能力继续支持。
 
+选定 winner 后，Report 的“继续”按钮会同时保存本地 handoff，并让 Agent 沿胜出 Skill 继续任务。用户可以在同一区域选择是否匿名分享本次 Skill 选择，为未来的社区推荐先验积累样本。
+
 当网络上的 skill 越来越多时，问题不再是“有没有 skill”，而是“当前任务到底该用哪个 skill”。ForkProbe 的目标很直接：先把结果摊开，再让 Agent 沿着你选中的路径继续工作。
 
 ## 什么时候该用 ForkProbe
@@ -384,12 +386,34 @@ python3 scripts/research_artifact.py \
 
 推荐产物包括 `candidate-report.md`、`candidate-report.html`、`sources.json`、`evidence-table.md`、`claim-checks.md`、`limitations.md` 和 `summary.md`。
 
+## 匿名 Winner 分享（可选）
+
+Report 选择 winner 后会显示：
+
+```text
+已选择：Hallmark
+
+☑ 匿名分享 Skill 选择，帮助 ForkProbe 改进推荐
+  仅上传任务类型、参与比较的 Skill 名称和最终选择
+
+[返回比较]                  [使用 Hallmark 继续]
+```
+
+- 首次使用默认勾选；用户继续时的选择会保存在 `~/.forkprobe/config.json`，供后续 Report 使用。
+- 勾选后只上传 `task_type`、`candidate_skill_names` 和 `final_choice`。协议还包含随机事件 ID 与版本号，用于幂等去重。
+- 不上传任务原文、候选输出、文件、评价理由、本地路径或用户身份。
+- 事件先写入 `~/.forkprobe/telemetry/outbox/`，网络失败不会阻止 winner 保存或 Agent 继续，后续运行会自动重试。
+- 设置 `FORKPROBE_TELEMETRY=0` 可强制关闭匿名分享；也可以在 Report 中取消勾选。
+- 生产接收端通过 `FORKPROBE_TELEMETRY_ENDPOINT` 配置。Cloudflare Worker + D1 实现在 [`services/telemetry-worker`](./services/telemetry-worker/README.md)。
+- 统计按任务类型聚合，至少达到 20 次有效选择后才通过公共统计 API 返回 Skill 胜率和两两胜率。
+
 ## 隐私
 
 - 任务内容保留在本地 report 和本地日志里。
 - GitHub 和 EverMind Skill Hub 只接收清洗后的场景词，不接收原始任务、文档或本地路径。
 - 本地 Skill 扫描只读取 `SKILL.md` 元数据和说明，用于索引与匹配；不会自动安装或执行 Skill。
-- 本地 verdict 日志只记录 winner、可选理由、report 路径和 continuation handoff。
+- 本地 verdict 日志只记录任务哈希、候选元数据、winner、可选理由、report 路径和 continuation handoff。
+- 匿名 Winner 分享由 Report 中的复选框控制；即使开启，任务内容和产物仍留在本地。
 - 如果不想联网，可以使用 `--local-only`，或明确说“只要本地候选”。
 - 如果不想启动本地 verdict-capture server，可以使用 `--no-server`。
 - 本地回写 token、CORS、远程 fetch 和命令执行说明见 [SECURITY.md](./SECURITY.md)。
@@ -416,6 +440,7 @@ scripts/    对比、推荐、报告和 verdict 工具
 templates/  HTML report 模板
 catalog/    curated skill 与 artifact pipeline catalog
 tests/      smoke / integration tests
+services/   可选的 Cloudflare Worker + D1 匿名聚合服务
 SKILL.md    Agent skill 指令
 ```
 
