@@ -118,7 +118,8 @@
       border-radius: 8px;
     }
 
-    .nav-links a:hover {
+    .nav-links a:hover,
+    .nav-links a[aria-current="page"] {
       background: rgba(37, 99, 235, 0.08);
       color: var(--ink);
     }
@@ -126,6 +127,7 @@
     .lang-switch {
       display: inline-flex;
       align-items: center;
+      flex: 0 0 auto;
       gap: 0.2rem;
       padding: 0.2rem;
       border: 1px solid rgba(151, 164, 184, 0.5);
@@ -615,6 +617,45 @@
       max-width: 48rem;
     }
 
+    .capability-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .capability-summary {
+      min-width: 0;
+      padding: 1.15rem;
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--blue);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .capability-summary:nth-child(2) { border-top-color: var(--teal); }
+    .capability-summary:nth-child(3) { border-top-color: var(--amber); }
+    .capability-summary:nth-child(4) { border-top-color: var(--green); }
+
+    .capability-summary h3 {
+      margin: 0 0 0.45rem;
+      font-size: 1.02rem;
+    }
+
+    .capability-summary p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .capability-more {
+      margin-top: 1.25rem;
+    }
+
+    .capability-block .task-matrix-shell {
+      display: none;
+    }
+
     .task-matrix-shell {
       margin-top: 2rem;
       overflow-x: auto;
@@ -715,6 +756,41 @@
 
     .report-demo-section .section-inner {
       width: min(1280px, 100%);
+    }
+
+    .community-preview {
+      order: 3;
+      padding: clamp(4rem, 8vw, 7rem) clamp(1rem, 6vw, 5rem);
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .community-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .community-preview-item {
+      min-width: 0;
+      padding: 1.1rem 1.1rem 1.1rem 1.25rem;
+      border-left: 3px solid var(--blue);
+      background: var(--page);
+    }
+
+    .community-preview-item:nth-child(2) { border-color: var(--teal); }
+    .community-preview-item:nth-child(3) { border-color: var(--amber); }
+
+    .community-preview-item strong {
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    .community-preview-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
     }
 
     .demo-report {
@@ -1091,7 +1167,7 @@
     }
 
     .cta {
-      order: 3;
+      order: 4;
       background:
         linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(217, 119, 6, 0.08)),
         #f7fbff;
@@ -1258,19 +1334,36 @@
       .usecase-grid {
         grid-template-columns: 1fr;
       }
+
+      .capability-summary-grid,
+      .community-preview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     @media (max-width: 720px) {
       .nav {
         position: static;
+        flex-wrap: wrap;
       }
 
       .nav-links {
-        display: none;
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: auto;
       }
 
       .nav-actions {
-        margin-left: auto;
+        width: 100%;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+
+      .nav-links a {
+        padding: 0.45rem 0.55rem;
+        font-size: 0.84rem;
+        white-space: nowrap;
       }
 
       .hero {
@@ -1360,6 +1453,11 @@
         align-items: flex-start;
       }
 
+      .capability-summary-grid,
+      .community-preview-grid {
+        grid-template-columns: 1fr;
+      }
+
       .toast {
         left: 1rem;
         right: 1rem;
@@ -1377,9 +1475,11 @@
       </a>
       <div class="nav-actions">
         <div class="nav-links">
-          <a href="#report-demo">预览</a>
-          <a href="#usecases">场景</a>
-          <a href="#start">开始</a>
+          <a href="index.html" data-preserve-lang aria-current="page" data-i18n="nav.home">首页</a>
+          <a href="capabilities.html" data-preserve-lang data-i18n="nav.capabilities">能力</a>
+          <a href="community.html" data-preserve-lang data-i18n="nav.community">社区数据</a>
+          <a href="guide.html" data-preserve-lang data-i18n="nav.guide">使用指南</a>
+          <a href="https://github.com/Jayden-X-L/forkprobe" target="_blank" rel="noopener">GitHub</a>
         </div>
         <div class="lang-switch" role="group" aria-label="Language">
           <button class="lang-option" type="button" data-lang-option="en" aria-pressed="false">EN</button>
@@ -1551,6 +1651,28 @@
             <p class="section-lede" data-i18n="capability.lede">
               文本任务看多版本输出；PPTX、科研作图、调研报告、网页和视频成品看真实文件、预览或播放。图片生成仍在规划中。
             </p>
+
+            <div class="capability-summary-grid">
+              <article class="capability-summary">
+                <h3 data-i18n="capability.previewWriting.title">文本与写作</h3>
+                <p data-i18n="capability.previewWriting.body">学术润色、去 AI 味、审稿回复和完整文稿比较。</p>
+              </article>
+              <article class="capability-summary">
+                <h3 data-i18n="capability.previewResearch.title">研究与科研</h3>
+                <p data-i18n="capability.previewResearch.body">调研报告、文献综述、数据图和科研机制图。</p>
+              </article>
+              <article class="capability-summary">
+                <h3 data-i18n="capability.previewWeb.title">网页与演示</h3>
+                <p data-i18n="capability.previewWeb.body">可打开的 PPTX、可运行网页、截图、源码和 QA。</p>
+              </article>
+              <article class="capability-summary">
+                <h3 data-i18n="capability.previewVideo.title">视频与视觉</h3>
+                <p data-i18n="capability.previewVideo.body">产品宣传片、动效视频、口播粗剪和视觉成品。</p>
+              </article>
+            </div>
+            <div class="capability-more">
+              <a class="button button-secondary" href="capabilities.html" data-preserve-lang data-i18n="capability.openAll">查看完整能力与 Report 产物</a>
+            </div>
 
             <div class="task-matrix-shell">
               <table class="task-matrix">
@@ -1775,6 +1897,33 @@
         </div>
       </section>
 
+      <section class="community-preview" id="community-preview">
+        <div class="section-inner">
+          <p class="section-kicker" data-i18n="privacy.kicker">社区选择信号</p>
+          <h2 data-i18n="privacy.title">匿名分享真实选择，样本足够后再公开统计。</h2>
+          <p class="section-lede" data-i18n="privacy.lede">
+            Report 在继续步骤展示匿名分享选项。仅上传任务类型、参选 Skill 名称和最终选择；不上传任务原文、模型输出、文件、路径或身份信息。
+          </p>
+          <div class="community-preview-grid">
+            <div class="community-preview-item">
+              <strong data-i18n="privacy.controlTitle">用户可控制</strong>
+              <p data-i18n="privacy.controlBody">首次使用默认勾选，但你可以在继续任务前取消，或通过环境变量全局关闭。</p>
+            </div>
+            <div class="community-preview-item">
+              <strong data-i18n="privacy.thresholdTitle">至少 20 条再公开</strong>
+              <p data-i18n="privacy.thresholdBody">每个任务类型达到门槛后，才展示 Skill 胜率和两两胜率。</p>
+            </div>
+            <div class="community-preview-item">
+              <strong data-i18n="privacy.aggregateTitle">只展示聚合结果</strong>
+              <p data-i18n="privacy.aggregateBody">不公开单条事件或个人选择；社区胜率也不会与 Benchmark、来源质量分混为一谈。</p>
+            </div>
+          </div>
+          <div class="capability-more">
+            <a class="button button-secondary" href="community.html" data-preserve-lang data-i18n="privacy.open">查看样本进度与完整规则</a>
+          </div>
+        </div>
+      </section>
+
       <section class="cta" id="start">
         <div class="section-inner">
           <p class="section-kicker">一句话启动 skill 对比</p>
@@ -1810,6 +1959,10 @@
           'meta.description': 'ForkProbe v0.8 adds an optional anonymous Winner feedback loop and aggregate community selection statistics.',
           'nav.aria': 'Primary navigation',
           'nav.brandAria': 'forkprobe home',
+          'nav.home': 'Home',
+          'nav.capabilities': 'Capabilities',
+          'nav.community': 'Community',
+          'nav.guide': 'Guide',
           'nav.preview': 'Preview',
           'nav.usecases': 'Use cases',
           'nav.start': 'Start',
@@ -1894,6 +2047,15 @@
           'capability.roughCut.title': 'Talking-head rough-cut comparison',
           'capability.roughCut.detail': 'Silence, repetition, and mistake cleanup over the same talking-head, interview, podcast, or vlog source.',
           'capability.roughCut.report': 'Rough-cut MP4, captions, transcript, cut list/timeline, duration change, and media QA.',
+          'capability.previewWriting.title': 'Writing & text',
+          'capability.previewWriting.body': 'Academic polishing, anti-AI writing, reviewer responses, and complete draft comparison.',
+          'capability.previewResearch.title': 'Research & science',
+          'capability.previewResearch.body': 'Research reports, literature reviews, data plots, and scientific schematics.',
+          'capability.previewWeb.title': 'Web & presentations',
+          'capability.previewWeb.body': 'Openable PPTX files, runnable webpages, screenshots, source, and QA.',
+          'capability.previewVideo.title': 'Video & visual',
+          'capability.previewVideo.body': 'Product promos, motion graphics, talking-head rough cuts, and visual deliverables.',
+          'capability.openAll': 'View all capabilities and Report deliverables',
           'demo.kicker': 'In practice',
           'demo.title': 'One task, multiple skills, visible results, and a winner you can continue from.',
           'demo.lede': 'The left panel shows the original task and recommended skills. The center shows each complete output, and the right panel gives an AI judge recommendation. One action saves the handoff, continues the task, and lets you decide whether to share the anonymous Skill selection.',
@@ -1925,6 +2087,16 @@
           'demo.copyHandoff': 'Copy handoff',
           'demo.shareTitle': 'Anonymously share this Skill choice to improve ForkProbe recommendations',
           'demo.shareDetail': 'Only uploads the task type, compared Skill names, and final choice',
+          'privacy.kicker': 'Community selection signals',
+          'privacy.title': 'Share real choices anonymously; publish statistics only after enough samples.',
+          'privacy.lede': 'The Report shows anonymous sharing at the Continue step. It only uploads the task type, compared Skill names, and final choice; task text, model outputs, files, paths, and identity data are not uploaded.',
+          'privacy.controlTitle': 'User controlled',
+          'privacy.controlBody': 'It is checked on first use, but you can turn it off before continuing or disable it globally with an environment variable.',
+          'privacy.thresholdTitle': 'At least 20 before publication',
+          'privacy.thresholdBody': 'Skill and pairwise win rates appear only after each task type reaches the threshold.',
+          'privacy.aggregateTitle': 'Aggregates only',
+          'privacy.aggregateBody': 'Individual events and choices stay private; community win rates remain separate from benchmarks and source-quality scores.',
+          'privacy.open': 'View sample progress and full rules',
           'cta.kicker': 'Start skill comparison in one sentence',
           'cta.title': 'Before handing a task to your Agent, say: "compare a few skills first."',
           'cta.lede': 'Whether you use Claude Code, Codex, OpenClaw, WorkBuddy, OpenCode, or another Agent surface, forkprobe can recommend candidates, run comparisons, generate a report, and let you decide which skill to continue with.',
@@ -1997,6 +2169,10 @@
           'meta.description': 'ForkProbe v0.8 新增可选匿名 Winner 反馈与社区选择统计。',
           'nav.aria': '主导航',
           'nav.brandAria': 'forkprobe 首页',
+          'nav.home': '首页',
+          'nav.capabilities': '能力',
+          'nav.community': '社区数据',
+          'nav.guide': '使用指南',
           'nav.preview': '预览',
           'nav.usecases': '场景',
           'nav.start': '开始',
@@ -2081,6 +2257,15 @@
           'capability.roughCut.title': '口播粗剪比较',
           'capability.roughCut.detail': '同一条口播、访谈、播客或 vlog 原片的停顿、重复和口误清理。',
           'capability.roughCut.report': '粗剪 MP4、字幕、转写稿、剪辑清单/时间线、时长变化和媒体 QA。',
+          'capability.previewWriting.title': '文本与写作',
+          'capability.previewWriting.body': '学术润色、去 AI 味、审稿回复和完整文稿比较。',
+          'capability.previewResearch.title': '研究与科研',
+          'capability.previewResearch.body': '调研报告、文献综述、数据图和科研机制图。',
+          'capability.previewWeb.title': '网页与演示',
+          'capability.previewWeb.body': '可打开的 PPTX、可运行网页、截图、源码和 QA。',
+          'capability.previewVideo.title': '视频与视觉',
+          'capability.previewVideo.body': '产品宣传片、动效视频、口播粗剪和视觉成品。',
+          'capability.openAll': '查看完整能力与 Report 产物',
           'demo.kicker': '实际使用时',
           'demo.title': '使用 forkprobe，同一个任务、多个 skill 的结果清晰可见，轻松选择 winner。',
           'demo.lede': '左侧是原始输入和 forkprobe 推荐的候选 skill，中间展示完整输出，右侧给出 AI 评审建议。一次操作即可保存 handoff、继续任务，并决定是否匿名分享本次 Skill 选择。',
@@ -2112,6 +2297,16 @@
           'demo.copyHandoff': '复制 handoff',
           'demo.shareTitle': '匿名分享 Skill 选择，帮助 ForkProbe 改进推荐',
           'demo.shareDetail': '仅上传任务类型、参与比较的 Skill 名称和最终选择',
+          'privacy.kicker': '社区选择信号',
+          'privacy.title': '匿名分享真实选择，样本足够后再公开统计。',
+          'privacy.lede': 'Report 在继续步骤展示匿名分享选项。仅上传任务类型、参选 Skill 名称和最终选择；不上传任务原文、模型输出、文件、路径或身份信息。',
+          'privacy.controlTitle': '用户可控制',
+          'privacy.controlBody': '首次使用默认勾选，但你可以在继续任务前取消，或通过环境变量全局关闭。',
+          'privacy.thresholdTitle': '至少 20 条再公开',
+          'privacy.thresholdBody': '每个任务类型达到门槛后，才展示 Skill 胜率和两两胜率。',
+          'privacy.aggregateTitle': '只展示聚合结果',
+          'privacy.aggregateBody': '不公开单条事件或个人选择；社区胜率也不会与 Benchmark、来源质量分混为一谈。',
+          'privacy.open': '查看样本进度与完整规则',
           'cta.kicker': '一句话启动 skill 对比',
           'cta.title': '把任务交给 Agent 前，说“先帮我比较几个 skill”。',
           'cta.lede': '不管你用 Claude Code、Codex、OpenClaw、WorkBuddy 还是 OpenCode，都可以先让 forkprobe 找候选、跑对比、给评审，再由你决定继续哪一个 skill。',
@@ -2347,6 +2542,14 @@
       window.history.replaceState({}, '', url);
     };
 
+    const updateInternalLanguageLinks = (lang) => {
+      document.querySelectorAll('[data-preserve-lang]').forEach((link) => {
+        const url = new URL(link.getAttribute('href'), window.location.href);
+        url.searchParams.set('lang', lang);
+        link.setAttribute('href', `${url.pathname.split('/').pop() || 'index.html'}${url.search}${url.hash}`);
+      });
+    };
+
     const currentText = (key) => translations[activeLang].text[key];
 
     const renderSelectedState = () => {
@@ -2421,6 +2624,8 @@
         button.classList.toggle('is-active', isActive);
         button.setAttribute('aria-pressed', String(isActive));
       });
+
+      updateInternalLanguageLinks(activeLang);
 
       renderDemoCandidate(activeDemoCandidate);
       renderSelectedState();

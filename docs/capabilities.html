@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ForkProbe v0.8 支持的 AI Skill 对比场景与 Report 成品。">
+  <title>能力场景 · ForkProbe v0.8</title>
+  <link rel="stylesheet" href="assets/site-pages.css">
+</head>
+<body data-title-zh="能力场景 · ForkProbe v0.8" data-title-en="Capabilities · ForkProbe v0.8">
+  <nav class="site-nav" aria-label="Primary navigation">
+    <a class="brand" href="index.html" data-preserve-lang>
+      <span class="brand-mark">fp</span>
+      <span>ForkProbe</span>
+    </a>
+    <div class="nav-actions">
+      <div class="nav-links">
+        <a href="index.html" data-preserve-lang data-zh="首页" data-en="Home">首页</a>
+        <a href="capabilities.html" data-preserve-lang aria-current="page" data-zh="能力" data-en="Capabilities">能力</a>
+        <a href="community.html" data-preserve-lang data-zh="社区数据" data-en="Community">社区数据</a>
+        <a href="guide.html" data-preserve-lang data-zh="使用指南" data-en="Guide">使用指南</a>
+        <a href="https://github.com/Jayden-X-L/forkprobe" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button class="lang-option" type="button" data-lang-option="en" aria-pressed="false">EN</button>
+        <button class="lang-option" type="button" data-lang-option="zh" aria-pressed="true">中文</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page-main">
+    <header class="page-hero">
+      <div class="page-hero-inner">
+        <p class="eyebrow" data-zh="能力场景" data-en="Capabilities">能力场景</p>
+        <h1 data-zh="比较完整成品，不只比较几段文字。" data-en="Compare finished deliverables, not just snippets of text.">比较完整成品，不只比较几段文字。</h1>
+        <p class="hero-lede" data-zh="ForkProbe 根据任务判断应该比较文本、科研图、报告、网页、PPTX 还是视频，并让每条候选路线交付同一种可检查的成品。" data-en="ForkProbe detects whether a task needs text, scientific figures, reports, webpages, PPTX decks, or video, then asks every candidate path to deliver the same inspectable artifact.">ForkProbe 根据任务判断应该比较文本、科研图、报告、网页、PPTX 还是视频，并让每条候选路线交付同一种可检查的成品。</p>
+      </div>
+    </header>
+
+    <section class="page-section">
+      <div class="section-inner">
+        <div class="section-head">
+          <p class="section-kicker" data-zh="当前覆盖" data-en="Current coverage">当前覆盖</p>
+          <h2 data-zh="按交付物选择一组能力。" data-en="Choose a capability group by deliverable.">按交付物选择一组能力。</h2>
+          <p class="section-lede" data-zh="分类只负责帮助浏览；实际运行时，ForkProbe 仍会先推荐具体候选并等待你确认。" data-en="These groups make browsing easier. At run time, ForkProbe still recommends concrete candidates and waits for your confirmation.">分类只负责帮助浏览；实际运行时，ForkProbe 仍会先推荐具体候选并等待你确认。</p>
+        </div>
+
+        <div class="tab-list" role="tablist" aria-label="Capability groups">
+          <button class="tab-button" type="button" role="tab" data-tab="writing" aria-selected="true" data-zh="文本与写作" data-en="Writing">文本与写作</button>
+          <button class="tab-button" type="button" role="tab" data-tab="research" aria-selected="false" data-zh="研究与科研" data-en="Research">研究与科研</button>
+          <button class="tab-button" type="button" role="tab" data-tab="web" aria-selected="false" data-zh="网页与演示" data-en="Web & decks">网页与演示</button>
+          <button class="tab-button" type="button" role="tab" data-tab="video" aria-selected="false" data-zh="视频与视觉" data-en="Video & visual">视频与视觉</button>
+        </div>
+
+        <div data-tab-panel="writing">
+          <div class="scenario-grid">
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="学术润色与 SCI 写作" data-en="Academic polishing & SCI writing">学术润色与 SCI 写作</h3><span class="status-pill" data-zh="已支持" data-en="Supported">已支持</span></div>
+              <p data-zh="论文润色、学术表达优化、英文润色、中译英和 Nature 风格润色。" data-en="Paper polishing, academic expression, English editing, translation, and Nature-style revision.">论文润色、学术表达优化、英文润色、中译英和 Nature 风格润色。</p>
+              <div class="scenario-output" data-zh="Report：多版本全文、AI 评审、Winner 选择。" data-en="Report: full draft variants, AI judge notes, and Winner selection.">Report：多版本全文、AI 评审、Winner 选择。</div>
+            </article>
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="自然化与去 AI 味写作" data-en="Naturalization & anti-AI writing">自然化与去 AI 味写作</h3><span class="status-pill" data-zh="已支持" data-en="Supported">已支持</span></div>
+              <p data-zh="降低 AI 味、内部分享稿、宣传稿和一般文稿改写，覆盖多种 humanizer 路线。" data-en="Less AI-like writing, internal posts, launch copy, and general rewrites across multiple humanizer paths.">降低 AI 味、内部分享稿、宣传稿和一般文稿改写，覆盖多种 humanizer 路线。</p>
+              <div class="scenario-output" data-zh="Report：不同风格全文并排、自然度与语气评价。" data-en="Report: side-by-side full drafts with naturalness and tone evaluation.">Report：不同风格全文并排、自然度与语气评价。</div>
+            </article>
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="审稿回复与投稿材料" data-en="Reviewer response & submission materials">审稿回复与投稿材料</h3><span class="status-pill" data-zh="已支持" data-en="Supported">已支持</span></div>
+              <p data-zh="Rebuttal、response letter、cover letter、修改说明和投稿沟通材料。" data-en="Rebuttals, response letters, cover letters, revision notes, and submission communication.">Rebuttal、response letter、cover letter、修改说明和投稿沟通材料。</p>
+              <div class="scenario-output" data-zh="Report：回复结构、逐条回应、证据和语气对比。" data-en="Report: response structure, point-by-point answers, evidence, and tone comparison.">Report：回复结构、逐条回应、证据和语气对比。</div>
+            </article>
+          </div>
+        </div>
+
+        <div data-tab-panel="research" hidden>
+          <div class="scenario-grid">
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="调研报告" data-en="Research reports">调研报告</h3><span class="status-pill" data-zh="已支持" data-en="Supported">已支持</span></div>
+              <p data-zh="市场调研、公司调研、竞品分析、用户研究、文献综述和投研报告。" data-en="Market, company, competitive, user, literature, and investment research.">市场调研、公司调研、竞品分析、用户研究、文献综述和投研报告。</p>
+              <div class="scenario-output" data-zh="Report：完整报告预览、来源、证据表、claim checks 和限制说明。" data-en="Report: full report preview, sources, evidence tables, claim checks, and limitations.">Report：完整报告预览、来源、证据表、claim checks 和限制说明。</div>
+            </article>
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="论文作图与科研绘图" data-en="Paper figures & scientific graphics">论文作图与科研绘图</h3><span class="status-pill" data-zh="已支持" data-en="Supported">已支持</span></div>
+              <p data-zh="真实数据图、机制图、架构图、graphical abstract 和投稿级 figure package。" data-en="Data plots, mechanism figures, architecture diagrams, graphical abstracts, and submission-ready figure packages.">真实数据图、机制图、架构图、graphical abstract 和投稿级 figure package。</p>
+              <div class="scenario-output" data-zh="Report：PNG 预览、SVG/PDF/TIFF、代码、caption 和 QA。" data-en="Report: PNG previews, SVG/PDF/TIFF, code, captions, and QA.">Report：PNG 预览、SVG/PDF/TIFF、代码、caption 和 QA。</div>
+            </article>
+          </div>
+        </div>
+
+        <div data-tab-panel="web" hidden>
+          <div class="scenario-grid">
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="PPTX 成品生成" data-en="PPTX deck generation">PPTX 成品生成</h3><span class="status-pill" data-zh="已支持" data-en="Supported">已支持</span></div>
+              <p data-zh="生成可打开的 PPTX，并比较不同 deck pipeline 的完整成品。" data-en="Generate openable PPTX files and compare complete decks from different pipelines.">生成可打开的 PPTX，并比较不同 deck pipeline 的完整成品。</p>
+              <div class="scenario-output" data-zh="Report：PPTX 文件、页面预览、候选说明和 AI 评审。" data-en="Report: PPTX files, slide previews, candidate notes, and AI judge feedback.">Report：PPTX 文件、页面预览、候选说明和 AI 评审。</div>
+            </article>
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="网页与 HTML 制作" data-en="Web & HTML creation">网页与 HTML 制作</h3><span class="status-pill" data-zh="已支持" data-en="Supported">已支持</span></div>
+              <p data-zh="落地页、报告页、Web App、数据看板和 HTML 成品，包含 Hallmark 反模板化候选。" data-en="Landing pages, report pages, web apps, dashboards, and HTML deliverables, including Hallmark as an anti-template candidate.">落地页、报告页、Web App、数据看板和 HTML 成品，包含 Hallmark 反模板化候选。</p>
+              <div class="scenario-output" data-zh="Report：可运行页面、桌面/移动端截图、源码、QA 和 AI 评审。" data-en="Report: runnable pages, desktop/mobile screenshots, source, QA, and AI judge notes.">Report：可运行页面、桌面/移动端截图、源码、QA 和 AI 评审。</div>
+            </article>
+          </div>
+        </div>
+
+        <div data-tab-panel="video" hidden>
+          <div class="scenario-grid">
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="产品宣传片" data-en="Product promo video">产品宣传片</h3><span class="status-pill" data-zh="已支持" data-en="Supported">已支持</span></div>
+              <p data-zh="产品发布、功能介绍、网站展示和品牌宣传视频。" data-en="Product launches, feature announcements, website showcases, and brand promo videos.">产品发布、功能介绍、网站展示和品牌宣传视频。</p>
+              <div class="scenario-output" data-zh="Report：可播放 MP4、封面、字幕、脚本、分镜、源码和媒体 QA。" data-en="Report: playable MP4, poster, captions, script, storyboard, source, and media QA.">Report：可播放 MP4、封面、字幕、脚本、分镜、源码和媒体 QA。</div>
+            </article>
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="动效视频" data-en="Motion graphics">动效视频</h3><span class="status-pill" data-zh="已支持" data-en="Supported">已支持</span></div>
+              <p data-zh="文字动效、数据/UI 动画、logo sting 和解释型动态图形。" data-en="Kinetic type, data and UI animation, logo stings, and explanatory motion graphics.">文字动效、数据/UI 动画、logo sting 和解释型动态图形。</p>
+              <div class="scenario-output" data-zh="Report：MP4、动效规格、源码、媒体元数据、QA 和 AI 评审。" data-en="Report: MP4, motion specification, source, media metadata, QA, and AI judge notes.">Report：MP4、动效规格、源码、媒体元数据、QA 和 AI 评审。</div>
+            </article>
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="口播粗剪" data-en="Talking-head rough cut">口播粗剪</h3><span class="status-pill" data-zh="已支持" data-en="Supported">已支持</span></div>
+              <p data-zh="同一条口播、访谈、播客或 vlog 原片的停顿、重复和口误清理。" data-en="Silence, repetition, and mistake cleanup over the same talking-head, interview, podcast, or vlog source.">同一条口播、访谈、播客或 vlog 原片的停顿、重复和口误清理。</p>
+              <div class="scenario-output" data-zh="Report：粗剪 MP4、字幕、转写稿、剪辑清单、时长变化和媒体 QA。" data-en="Report: rough-cut MP4, captions, transcript, edit list, duration change, and media QA.">Report：粗剪 MP4、字幕、转写稿、剪辑清单、时长变化和媒体 QA。</div>
+            </article>
+            <article class="scenario-card">
+              <div class="scenario-meta"><h3 data-zh="图片生成比较" data-en="Image generation comparison">图片生成比较</h3><span class="status-pill is-planned" data-zh="规划中" data-en="Planned">规划中</span></div>
+              <p data-zh="海报、封面图、长图、视觉稿、风格图和通用图片生成。" data-en="Posters, covers, long-form graphics, visual drafts, style images, and general image generation.">海报、封面图、长图、视觉稿、风格图和通用图片生成。</p>
+              <div class="scenario-output" data-zh="计划 Report：图片预览、文件链接、候选说明和视觉 QA。" data-en="Planned report: image previews, file links, candidate notes, and visual QA.">计划 Report：图片预览、文件链接、候选说明和视觉 QA。</div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-section is-white is-compact">
+      <div class="section-inner">
+        <p class="section-kicker" data-zh="下一步" data-en="Next step">下一步</p>
+        <h2 data-zh="让 ForkProbe 根据你的任务推荐具体候选。" data-en="Let ForkProbe recommend concrete candidates for your task.">让 ForkProbe 根据你的任务推荐具体候选。</h2>
+        <div class="button-row">
+          <a class="button button-primary" href="guide.html" data-preserve-lang data-zh="查看使用指南" data-en="Open the guide">查看使用指南</a>
+          <a class="button button-secondary" href="downloads/forkprobe-skill.zip" download data-zh="下载 Skill" data-en="Download Skill">下载 Skill</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <div class="footer-inner">
+      <span>ForkProbe v0.8</span>
+      <span data-zh="任务内容保留本地 · 匿名选择由用户决定" data-en="Task content stays local · anonymous sharing remains your choice">任务内容保留本地 · 匿名选择由用户决定</span>
+    </div>
+  </footer>
+  <script src="assets/site-pages.js"></script>
+</body>
+</html>

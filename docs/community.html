@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ForkProbe 匿名 Skill 选择反馈、公开阈值与社区统计。">
+  <title>社区数据 · ForkProbe v0.8</title>
+  <link rel="stylesheet" href="assets/site-pages.css">
+</head>
+<body data-title-zh="社区数据 · ForkProbe v0.8" data-title-en="Community data · ForkProbe v0.8">
+  <nav class="site-nav" aria-label="Primary navigation">
+    <a class="brand" href="index.html" data-preserve-lang>
+      <span class="brand-mark">fp</span>
+      <span>ForkProbe</span>
+    </a>
+    <div class="nav-actions">
+      <div class="nav-links">
+        <a href="index.html" data-preserve-lang data-zh="首页" data-en="Home">首页</a>
+        <a href="capabilities.html" data-preserve-lang data-zh="能力" data-en="Capabilities">能力</a>
+        <a href="community.html" data-preserve-lang aria-current="page" data-zh="社区数据" data-en="Community">社区数据</a>
+        <a href="guide.html" data-preserve-lang data-zh="使用指南" data-en="Guide">使用指南</a>
+        <a href="https://github.com/Jayden-X-L/forkprobe" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button class="lang-option" type="button" data-lang-option="en" aria-pressed="false">EN</button>
+        <button class="lang-option" type="button" data-lang-option="zh" aria-pressed="true">中文</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page-main">
+    <header class="page-hero">
+      <div class="page-hero-inner">
+        <p class="eyebrow" data-zh="社区选择信号" data-en="Community selection signals">社区选择信号</p>
+        <h1 data-zh="真实选择积累到足够样本后，再公开结果。" data-en="Publish real choices only after the sample is large enough.">真实选择积累到足够样本后，再公开结果。</h1>
+        <p class="hero-lede" data-zh="ForkProbe 可在你选定 Winner 并继续任务时，匿名分享任务类型、参选 Skill 名称和最终选择。每个任务类型达到公开阈值后，社区才能看到聚合胜率。" data-en="When you select a Winner and continue, ForkProbe can anonymously share the task type, compared Skill names, and final choice. Aggregate win rates become public only after each task type reaches the publication threshold.">ForkProbe 可在你选定 Winner 并继续任务时，匿名分享任务类型、参选 Skill 名称和最终选择。每个任务类型达到公开阈值后，社区才能看到聚合胜率。</p>
+      </div>
+    </header>
+
+    <section class="page-section">
+      <div class="section-inner">
+        <div class="section-head">
+          <p class="section-kicker" data-zh="数据流程" data-en="Data flow">数据流程</p>
+          <h2 data-zh="一次选择，四个清晰步骤。" data-en="One choice, four explicit steps.">一次选择，四个清晰步骤。</h2>
+        </div>
+        <div class="flow-grid">
+          <div class="flow-step"><span class="step-number">1</span><h3 data-zh="本地比较" data-en="Compare locally">本地比较</h3><p data-zh="任务内容、生成结果和文件继续保留在你的设备上。" data-en="Task content, generated outputs, and files stay on your device.">任务内容、生成结果和文件继续保留在你的设备上。</p></div>
+          <div class="flow-step"><span class="step-number">2</span><h3 data-zh="选择 Winner" data-en="Choose a Winner">选择 Winner</h3><p data-zh="Report 在继续按钮旁展示匿名分享选项，首次使用默认勾选，你可以取消。" data-en="The Report shows anonymous sharing beside Continue. It is checked on first use and can be turned off.">Report 在继续按钮旁展示匿名分享选项，首次使用默认勾选，你可以取消。</p></div>
+          <div class="flow-step"><span class="step-number">3</span><h3 data-zh="最小事件" data-en="Minimal event">最小事件</h3><p data-zh="仅发送任务类型、参选 Skill 名称和最终选择。" data-en="Only the task type, compared Skill names, and final choice are sent.">仅发送任务类型、参选 Skill 名称和最终选择。</p></div>
+          <div class="flow-step"><span class="step-number">4</span><h3 data-zh="聚合公开" data-en="Aggregate publication">聚合公开</h3><p data-zh="同一任务类型至少累计 20 次有效选择后，才展示 Skill 和两两胜率。" data-en="Skill and pairwise win rates appear only after a task type has at least 20 valid selections.">同一任务类型至少累计 20 次有效选择后，才展示 Skill 和两两胜率。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-section is-white">
+      <div class="section-inner">
+        <div class="section-head">
+          <p class="section-kicker" data-zh="隐私边界" data-en="Privacy boundary">隐私边界</p>
+          <h2 data-zh="公开说明收集什么，也说明不收集什么。" data-en="Say what is collected and what is not.">公开说明收集什么，也说明不收集什么。</h2>
+        </div>
+        <table class="privacy-table">
+          <tbody>
+            <tr><th data-zh="写入 D1" data-en="Stored in D1">写入 D1</th><td data-zh="匿名事件 ID、任务类型、参选 Skill 名称、最终选择。" data-en="Anonymous event ID, task type, compared Skill names, and final choice.">匿名事件 ID、任务类型、参选 Skill 名称、最终选择。</td></tr>
+            <tr><th data-zh="不写入 D1" data-en="Not stored in D1">不写入 D1</th><td data-zh="任务原文、模型输出、生成文件、文件路径、用户名、邮箱和账号标识。" data-en="Task text, model outputs, generated files, file paths, usernames, email addresses, or account identifiers.">任务原文、模型输出、生成文件、文件路径、用户名、邮箱和账号标识。</td></tr>
+            <tr><th data-zh="网络与限流" data-en="Network and rate limiting">网络与限流</th><td data-zh="请求经过 Cloudflare Worker；网络来源仅用于边缘限流，不作为选择事件字段写入 D1。" data-en="Requests pass through Cloudflare Worker. Network source is used for edge rate limiting and is not written to D1 as a selection-event field.">请求经过 Cloudflare Worker；网络来源仅用于边缘限流，不作为选择事件字段写入 D1。</td></tr>
+            <tr><th data-zh="用户控制" data-en="User control">用户控制</th><td data-zh="你可以在 Report 继续步骤取消匿名分享，也可以通过 FORKPROBE_TELEMETRY=0 全局关闭。" data-en="You can uncheck anonymous sharing in the Report or disable it globally with FORKPROBE_TELEMETRY=0.">你可以在 Report 继续步骤取消匿名分享，也可以通过 FORKPROBE_TELEMETRY=0 全局关闭。</td></tr>
+            <tr><th data-zh="公开方式" data-en="Publication">公开方式</th><td data-zh="只发布达到阈值后的聚合统计，不公开单条事件或个人选择。" data-en="Only aggregate statistics above the threshold are published; individual events and choices are never shown.">只发布达到阈值后的聚合统计，不公开单条事件或个人选择。</td></tr>
+          </tbody>
+        </table>
+        <div class="notice">
+          <strong data-zh="当前按任务场景统计，不按行业统计。" data-en="Current statistics are grouped by task scene, not industry.">当前按任务场景统计，不按行业统计。</strong>
+          <span data-zh="现有匿名事件没有行业字段。办公、科研、金融等行业维度只有在未来明确新增、公开说明并再次评估隐私边界后才会使用。" data-en="The current anonymous event has no industry field. Office, research, finance, or other industry dimensions would require an explicit future schema change and privacy review.">现有匿名事件没有行业字段。办公、科研、金融等行业维度只有在未来明确新增、公开说明并再次评估隐私边界后才会使用。</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-section" id="stats">
+      <div class="section-inner">
+        <div class="section-head">
+          <p class="section-kicker" data-zh="公开统计" data-en="Public statistics">公开统计</p>
+          <h2 data-zh="查看每个任务类型的样本进度。" data-en="Inspect sample progress for each task type.">查看每个任务类型的样本进度。</h2>
+          <p class="section-lede" data-zh="低于 20 条时只显示进度；达到门槛后自动展示 Skill 胜率和两两胜率。" data-en="Below 20 selections, only progress is shown. Skill and pairwise win rates appear automatically after the threshold.">低于 20 条时只显示进度；达到门槛后自动展示 Skill 胜率和两两胜率。</p>
+        </div>
+
+        <div class="stats-toolbar">
+          <select id="taskTypeSelect" aria-label="Task type">
+            <optgroup label="Writing / 写作">
+              <option value="academic_polishing">academic_polishing</option>
+              <option value="anti_ai_writing">anti_ai_writing</option>
+              <option value="reviewer_response">reviewer_response</option>
+              <option value="ppt_outline">ppt_outline</option>
+              <option value="text_general">text_general</option>
+            </optgroup>
+            <optgroup label="Artifacts / 成品">
+              <option value="pptx_generation">pptx_generation</option>
+              <option value="figure_plot">figure_plot</option>
+              <option value="figure_schematic">figure_schematic</option>
+              <option value="figure_graphical_abstract">figure_graphical_abstract</option>
+            </optgroup>
+            <optgroup label="Research / 调研">
+              <option value="research_market">research_market</option>
+              <option value="research_company">research_company</option>
+              <option value="research_user">research_user</option>
+              <option value="research_literature">research_literature</option>
+              <option value="research_investment">research_investment</option>
+            </optgroup>
+            <optgroup label="Web / 网页">
+              <option value="web_landing">web_landing</option>
+              <option value="web_dashboard">web_dashboard</option>
+              <option value="web_app">web_app</option>
+              <option value="web_report">web_report</option>
+            </optgroup>
+            <optgroup label="Video / 视频">
+              <option value="video_product_promo">video_product_promo</option>
+              <option value="video_motion_graphics">video_motion_graphics</option>
+              <option value="video_talking_head_cut">video_talking_head_cut</option>
+            </optgroup>
+          </select>
+          <button class="button button-secondary" type="button" id="refreshStats" data-zh="刷新数据" data-en="Refresh data">刷新数据</button>
+        </div>
+
+        <div class="stats-state" id="statsState" aria-live="polite">
+          <strong id="statsTitle" data-zh="正在读取公开统计…" data-en="Loading public statistics…">正在读取公开统计…</strong>
+          <p id="statsMessage" data-zh="请稍候。" data-en="Please wait.">请稍候。</p>
+          <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+          <p id="sampleProgress">0 / 20</p>
+        </div>
+
+        <div id="publishedStats" hidden>
+          <div class="metric-grid">
+            <div class="metric-card"><div class="metric-label"><strong data-zh="有效选择" data-en="Valid selections">有效选择</strong><span class="metric-value" id="sampleSize">0</span></div><p data-zh="该任务类型累计的匿名 Winner 事件。" data-en="Anonymous Winner events accumulated for this task type.">该任务类型累计的匿名 Winner 事件。</p></div>
+            <div class="metric-card"><div class="metric-label"><strong data-zh="公开门槛" data-en="Publication threshold">公开门槛</strong><span class="metric-value" id="minimumSamples">20</span></div><p data-zh="低于门槛不公开 Skill 排名。" data-en="Skill rankings remain hidden below this threshold.">低于门槛不公开 Skill 排名。</p></div>
+          </div>
+          <div class="stats-table-wrap">
+            <table class="stats-table">
+              <thead><tr><th data-zh="Skill" data-en="Skill">Skill</th><th data-zh="参选次数" data-en="Appearances">参选次数</th><th data-zh="胜出" data-en="Wins">胜出</th><th data-zh="胜率" data-en="Win rate">胜率</th></tr></thead>
+              <tbody id="skillStatsBody"></tbody>
+            </table>
+          </div>
+          <div class="stats-table-wrap">
+            <table class="stats-table">
+              <thead><tr><th data-zh="两两候选" data-en="Pair">两两候选</th><th data-zh="共同参选" data-en="Comparisons">共同参选</th><th data-zh="决胜胜率" data-en="Decisive win rate">决胜胜率</th><th data-zh="平局" data-en="Ties">平局</th></tr></thead>
+              <tbody id="pairStatsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="notice">
+          <strong data-zh="社区选择不是科学 Benchmark。" data-en="Community choice is not a scientific benchmark.">社区选择不是科学 Benchmark。</strong>
+          <span data-zh="社区胜率反映真实用户在特定候选组合中的选择；Skill Hub 来源质量分和 SkillsBench 公共基准应作为不同信号分开展示。" data-en="Community win rate reflects real choices within specific candidate sets. Skill Hub source quality and SkillsBench benchmark priors remain separate signals.">社区胜率反映真实用户在特定候选组合中的选择；Skill Hub 来源质量分和 SkillsBench 公共基准应作为不同信号分开展示。</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <div class="footer-inner">
+      <span>ForkProbe v0.8</span>
+      <span data-zh="只公开达到阈值的聚合数据" data-en="Only threshold-qualified aggregates are public">只公开达到阈值的聚合数据</span>
+    </div>
+  </footer>
+
+  <script src="assets/site-pages.js"></script>
+  <script>
+    (() => {
+      const endpoint = 'https://forkprobe-selection-telemetry.forkprobe-selection-telemetry.workers.dev/v1/stats';
+      const select = document.getElementById('taskTypeSelect');
+      const refresh = document.getElementById('refreshStats');
+      const title = document.getElementById('statsTitle');
+      const message = document.getElementById('statsMessage');
+      const progress = document.getElementById('sampleProgress');
+      const progressFill = document.getElementById('progressFill');
+      const published = document.getElementById('publishedStats');
+      const sampleSize = document.getElementById('sampleSize');
+      const minimumSamples = document.getElementById('minimumSamples');
+      const skillBody = document.getElementById('skillStatsBody');
+      const pairBody = document.getElementById('pairStatsBody');
+      let latest = null;
+
+      const lang = () => document.body.dataset.lang || 'zh';
+      const text = (zh, en) => lang() === 'zh' ? zh : en;
+      const cell = (value) => {
+        const td = document.createElement('td');
+        td.textContent = String(value);
+        return td;
+      };
+
+      const render = (data) => {
+        latest = data;
+        const count = Number(data.sample_size || 0);
+        const minimum = Number(data.minimum_public_samples || 20);
+        const percent = Math.min(100, Math.round((count / minimum) * 100));
+        progress.textContent = `${count} / ${minimum}`;
+        progressFill.style.width = `${percent}%`;
+        sampleSize.textContent = count;
+        minimumSamples.textContent = minimum;
+
+        if (!data.public_eligible) {
+          title.textContent = text('样本积累中', 'Collecting samples');
+          message.textContent = text(
+            `该任务类型还需要 ${Math.max(0, minimum - count)} 次有效匿名选择，达到门槛后才公开排名。`,
+            `${Math.max(0, minimum - count)} more valid anonymous selections are needed before rankings become public.`
+          );
+          published.hidden = true;
+          return;
+        }
+
+        title.textContent = text('已达到公开门槛', 'Publication threshold reached');
+        message.textContent = text('以下统计来自达到门槛后的聚合事件。', 'The aggregates below have reached the publication threshold.');
+        published.hidden = false;
+        skillBody.replaceChildren();
+        pairBody.replaceChildren();
+
+        (data.skills || []).forEach((item) => {
+          const row = document.createElement('tr');
+          row.append(cell(item.skill_name), cell(item.appearances), cell(item.wins), cell(`${Math.round(Number(item.win_rate || 0) * 100)}%`));
+          skillBody.append(row);
+        });
+        (data.pairwise || []).forEach((item) => {
+          const row = document.createElement('tr');
+          const rate = item.a_win_rate_decisive === null
+            ? text('暂无决胜样本', 'No decisive sample')
+            : `${item.skill_a} ${Math.round(Number(item.a_win_rate_decisive) * 100)}%`;
+          row.append(cell(`${item.skill_a} / ${item.skill_b}`), cell(item.comparisons), cell(rate), cell(item.ties));
+          pairBody.append(row);
+        });
+      };
+
+      const load = async () => {
+        refresh.disabled = true;
+        title.textContent = text('正在读取公开统计…', 'Loading public statistics…');
+        message.textContent = text('请稍候。', 'Please wait.');
+        try {
+          const response = await fetch(`${endpoint}?task_type=${encodeURIComponent(select.value)}`);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          render(await response.json());
+        } catch (error) {
+          latest = null;
+          title.textContent = text('暂时无法读取社区数据', 'Community data is temporarily unavailable');
+          message.textContent = text('这不会影响 ForkProbe 的本地比较与选择功能，请稍后刷新。', 'This does not affect local comparison or Winner selection. Please refresh later.');
+          progress.textContent = '—';
+          progressFill.style.width = '0%';
+          published.hidden = true;
+        } finally {
+          refresh.disabled = false;
+        }
+      };
+
+      select.addEventListener('change', load);
+      refresh.addEventListener('click', load);
+      window.addEventListener('forkprobe:language', () => latest ? render(latest) : null);
+      load();
+    })();
+  </script>
+</body>
+</html>

@@ -2190,6 +2190,37 @@ class TestRenderReport(unittest.TestCase):
             self.assertEqual(qa["output_metadata"]["unique_frames"], 1)
 
 
+class TestGitHubPages(unittest.TestCase):
+    def test_v08_multipage_navigation_and_community_disclosure(self):
+        docs_dir = PROJECT_DIR / "docs"
+        pages = {
+            name: (docs_dir / name).read_text(encoding="utf-8")
+            for name in ("index.html", "capabilities.html", "community.html", "guide.html")
+        }
+
+        for name, html in pages.items():
+            with self.subTest(page=name):
+                self.assertIn("ForkProbe v0.8", html)
+                self.assertIn('href="capabilities.html"', html)
+                self.assertIn('href="community.html"', html)
+                self.assertIn('href="guide.html"', html)
+
+        capabilities = pages["capabilities.html"]
+        self.assertEqual(capabilities.count("data-tab-panel="), 4)
+        for tab_name in ("writing", "research", "web", "video"):
+            self.assertIn(f'data-tab="{tab_name}"', capabilities)
+
+        community = pages["community.html"]
+        self.assertIn("minimum_public_samples", community)
+        self.assertIn("任务类型、参选 Skill 名称和最终选择", community)
+        self.assertIn("至少累计 20 次有效选择", community)
+        self.assertIn("不按行业统计", community)
+        self.assertIn(
+            "forkprobe-selection-telemetry.forkprobe-selection-telemetry.workers.dev/v1/stats",
+            community,
+        )
+
+
 class TestJudgeParsing(unittest.TestCase):
     def _results(self):
         from compare import RunResult

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ForkProbe 安装、候选确认、并行试跑和 Winner 继续指南。">
+  <title>使用指南 · ForkProbe v0.8</title>
+  <link rel="stylesheet" href="assets/site-pages.css">
+</head>
+<body data-title-zh="使用指南 · ForkProbe v0.8" data-title-en="Guide · ForkProbe v0.8">
+  <nav class="site-nav" aria-label="Primary navigation">
+    <a class="brand" href="index.html" data-preserve-lang>
+      <span class="brand-mark">fp</span>
+      <span>ForkProbe</span>
+    </a>
+    <div class="nav-actions">
+      <div class="nav-links">
+        <a href="index.html" data-preserve-lang data-zh="首页" data-en="Home">首页</a>
+        <a href="capabilities.html" data-preserve-lang data-zh="能力" data-en="Capabilities">能力</a>
+        <a href="community.html" data-preserve-lang data-zh="社区数据" data-en="Community">社区数据</a>
+        <a href="guide.html" data-preserve-lang aria-current="page" data-zh="使用指南" data-en="Guide">使用指南</a>
+        <a href="https://github.com/Jayden-X-L/forkprobe" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button class="lang-option" type="button" data-lang-option="en" aria-pressed="false">EN</button>
+        <button class="lang-option" type="button" data-lang-option="zh" aria-pressed="true">中文</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page-main">
+    <header class="page-hero">
+      <div class="page-hero-inner">
+        <p class="eyebrow" data-zh="使用指南" data-en="Guide">使用指南</p>
+        <h1 data-zh="先确认候选，再并行试跑。" data-en="Confirm candidates before running them in parallel.">先确认候选，再并行试跑。</h1>
+        <p class="hero-lede" data-zh="ForkProbe 运行在 Agent 工作流中。你只需要描述任务并要求先比较 Skill，Agent 会完成候选发现、确认、试跑、Report 和继续任务。" data-en="ForkProbe runs inside an Agent workflow. Describe the task and ask to compare Skills first; the Agent handles discovery, confirmation, trials, the Report, and continuation.">ForkProbe 运行在 Agent 工作流中。你只需要描述任务并要求先比较 Skill，Agent 会完成候选发现、确认、试跑、Report 和继续任务。</p>
+        <div class="button-row">
+          <a class="button button-primary" href="downloads/forkprobe-skill.zip" download data-zh="下载 ForkProbe Skill" data-en="Download ForkProbe Skill">下载 ForkProbe Skill</a>
+          <a class="button button-secondary" href="https://github.com/Jayden-X-L/forkprobe" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="page-section">
+      <div class="section-inner">
+        <div class="section-head">
+          <p class="section-kicker" data-zh="标准流程" data-en="Standard flow">标准流程</p>
+          <h2 data-zh="从一句话到继续任务。" data-en="From one sentence to continued work.">从一句话到继续任务。</h2>
+        </div>
+        <div class="guide-grid">
+          <article class="guide-card"><span class="step-number">1</span><h3 data-zh="描述任务" data-en="Describe the task">描述任务</h3><p data-zh="告诉 Agent 最终需要的是文章、报告、PPTX、科研图、网页还是视频成品。" data-en="Tell the Agent whether the final deliverable is writing, a report, PPTX, a scientific figure, a webpage, or video.">告诉 Agent 最终需要的是文章、报告、PPTX、科研图、网页还是视频成品。</p></article>
+          <article class="guide-card"><span class="step-number">2</span><h3 data-zh="确认候选" data-en="Confirm candidates">确认候选</h3><p data-zh="ForkProbe 汇总 curated 目录、本机 Skill、EverMind Skill Hub、GitHub 和你提供的来源，去重排序后等待确认。" data-en="ForkProbe merges curated catalogs, local Skills, EverMind Skill Hub, GitHub, and user-provided sources, then deduplicates and waits for confirmation.">ForkProbe 汇总 curated 目录、本机 Skill、EverMind Skill Hub、GitHub 和你提供的来源，去重排序后等待确认。</p></article>
+          <article class="guide-card"><span class="step-number">3</span><h3 data-zh="并行试跑" data-en="Run in parallel">并行试跑</h3><p data-zh="所有候选收到同一任务和相同素材，生成可比较的完整输出与本地 HTML Report。" data-en="Every candidate receives the same task and assets, producing comparable finished outputs and a local HTML Report.">所有候选收到同一任务和相同素材，生成可比较的完整输出与本地 HTML Report。</p></article>
+          <article class="guide-card"><span class="step-number">4</span><h3 data-zh="选择并继续" data-en="Choose and continue">选择并继续</h3><p data-zh="在 Report 中查看 AI 评审、耗时、token 和真实成品，选择 Winner 后让 Agent 沿该路线继续。" data-en="Inspect AI judge notes, time, tokens, and real deliverables in the Report, then continue the Agent with the Winner.">在 Report 中查看 AI 评审、耗时、token 和真实成品，选择 Winner 后让 Agent 沿该路线继续。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-section is-white">
+      <div class="section-inner">
+        <div class="section-head">
+          <p class="section-kicker" data-zh="推荐唤醒词" data-en="Recommended prompt">推荐唤醒词</p>
+          <h2 data-zh="把这句话交给当前 Agent。" data-en="Give this sentence to your current Agent.">把这句话交给当前 Agent。</h2>
+        </div>
+        <div class="code-block" data-lang-block="zh">请使用 ForkProbe 处理这个任务。先扫描可用来源并推荐一组候选 Skill，说明每个候选的差异，等我确认后再并行试跑。生成本地 Report，让我比较完整结果、AI 评审、耗时和 token，再由我选择 Winner 并继续任务。</div>
+        <div class="code-block" data-lang-block="en" hidden>Please use ForkProbe for this task. First scan the available sources and recommend a shortlist of candidate Skills. Explain their differences and wait for my confirmation before running them in parallel. Generate a local Report so I can compare the complete outputs, AI judge notes, latency, and tokens, then let me choose a Winner and continue the task.</div>
+      </div>
+    </section>
+
+    <section class="page-section">
+      <div class="section-inner">
+        <div class="section-head">
+          <p class="section-kicker" data-zh="安装" data-en="Installation">安装</p>
+          <h2 data-zh="把 Skill 放进 Agent 能读取的位置。" data-en="Put the Skill where your Agent can read it.">把 Skill 放进 Agent 能读取的位置。</h2>
+          <p class="section-lede" data-zh="下载包包含 SKILL.md、候选目录、运行脚本、Report 模板和匿名反馈 Worker 参考实现。" data-en="The package includes SKILL.md, candidate catalogs, runners, Report templates, and the anonymous-feedback Worker reference implementation.">下载包包含 SKILL.md、候选目录、运行脚本、Report 模板和匿名反馈 Worker 参考实现。</p>
+        </div>
+        <div class="code-block">~/.codex/skills/forkprobe/
+~/.claude/skills/forkprobe/</div>
+        <div class="notice">
+          <strong data-zh="ForkProbe 会自动扫描常见本机 Skill 目录。" data-en="ForkProbe scans common local Skill directories automatically.">ForkProbe 会自动扫描常见本机 Skill 目录。</strong>
+          <span data-zh="你也可以在任务中显式提供本地路径或 GitHub Skill 地址，作为本次比较的候选来源。" data-en="You can also provide a local path or GitHub Skill URL explicitly as a candidate source for the current comparison.">你也可以在任务中显式提供本地路径或 GitHub Skill 地址，作为本次比较的候选来源。</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-section is-white is-compact">
+      <div class="section-inner">
+        <p class="section-kicker" data-zh="匿名选择" data-en="Anonymous choices">匿名选择</p>
+        <h2 data-zh="继续任务时，你仍然拥有分享决定权。" data-en="You keep control of sharing when continuing.">继续任务时，你仍然拥有分享决定权。</h2>
+        <p class="section-lede" data-zh="Report 只会在你保留匿名分享勾选时发送任务类型、参选 Skill 名称和最终选择。详细规则与公开样本进度可在社区数据页查看。" data-en="The Report sends only the task type, compared Skill names, and final choice when anonymous sharing remains checked. See the Community page for full rules and sample progress.">Report 只会在你保留匿名分享勾选时发送任务类型、参选 Skill 名称和最终选择。详细规则与公开样本进度可在社区数据页查看。</p>
+        <div class="button-row"><a class="button button-secondary" href="community.html" data-preserve-lang data-zh="查看社区数据规则" data-en="View community data rules">查看社区数据规则</a></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <div class="footer-inner">
+      <span>ForkProbe v0.8</span>
+      <span data-zh="推荐 → 确认 → 试跑 → 选择 → 继续" data-en="Recommend → confirm → trial-run → choose → continue">推荐 → 确认 → 试跑 → 选择 → 继续</span>
+    </div>
+  </footer>
+  <script src="assets/site-pages.js"></script>
+</body>
+</html>
