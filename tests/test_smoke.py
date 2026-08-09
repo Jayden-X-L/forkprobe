@@ -215,11 +215,30 @@ class TestCandidateProviders(unittest.TestCase):
             candidate.command_arg,
             "https://github.com/example/science-skills#skills/scientific-visualization",
         )
-        self.assertEqual(candidate.benchmark_score, 4.1)
+        self.assertEqual(candidate.source_quality_score, 0.82)
         self.assertEqual(candidate.license, "MIT")
         self.assertEqual(len(captured_urls), 1)
         self.assertIn("scientific", urllib.parse.unquote(captured_urls[0]))
         self.assertNotIn("Confidential", urllib.parse.unquote(captured_urls[0]))
+
+        from recommend import Recommendation, _skill_from_provider, format_text
+
+        recommended = _skill_from_provider(candidate, "visual_artifact")
+        recommendation = Recommendation(
+            deliverable_type="visual_artifact",
+            compare_mode="artifact",
+            task_signals=["figure"],
+            candidates=[recommended],
+            notes_zh=[],
+            notes_en=[],
+            suggested_command=[],
+        )
+        text_zh = format_text(recommendation, lang="zh")
+        text_en = format_text(recommendation, lang="en")
+        self.assertIn("Skill Hub 质量分 82/100", text_zh)
+        self.assertIn("Skill Hub quality 82/100", text_en)
+        self.assertNotIn("公共先验", text_zh)
+        self.assertNotIn("public prior", text_en)
 
     def test_evermind_provider_falls_back_to_stale_cache(self):
         from candidate_providers import EverMindSkillHubProvider, build_provider_query

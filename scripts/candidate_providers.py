@@ -62,7 +62,7 @@ class ProviderCandidate:
     category: str = ""
     version: str = ""
     license: str = ""
-    benchmark_score: float | None = None
+    source_quality_score: float | None = None
     safety_status: str = "needs_verification"
     installed: bool = False
     local_path: str = ""
@@ -435,9 +435,9 @@ class EverMindSkillHubProvider:
             return None
         quality = item.get("quality_score")
         try:
-            quality_number = max(0.0, min(1.0, float(quality)))
+            quality_number = max(0.0, min(1.0, float(quality))) if quality is not None else None
         except (TypeError, ValueError):
-            quality_number = 0.0
+            quality_number = None
         name = str(item.get("name") or item.get("skill_id") or "EverMind skill").strip()
         hub_id = str(item.get("id") or item.get("skill_id") or hashlib.sha256(command_arg.encode()).hexdigest()[:12])
         tags = [str(tag) for tag in item.get("tags", []) if str(tag).strip()]
@@ -452,7 +452,7 @@ class EverMindSkillHubProvider:
         )
         if relevance == 0:
             return None
-        combined_score = round(relevance * 0.65 + quality_number * 100 * 0.35)
+        combined_score = round(relevance * 0.65 + (quality_number or 0.0) * 100 * 0.35)
         return ProviderCandidate(
             id=f"evermind:{hub_id}",
             name=name,
@@ -464,7 +464,7 @@ class EverMindSkillHubProvider:
             category=str(item.get("category") or "").lower(),
             version=str(item.get("version") or ""),
             license=str(item.get("license") or ""),
-            benchmark_score=round(quality_number * 5, 1),
+            source_quality_score=quality_number,
             safety_status="skillhub_curated",
             installed=False,
             tags=tags,

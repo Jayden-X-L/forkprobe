@@ -65,7 +65,7 @@ class RecommendedSkill:
     provider: str = "curated"
     version: str = ""
     license: str = ""
-    benchmark_score: float | None = None
+    source_quality_score: float | None = None
     safety_status: str = ""
     installed: bool = False
     local_path: str = ""
@@ -538,7 +538,7 @@ def _skill_from_provider(candidate: ProviderCandidate, deliverable_type: str) ->
         provider=candidate.provider,
         version=candidate.version,
         license=candidate.license,
-        benchmark_score=candidate.benchmark_score,
+        source_quality_score=candidate.source_quality_score,
         safety_status=candidate.safety_status,
         installed=candidate.installed,
         local_path=candidate.local_path,
@@ -873,6 +873,17 @@ def _source_label(candidate: RecommendedSkill, lang: str) -> str:
     }
     english, chinese = labels.get(candidate.source_kind, (candidate.source_kind, candidate.source_kind))
     return english if lang == "en" else chinese
+
+
+def _source_quality_text(candidate: RecommendedSkill, lang: str) -> str:
+    if candidate.source_quality_score is None:
+        return ""
+    score = candidate.source_quality_score * 100
+    if candidate.provider == "evermind":
+        label = "Skill Hub quality" if lang == "en" else "Skill Hub 质量分"
+    else:
+        label = "source quality" if lang == "en" else "来源质量分"
+    return f" · {label} {score:.0f}/100"
 
 
 def _rank_and_limit(candidates: list[RecommendedSkill], max_candidates: int) -> list[RecommendedSkill]:
@@ -1487,10 +1498,10 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
             if _is_external_candidate(candidate) or candidate.source_kind == "local_installed":
                 source_label = _source_label(candidate, "en")
                 stars = f" · {candidate.stars} stars" if candidate.stars else ""
-                benchmark = f" · public prior {candidate.benchmark_score:.1f}/5" if candidate.benchmark_score is not None else ""
+                source_quality = _source_quality_text(candidate, "en")
                 installed = " · installed" if candidate.installed else ""
                 license_name = f" · {candidate.license}" if candidate.license else ""
-                lines.append(f"   Source: {source_label} · match {candidate.score}/100{benchmark}{stars}{installed}{license_name}")
+                lines.append(f"   Source: {source_label} · match {candidate.score}/100{source_quality}{stars}{installed}{license_name}")
             if candidate.pipeline_steps:
                 lines.append(f"   Pipeline: {' → '.join(candidate.pipeline_steps)}")
             if candidate.caution_en:
@@ -1538,10 +1549,10 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
         if _is_external_candidate(candidate) or candidate.source_kind == "local_installed":
             source_label = _source_label(candidate, "zh")
             stars = f" · {candidate.stars} stars" if candidate.stars else ""
-            benchmark = f" · 公共先验 {candidate.benchmark_score:.1f}/5" if candidate.benchmark_score is not None else ""
+            source_quality = _source_quality_text(candidate, "zh")
             installed = " · 已安装" if candidate.installed else ""
             license_name = f" · {candidate.license}" if candidate.license else ""
-            lines.append(f"   来源: {source_label} · 匹配 {candidate.score}/100{benchmark}{stars}{installed}{license_name}")
+            lines.append(f"   来源: {source_label} · 匹配 {candidate.score}/100{source_quality}{stars}{installed}{license_name}")
         if candidate.pipeline_steps:
             lines.append(f"   Pipeline: {' → '.join(candidate.pipeline_steps)}")
         if candidate.caution_zh:
