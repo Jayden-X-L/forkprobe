@@ -10,6 +10,8 @@
   <a href="./README.en.md">English README</a>
   ·
   <a href="https://jayden-x-l.github.io/forkprobe/downloads/forkprobe-skill.zip">下载 skill zip</a>
+  ·
+  <a href="#deepseek-harness-原生插件">安装 DSH 插件</a>
 </p>
 
 <p align="center">

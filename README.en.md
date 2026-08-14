@@ -16,6 +16,8 @@
   <a href="./README.md">中文说明</a>
   ·
   <a href="https://jayden-x-l.github.io/forkprobe/downloads/forkprobe-skill.zip">Download skill zip</a>
+  ·
+  <a href="#native-deepseek-harness-plugin">Install DSH plugin</a>
 </p>
 
 <p align="center">
