@@ -14,16 +14,17 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.9" src="https://img.shields.io/badge/version-v0.9-2563eb">
+  <img alt="Version v0.10" src="https://img.shields.io/badge/version-v0.10-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/report-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
   <a href="https://github.com/deepseek-ai/deepseek-harness"><img alt="DeepSeek Harness supported" src="https://img.shields.io/badge/harness-DeepSeek-0f9f8f"></a>
+  <a href="https://github.com/topics/dsh-plugin"><img alt="DSH plugin community" src="https://img.shields.io/badge/community-dsh--plugin-2563eb"></a>
   <a href="https://github.com/openai/codex"><img alt="Built with OpenAI Codex" src="https://img.shields.io/badge/built%20with-OpenAI%20Codex-111827"></a>
 </p>
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
-**v0.9 新增 DeepSeek Harness 正式执行路径：** ForkProbe 可以通过官方 `dsh --profile headless` 并行运行文本候选和 AI judge，也可以让 DeepSeek Harness 生成科研绘图、调研报告、网页和视频成品。使用 `--platform deepseek_harness` 或 `FORKPROBE_PLATFORM=deepseek_harness` 即可显式选择。v0.8 的匿名 Winner 反馈闭环、本机 Skill 扫描、EverMind Skill Hub、GitHub 与 curated 多来源发现，以及此前的全部场景继续支持。
+**v0.10 新增 DeepSeek Harness 原生插件：** DSH 用户可以直接安装 `forkprobe-dsh`，通过原生 `forkprobe_compare` 工具并行启动候选 subagent，打开同一套本地 Report，并在点击“继续”后把用户选择的结果返回当前 DSH Agent。插件不再嵌套启动第二个 `dsh` 进程，也不会复制 DSH 凭据；安装前的用户确认、本机 Skill 扫描、候选去重、匿名 Winner 分享和此前全部场景继续支持。
 
 选定 winner 后，Report 的“继续”按钮会同时保存本地 handoff，并让 Agent 沿胜出 Skill 继续任务。用户可以在同一区域选择是否匿名分享本次 Skill 选择，为未来的社区推荐先验积累样本。
 
@@ -238,7 +239,8 @@ python3 scripts/video_artifact.py \
 
 - Claude Code / Claude 风格 skill 会话
 - Codex 原生执行路径，并在失败时 fallback 到 OpenAI API
-- DeepSeek Harness 官方 headless 执行路径，支持文本比较、AI judge 和文件型 Artifact runner
+- DeepSeek Harness 原生插件，支持文本候选、AI judge、Report 选择和同一 Agent 继续
+- DeepSeek Harness headless 兼容路径，继续支持科研图、报告、网页和视频等文件型 Artifact runner
 - OpenClaw、WorkBuddy、OpenCode 等自然语言 Agent 工作流
 - “做一个 PPT”、“生成论文 figure”、“生成调研报告”、“制作网页成品”和“比较视频成片”这类 artifact comparison
 
@@ -258,13 +260,31 @@ Codex / 本地 Agent skill 目录：
 cp -r forkprobe ~/.agents/skills/
 ```
 
-DeepSeek Harness 可以继续使用同一个本地 Skill 目录，并通过官方 npm 包启动：
+### DeepSeek Harness 原生插件
+
+将 ForkProbe 直接安装到 DSH `web` profile：
 
 ```bash
-npx @deepseek-ai/dsh web
+dsh plugin --profile web add "github:Jayden-X-L/forkprobe"
 ```
 
-ForkProbe 的非交互运行使用官方 headless profile。准备好 `DEEPSEEK_API_KEY` 后，可直接指定该 harness：
+需要在 headless profile 使用时再安装一次：
+
+```bash
+dsh plugin --profile headless add "github:Jayden-X-L/forkprobe"
+```
+
+重启对应 profile 后，对 DSH 说：
+
+```text
+请使用 ForkProbe 先推荐几个适合这次改写的 Skill，等我确认后再用原生 DSH subagent 并行试跑，打开 Report 让我选择 Winner，并沿胜出结果继续。
+```
+
+插件提供两个工具：`forkprobe_compare` 负责确认后的并行试跑，`forkprobe_resume` 负责在等待窗口结束后恢复 Report 中的选择。`forkprobe_compare` 强制要求 `confirmed=true`，候选 subagent 不获得工具权限，因此不会递归调用 ForkProbe 或改动工作区。
+
+### DeepSeek Harness artifact 兼容路径
+
+科研图、调研报告、网页和视频等文件型任务仍可通过官方 headless profile 运行现有 Python runner。准备好 `DEEPSEEK_API_KEY` 后：
 
 ```bash
 FORKPROBE_PLATFORM=deepseek_harness \
@@ -330,7 +350,7 @@ python3 scripts/compare.py \
 open /tmp/forkprobe-report.html
 ```
 
-同一条任务改用 DeepSeek Harness：
+同一条任务通过旧的 headless 兼容路径运行：
 
 ```bash
 DEEPSEEK_API_KEY=your-key python3 scripts/compare.py \
@@ -342,7 +362,7 @@ DEEPSEEK_API_KEY=your-key python3 scripts/compare.py \
   --output /tmp/forkprobe-deepseek-report.html
 ```
 
-科研绘图、调研报告、网页和视频 runner 同样接受 `--platform deepseek_harness`。文本候选默认使用 `read-only` 权限，Artifact runner 默认使用 `workspace-write`；可用 `FORKPROBE_DSH_PERMISSION_MODE` 覆盖。
+新安装优先使用上面的 DSH 原生插件完成文本候选比较。科研绘图、调研报告、网页和视频 runner 同样接受 `--platform deepseek_harness`；Artifact runner 默认使用 `workspace-write`，可用 `FORKPROBE_DSH_PERMISSION_MODE` 覆盖。
 
 ## 多来源候选发现、BYO 与 local-only
 
@@ -463,11 +483,13 @@ FORKPROBE_RUN_INTEGRATION=1 python3 tests/test_integration.py
 
 ```text
 docs/       GitHub Pages 发布页和截图
+dsh-plugin/ DeepSeek Harness 原生 Cordis 插件
 scripts/    对比、推荐、报告和 verdict 工具
 templates/  HTML report 模板
 catalog/    curated skill 与 artifact pipeline catalog
 tests/      smoke / integration tests
 services/   可选的 Cloudflare Worker + D1 匿名聚合服务
+package.json  DSH 社区安装入口与插件元数据
 SKILL.md    Agent skill 指令
 ```
 

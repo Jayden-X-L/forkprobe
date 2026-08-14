@@ -1,0 +1,9 @@
+scripts/__pycache__/
+scripts/build_*.py
+tests/
+docs/
+services/
+outputs/
+tmp/
+experiments/
+downloaded-comparison-skills/

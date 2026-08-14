@@ -46,6 +46,7 @@ class SubagentResult:
     tokens_used: int
     latency_seconds: float
     error: Optional[str] = None
+    token_count_method: str = "provider_reported"
 
 
 def detect_platform() -> Platform:
@@ -138,7 +139,7 @@ def spawn_subagent(
             tokens_used=0,
             latency_seconds=0.0,
             error=(
-                f"Unknown platform: {platform}. forkprobe v0.9 supports Claude Code, Codex, "
+                f"Unknown platform: {platform}. forkprobe v0.10 supports Claude Code, Codex, "
                 "and DeepSeek Harness. Set FORKPROBE_PLATFORM explicitly when auto-detection is ambiguous."
             ),
         )
@@ -387,6 +388,7 @@ def _spawn_deepseek_harness_prompt(
                 "DeepSeek Harness CLI not found. Install Node.js and set FORKPROBE_DSH_CLI, "
                 "install `@deepseek-ai/dsh`, or leave FORKPROBE_DSH_NPX=1 to use the official npx entry."
             ),
+            token_count_method="estimated_visible_context",
         )
 
     profile = os.environ.get("FORKPROBE_DSH_PROFILE", "headless")
@@ -412,6 +414,7 @@ def _spawn_deepseek_harness_prompt(
                         tokens_used=0,
                         latency_seconds=time.time() - t0,
                         error=f"DeepSeek Harness profile initialization failed: {_tail(transcript)}",
+                        token_count_method="estimated_visible_context",
                     )
                 _DSH_PREPARED.add(prepare_key)
 
@@ -432,6 +435,7 @@ def _spawn_deepseek_harness_prompt(
                 tokens_used=tokens,
                 latency_seconds=time.time() - t0,
                 error=f"DeepSeek Harness exited {proc.returncode}: {_tail(transcript)}",
+                token_count_method="estimated_visible_context",
             )
         if not output:
             return SubagentResult(
@@ -439,8 +443,14 @@ def _spawn_deepseek_harness_prompt(
                 tokens_used=tokens,
                 latency_seconds=time.time() - t0,
                 error="DeepSeek Harness returned an empty final answer.",
+                token_count_method="estimated_visible_context",
             )
-        return SubagentResult(output=output, tokens_used=tokens, latency_seconds=time.time() - t0)
+        return SubagentResult(
+            output=output,
+            tokens_used=tokens,
+            latency_seconds=time.time() - t0,
+            token_count_method="estimated_visible_context",
+        )
     except subprocess.TimeoutExpired as exc:
         partial_stdout = exc.stdout.decode() if isinstance(exc.stdout, bytes) else (exc.stdout or "")
         return SubagentResult(
@@ -448,6 +458,7 @@ def _spawn_deepseek_harness_prompt(
             tokens_used=_estimate_visible_tokens(prompt) + _estimate_visible_tokens(partial_stdout),
             latency_seconds=time.time() - t0,
             error=f"DeepSeek Harness timeout after {timeout}s",
+            token_count_method="estimated_visible_context",
         )
     except Exception as exc:
         return SubagentResult(
@@ -455,6 +466,7 @@ def _spawn_deepseek_harness_prompt(
             tokens_used=0,
             latency_seconds=time.time() - t0,
             error=f"{type(exc).__name__}: {exc}",
+            token_count_method="estimated_visible_context",
         )
 
 

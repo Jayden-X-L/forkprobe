@@ -29,7 +29,7 @@
             total: 'total',
             connected: 'connected to local server',
             noServer: 'Demo mode: your choice stays on this page only',
-            preference: 'Pick the output you prefer · v0.9',
+            preference: 'Pick the output you prefer · v0.10',
             originalInput: 'Original input',
             error: 'error',
             partial: 'artifacts available',
@@ -40,6 +40,7 @@
             estimatedTokenHint: 'includes skill instructions, input, and output',
             providerTokens: 'model raw count, for reference',
             rawStats: 'Raw model stats',
+            deterministicQa: 'Deterministic QA',
             guideInput: 'Input',
             guideJudge: 'Judge',
             guideCompare: 'Compare',
@@ -107,7 +108,7 @@
             total: '总耗时',
             connected: '已连接本地记录服务',
             noServer: '演示模式：你的选择只会保留在当前页面',
-            preference: '请选择你更认可的结果 · v0.9',
+            preference: '请选择你更认可的结果 · v0.10',
             originalInput: '原始输入',
             error: '错误',
             partial: '产物已生成',
@@ -118,6 +119,7 @@
             estimatedTokenHint: '含 skill 指令、输入、输出',
             providerTokens: '模型原始统计,仅参考',
             rawStats: '模型原始统计',
+            deterministicQa: '确定性 QA',
             guideInput: '输入',
             guideJudge: 'AI 评审',
             guideCompare: '对比',
@@ -524,7 +526,7 @@
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-        <span x-text="t('preference')">Pick the output you prefer · v0.9</span>
+        <span x-text="t('preference')">Pick the output you prefer · v0.10</span>
         <div class="inline-flex overflow-hidden rounded border border-slate-300 bg-white">
           <button type="button"
                   @click="setLang('zh')"
@@ -672,6 +674,15 @@
         <div class="latency-bar"
              style="--pct: {{ (r.latency_seconds / 10 * 100)|round }}%"></div>
       </div>
+
+      {% if r.qa_warnings is defined and r.qa_warnings %}
+      <div class="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div class="font-semibold" x-text="t('deterministicQa')">Deterministic QA</div>
+        {% for warning in r.qa_warnings %}
+        <p class="mt-1">{{ warning|e }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
 
       <!-- Output -->
       <div class="flex-1 p-4 overflow-y-auto" style="max-height: 32rem;">

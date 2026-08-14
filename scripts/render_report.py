@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import subprocess
 import sys
 import webbrowser
 from pathlib import Path
@@ -70,6 +72,29 @@ def _as_int(value) -> int:
         return int(value or 0)
     except (TypeError, ValueError):
         return 0
+
+
+def open_report(output_path: Path) -> bool:
+    """Open a report with the native launcher before falling back to webbrowser."""
+    resolved = output_path.resolve()
+    native_open = shutil.which("open") if sys.platform == "darwin" else None
+    if native_open:
+        try:
+            completed = subprocess.run(
+                [native_open, str(resolved)],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=8,
+            )
+            if completed.returncode == 0:
+                return True
+        except (OSError, subprocess.SubprocessError):
+            pass
+    try:
+        return bool(webbrowser.open(resolved.as_uri()))
+    except Exception:
+        return False
 
 
 def render(
@@ -144,11 +169,9 @@ def render(
     output_path.write_text(html_output, encoding="utf-8")
 
     if auto_open:
-        try:
-            webbrowser.open(f"file://{output_path.resolve()}")
-        except Exception as e:
-            # Non-fatal — user can open manually
-            print(f"[forkprobe] Could not auto-open browser: {e}")
+        if not open_report(output_path):
+            # Non-fatal — user can open manually.
+            print("[forkprobe] Could not auto-open the report with the system launcher.")
             print(f"[forkprobe] Open manually: {output_path.resolve()}")
 
     return output_path

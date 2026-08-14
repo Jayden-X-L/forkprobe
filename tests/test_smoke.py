@@ -76,6 +76,7 @@ class TestPlatformAdapter(unittest.TestCase):
             self.assertIsNone(result.error)
             self.assertEqual(result.output, "deepseek answer")
             self.assertGreater(result.tokens_used, 0)
+            self.assertEqual(result.token_count_method, "estimated_visible_context")
             prompt_text = prompt_path.read_text(encoding="utf-8")
             self.assertIn("original task", prompt_text)
             self.assertIn("skill instructions", prompt_text)
@@ -482,6 +483,13 @@ class TestCatalog(unittest.TestCase):
             self.assertEqual(spec.id, "byo:demo-subdir-skill")
             self.assertIn("Use the demo instructions", spec.system_prompt)
 
+    def test_semantic_skill_dedup_ignores_checkout_path(self):
+        from compare import SkillSpec, dedupe_skill_specs
+
+        first = SkillSpec("a", "A", "x", "zh", "writing", "/one", "Skill package path: /one\nUse this.")
+        second = SkillSpec("b", "B", "x", "zh", "writing", "/two", "Skill package path: /two\nUse this.")
+        self.assertEqual([skill.id for skill in dedupe_skill_specs([first, second])], ["a"])
+
 
 class TestRecommendations(unittest.TestCase):
     def setUp(self):
@@ -514,6 +522,34 @@ class TestRecommendations(unittest.TestCase):
         task_type_index = rec.suggested_command.index("--task-type")
         self.assertEqual(rec.suggested_command[task_type_index + 1], "anti_ai_writing")
         self.assertTrue(any("v0.4" in note for note in rec.notes_zh))
+
+    def test_rewrite_instruction_beats_research_report_noun_in_source(self):
+        from recommend import recommend_candidates
+
+        rec = recommend_candidates(
+            "请把下面这段调研报告改写得更自然，去掉 AI 味，只输出改写后的中文：市场调研报告显示……",
+            online_discovery=False,
+        )
+        self.assertEqual(rec.deliverable_type, "text")
+        self.assertEqual(rec.compare_mode, "text")
+
+    def test_shortlist_dedup_prefers_installed_copy_with_same_repo_slug(self):
+        from recommend import RecommendedSkill, _rank_and_limit
+
+        remote = RecommendedSkill(
+            id="remove-ai-flavor-writing-skill", name="Remove AI Flavor", author="remote", kind="skill",
+            command_arg="https://github.com/B1lli/remove-ai-flavor-writing-skill", reason_zh="", reason_en="",
+            source="https://github.com/B1lli/remove-ai-flavor-writing-skill", source_kind="known_github", score=90,
+        )
+        local = RecommendedSkill(
+            id="local:remove-ai-flavor", name="Remove AI Flavor", author="Local", kind="local_installed",
+            command_arg="/tmp/skills/remove-ai-flavor-writing-skill", reason_zh="", reason_en="",
+            source="/tmp/skills/remove-ai-flavor-writing-skill", source_kind="local_installed", score=75,
+            installed=True,
+        )
+        ranked = _rank_and_limit([remote, local], 5)
+        self.assertEqual(len(ranked), 1)
+        self.assertEqual(ranked[0].source_kind, "local_installed")
 
     def test_recommend_english_anti_ai_writing_uses_humanizer_pool(self):
         from recommend import recommend_candidates
@@ -2267,7 +2303,7 @@ class TestRenderReport(unittest.TestCase):
                 self.assertEqual(html.count("<video controls"), 1)
                 self.assertIn("video.mp4", html)
                 self.assertIn("100/100", html)
-                self.assertIn("v0.9", html)
+                self.assertIn("v0.10", html)
 
                 run_result_path = Path(workspace["output_dir"]) / "candidates" / "baseline-remotion-agent" / "run-result.json"
                 timed_out = json.loads(run_result_path.read_text(encoding="utf-8"))
@@ -2325,7 +2361,7 @@ class TestRenderReport(unittest.TestCase):
 
 
 class TestGitHubPages(unittest.TestCase):
-    def test_v09_multipage_navigation_harness_and_community_disclosure(self):
+    def test_v010_multipage_navigation_harness_and_community_disclosure(self):
         docs_dir = PROJECT_DIR / "docs"
         pages = {
             name: (docs_dir / name).read_text(encoding="utf-8")
@@ -2334,13 +2370,14 @@ class TestGitHubPages(unittest.TestCase):
 
         for name, html in pages.items():
             with self.subTest(page=name):
-                self.assertIn("ForkProbe v0.9", html)
+                self.assertIn("ForkProbe v0.10", html)
                 self.assertIn('href="capabilities.html"', html)
                 self.assertIn('href="community.html"', html)
                 self.assertIn('href="guide.html"', html)
 
         capabilities = pages["capabilities.html"]
         self.assertIn("DeepSeek Harness", capabilities)
+        self.assertIn("原生插件", capabilities)
         self.assertEqual(capabilities.count("data-tab-panel="), 4)
         for tab_name in ("writing", "research", "web", "video"):
             self.assertIn(f'data-tab="{tab_name}"', capabilities)
@@ -2354,6 +2391,10 @@ class TestGitHubPages(unittest.TestCase):
             "forkprobe-selection-telemetry.forkprobe-selection-telemetry.workers.dev/v1/stats",
             community,
         )
+
+        guide = pages["guide.html"]
+        self.assertIn('dsh plugin --profile web add "github:Jayden-X-L/forkprobe"', guide)
+        self.assertIn("forkprobe_compare", guide)
 
 
 class TestJudgeParsing(unittest.TestCase):
@@ -2423,6 +2464,79 @@ class TestJudgeParsing(unittest.TestCase):
         judge = parse_judge_output("not json", self._results(), tokens=5, latency=0.2)
         self.assertIsNotNone(judge.error)
         self.assertEqual(judge.winner_skill_id, None)
+
+
+class TestNativeDshBridge(unittest.TestCase):
+    def test_chinese_length_qa_detects_short_output(self):
+        from compare import text_constraint_warnings
+
+        warnings = text_constraint_warnings("请改写为约200字中文。", "这是明显过短的输出。")
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("about 200", warnings[0])
+        self.assertEqual(text_constraint_warnings("请改写为10字。", "这是十个汉字左右的内容"), [])
+
+    def test_finalize_native_manifest_renders_report_without_raw_provider_tokens(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            manifest_path = workspace / "native.json"
+            report_path = workspace / "native-report.html"
+            manifest_path.write_text(json.dumps({
+                "schema_version": 1,
+                "task_input": "请改写为约200字中文。",
+                "task_type": "anti_ai_writing",
+                "duration_seconds": 1.2,
+                "results": [
+                    {
+                        "skill_id": "baseline",
+                        "skill_name": "Baseline",
+                        "skill_author": "",
+                        "skill_category": "baseline",
+                        "system_prompt": "plain",
+                        "output": "很短。",
+                        "latency_seconds": 0.5,
+                        "token_count_method": "estimated_visible_context",
+                        "provider_tokens_used": 999,
+                    },
+                    {
+                        "skill_id": "humanizer",
+                        "skill_name": "Humanizer",
+                        "skill_author": "test",
+                        "skill_category": "anti-ai",
+                        "system_prompt": "natural",
+                        "output": "同样很短。",
+                        "latency_seconds": 0.6,
+                        "token_count_method": "estimated_visible_context",
+                        "provider_tokens_used": 888,
+                    },
+                ],
+                "judge": {"enabled": False},
+            }, ensure_ascii=False), encoding="utf-8")
+
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(PROJECT_DIR / "scripts/finalize_native_compare.py"),
+                    "--manifest", str(manifest_path),
+                    "--output", str(report_path),
+                    "--workspace", str(workspace),
+                    "--no-server",
+                    "--no-open",
+                ],
+                cwd=PROJECT_DIR,
+                text=True,
+                capture_output=True,
+                timeout=30,
+                check=True,
+            )
+            payload = json.loads(completed.stdout)
+            self.assertEqual(payload["status"], "ready")
+            self.assertTrue(report_path.exists())
+            html = report_path.read_text(encoding="utf-8")
+            self.assertIn("Length requirement not met", html)
+            self.assertNotIn("999 tokens", html)
+            log = json.loads(Path(payload["log_path"]).read_text(encoding="utf-8"))
+            self.assertEqual(log["platform"], "deepseek_harness_native")
+            self.assertEqual(log["candidates"][0]["provider_tokens_used"], 0)
 
 
 if __name__ == "__main__":

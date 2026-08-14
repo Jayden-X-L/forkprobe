@@ -463,7 +463,8 @@ def build_manifest(
         run_result = _load_run_result(candidate_dir)
         summary = candidate_summary(pipeline, candidate_dir)
         artifacts = collect_candidate_artifacts(candidate_dir, output_dir)
-        provider_tokens = int(run_result.get("tokens_used") or 0)
+        token_count_method = str(run_result.get("token_count_method") or "provider_reported")
+        provider_tokens = int(run_result.get("tokens_used") or 0) if token_count_method == "provider_reported" else 0
         estimated_tokens = estimate_candidate_tokens(
             task_input=task_input,
             pipeline=pipeline,
@@ -485,6 +486,7 @@ def build_manifest(
             "artifacts": artifacts,
             "tokens_used": provider_tokens,
             "provider_tokens_used": provider_tokens,
+            "token_count_method": token_count_method,
             "estimated_tokens_used": estimated_tokens,
             "latency_seconds": float(run_result.get("latency_seconds") or 0.0),
             "error": run_result.get("error"),

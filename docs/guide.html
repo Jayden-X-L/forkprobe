@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="ForkProbe 安装、候选确认、并行试跑和 Winner 继续指南。">
-  <title>使用指南 · ForkProbe v0.9</title>
+  <title>使用指南 · ForkProbe v0.10</title>
   <link rel="stylesheet" href="assets/site-pages.css">
 </head>
-<body data-title-zh="使用指南 · ForkProbe v0.9" data-title-en="Guide · ForkProbe v0.9">
+<body data-title-zh="使用指南 · ForkProbe v0.10" data-title-en="Guide · ForkProbe v0.10">
   <nav class="site-nav" aria-label="Primary navigation">
     <a class="brand" href="index.html" data-preserve-lang>
       <span class="brand-mark">fp</span>
@@ -72,17 +72,18 @@
         <div class="section-head">
           <p class="section-kicker" data-zh="安装" data-en="Installation">安装</p>
           <h2 data-zh="把 Skill 放进 Agent 能读取的位置。" data-en="Put the Skill where your Agent can read it.">把 Skill 放进 Agent 能读取的位置。</h2>
-          <p class="section-lede" data-zh="下载包包含 SKILL.md、候选目录、运行脚本、Report 模板和匿名反馈 Worker 参考实现。" data-en="The package includes SKILL.md, candidate catalogs, runners, Report templates, and the anonymous-feedback Worker reference implementation.">下载包包含 SKILL.md、候选目录、运行脚本、Report 模板和匿名反馈 Worker 参考实现。</p>
+          <p class="section-lede" data-zh="下载包包含 SKILL.md、候选目录、运行脚本、Report 模板、DSH 原生插件和匿名反馈 Worker 参考实现。" data-en="The package includes SKILL.md, candidate catalogs, runners, Report templates, the native DSH plugin, and the anonymous-feedback Worker reference implementation.">下载包包含 SKILL.md、候选目录、运行脚本、Report 模板、DSH 原生插件和匿名反馈 Worker 参考实现。</p>
         </div>
         <div class="code-block">~/.codex/skills/forkprobe/
 ~/.claude/skills/forkprobe/
 ~/.dsh/skills/forkprobe/
 
-# DeepSeek Harness
-DEEPSEEK_API_KEY=your-key python3 scripts/compare.py --platform deepseek_harness ...</div>
+# DeepSeek Harness 原生插件 / native plugin
+dsh plugin --profile web add "github:Jayden-X-L/forkprobe"
+dsh plugin --profile headless add "github:Jayden-X-L/forkprobe"</div>
         <div class="notice">
-          <strong data-zh="ForkProbe 会自动扫描常见本机 Skill 目录，并支持 DeepSeek Harness 官方 headless profile。" data-en="ForkProbe scans common local Skill directories and supports the official DeepSeek Harness headless profile.">ForkProbe 会自动扫描常见本机 Skill 目录，并支持 DeepSeek Harness 官方 headless profile。</strong>
-          <span data-zh="使用 --platform deepseek_harness 显式选择；ForkProbe 会查找 FORKPROBE_DSH_CLI、全局 dsh 或官方 npx 入口。DeepSeek Harness 当前仍为 developer preview。" data-en="Select it with --platform deepseek_harness. ForkProbe resolves FORKPROBE_DSH_CLI, a global dsh, or the official npx entry. DeepSeek Harness is currently a developer preview.">使用 --platform deepseek_harness 显式选择；ForkProbe 会查找 FORKPROBE_DSH_CLI、全局 dsh 或官方 npx 入口。DeepSeek Harness 当前仍为 developer preview。</span>
+          <strong data-zh="v0.10 可作为 DeepSeek Harness 原生插件安装。" data-en="v0.10 installs as a native DeepSeek Harness plugin.">v0.10 可作为 DeepSeek Harness 原生插件安装。</strong>
+          <span data-zh="文本比较使用 forkprobe_compare 和原生 DSH subagent；Report 等待超时后可用 forkprobe_resume 恢复。科研图、报告、网页和视频等文件型 runner 仍支持 --platform deepseek_harness 兼容路径。" data-en="Text comparisons use forkprobe_compare and native DSH subagents; forkprobe_resume recovers a Report choice after the wait window. File-producing figure, report, webpage, and video runners retain the --platform deepseek_harness compatibility path.">文本比较使用 forkprobe_compare 和原生 DSH subagent；Report 等待超时后可用 forkprobe_resume 恢复。科研图、报告、网页和视频等文件型 runner 仍支持 --platform deepseek_harness 兼容路径。</span>
         </div>
       </div>
     </section>
@@ -99,7 +100,7 @@ DEEPSEEK_API_KEY=your-key python3 scripts/compare.py --platform deepseek_harness
 
   <footer class="page-footer">
     <div class="footer-inner">
-      <span>ForkProbe v0.9</span>
+      <span>ForkProbe v0.10</span>
       <span data-zh="推荐 → 确认 → 试跑 → 选择 → 继续" data-en="Recommend → confirm → trial-run → choose → continue">推荐 → 确认 → 试跑 → 选择 → 继续</span>
     </div>
   </footer>

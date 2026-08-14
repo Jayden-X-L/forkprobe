@@ -1,0 +1,85 @@
+{
+  "name": "forkprobe-dsh",
+  "version": "0.10.0",
+  "description": "Native DeepSeek Harness plugin for comparing AI Skills on the same task and choosing a winner from a local ForkProbe report.",
+  "author": "Jayden-X-L",
+  "homepage": "https://jayden-x-l.github.io/forkprobe/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jayden-X-L/forkprobe.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Jayden-X-L/forkprobe/issues"
+  },
+  "type": "module",
+  "main": "dsh-plugin/lib/index.js",
+  "types": "dsh-plugin/lib/index.d.ts",
+  "files": [
+    "dsh-plugin/lib",
+    "dsh-plugin/cordis.patch.yml",
+    "dsh-plugin/README.md",
+    "scripts/candidate_providers.py",
+    "scripts/compare.py",
+    "scripts/discover_skills.py",
+    "scripts/figure_artifact.py",
+    "scripts/finalize_native_compare.py",
+    "scripts/platform_adapter.py",
+    "scripts/prepare_native_compare.py",
+    "scripts/recommend.py",
+    "scripts/render_artifact_report.py",
+    "scripts/render_report.py",
+    "scripts/research_artifact.py",
+    "scripts/resume_verdict.py",
+    "scripts/run_verdict_server_once.py",
+    "scripts/skill_loader.py",
+    "scripts/telemetry.py",
+    "scripts/verdict_server.py",
+    "scripts/video_artifact.py",
+    "scripts/web_artifact.py",
+    "templates",
+    "catalog",
+    "SKILL.md",
+    "README.md",
+    "README.en.md",
+    "README.zh-CN.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p dsh-plugin/tsconfig.json",
+    "test": "npm run build && node --test dsh-plugin/test/*.test.mjs"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "ai-skills",
+    "skill-comparison",
+    "forkprobe"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6",
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-agent": ">=0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm": ">=0.1.0-rc.6",
+    "@deepseek-ai/dsh-subagent": ">=0.1.0-rc.6"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-agent": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-subagent": "^0.1.0-rc.6",
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.3"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./dsh-plugin/cordis.patch.yml"
+    }
+  }
+}

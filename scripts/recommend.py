@@ -652,6 +652,12 @@ LOCAL_ONLY_HINTS = [
     "不联网", "离线", "local only", "offline", "no network",
 ]
 
+TEXT_TRANSFORM_HINTS = [
+    "改写", "重写", "润色", "优化表达", "调整语气", "自然化", "去 ai", "去ai",
+    "降低 ai", "降低ai", "去机器感", "去模板感", "rewrite", "polish", "humanize",
+    "remove ai", "less ai-like",
+]
+
 
 def load_catalog(domain: str = "academic-writing") -> dict:
     catalog_path = CATALOG_DIR / f"{domain}.json"
@@ -688,6 +694,11 @@ def detect_deliverable_type(task_text: str, signals: Optional[list[str]] = None)
     """Classify the requested output so artifact tasks do not get routed as text-only comparisons."""
     signals = signals or detect_task_signals(task_text)
     signal_set = set(signals)
+    # The task instruction wins over incidental nouns in the source text. A
+    # rewrite request can legitimately contain phrases such as "market report"
+    # without asking ForkProbe to generate a research-report artifact.
+    if "anti_ai" in signal_set and _has_compact_any(task_text, TEXT_TRANSFORM_HINTS):
+        return "text"
     if "research_report" in signal_set and _has_compact_any(task_text, RESEARCH_REPORT_HINTS):
         return "research_report"
     if "video" in signal_set and _has_compact_any(task_text, VIDEO_ARTIFACT_HINTS):
@@ -862,12 +873,41 @@ def _video_artifact_pipeline(pipeline_id: str, catalog: dict) -> RecommendedSkil
     )
 
 
-def _candidate_key(candidate: RecommendedSkill) -> str:
-    raw = (candidate.command_arg if "#" in (candidate.command_arg or "") else candidate.source) or candidate.command_arg or candidate.id
-    source = raw.lower().strip()
-    if source.startswith("http") and "#" not in source:
-        source = source.rstrip("/")
+def _normalized_source(value: str) -> str:
+    source = value.lower().strip().rstrip("/")
+    if source.endswith(".git"):
+        source = source[:-4]
     return source
+
+
+def _source_slug(value: str) -> str:
+    source = _normalized_source(value).split("#", 1)[0]
+    return source.rsplit("/", 1)[-1]
+
+
+def _candidate_keys(candidate: RecommendedSkill) -> set[str]:
+    """Return aliases that identify one Skill across local and remote sources."""
+    raw = (candidate.command_arg if "#" in (candidate.command_arg or "") else candidate.source) or candidate.command_arg or candidate.id
+    keys = {f"source:{_normalized_source(raw)}"}
+    if candidate.fingerprint:
+        keys.add(f"fingerprint:{candidate.fingerprint.lower()}")
+    slug = _source_slug(raw)
+    if slug and slug not in {"skill", "skills", "main"}:
+        keys.add(f"slug:{slug}")
+    return keys
+
+
+def _prefer_duplicate(existing: RecommendedSkill, candidate: RecommendedSkill) -> RecommendedSkill:
+    """Prefer an already-installed copy, then the candidate with richer metadata."""
+    priority = {
+        "local_installed": 4,
+        "local_curated": 3,
+        "known_github": 2,
+        "evermind": 1,
+    }
+    existing_rank = (priority.get(existing.source_kind, 0), int(existing.installed), existing.score)
+    candidate_rank = (priority.get(candidate.source_kind, 0), int(candidate.installed), candidate.score)
+    return candidate if candidate_rank > existing_rank else existing
 
 
 def _is_external_candidate(candidate: RecommendedSkill) -> bool:
@@ -904,13 +944,20 @@ def _source_quality_text(candidate: RecommendedSkill, lang: str) -> str:
 
 def _rank_and_limit(candidates: list[RecommendedSkill], max_candidates: int) -> list[RecommendedSkill]:
     deduped: list[RecommendedSkill] = []
-    seen: set[str] = set()
+    key_to_index: dict[str, int] = {}
     for candidate in candidates:
-        key = _candidate_key(candidate)
-        if key in seen:
+        keys = _candidate_keys(candidate)
+        duplicate_index = next((key_to_index[key] for key in keys if key in key_to_index), None)
+        if duplicate_index is not None:
+            preferred = _prefer_duplicate(deduped[duplicate_index], candidate)
+            deduped[duplicate_index] = preferred
+            for key in _candidate_keys(preferred) | keys:
+                key_to_index[key] = duplicate_index
             continue
-        seen.add(key)
+        index = len(deduped)
         deduped.append(candidate)
+        for key in keys:
+            key_to_index[key] = index
 
     baseline = [
         candidate for candidate in deduped

@@ -20,16 +20,17 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.9" src="https://img.shields.io/badge/version-v0.9-2563eb">
+  <img alt="Version v0.10" src="https://img.shields.io/badge/version-v0.10-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
   <a href="https://github.com/deepseek-ai/deepseek-harness"><img alt="DeepSeek Harness supported" src="https://img.shields.io/badge/harness-DeepSeek-0f9f8f"></a>
+  <a href="https://github.com/topics/dsh-plugin"><img alt="DSH plugin community" src="https://img.shields.io/badge/community-dsh--plugin-2563eb"></a>
   <a href="https://github.com/openai/codex"><img alt="Built with OpenAI Codex" src="https://img.shields.io/badge/built%20with-OpenAI%20Codex-111827"></a>
 </p>
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.9 adds first-class DeepSeek Harness execution:** ForkProbe now runs text candidates and the AI judge through the official `dsh --profile headless` entry, and it can use DeepSeek Harness to generate scientific figures, research reports, webpages, and finished-video artifacts. Select it with `--platform deepseek_harness` or `FORKPROBE_PLATFORM=deepseek_harness`. The v0.8 anonymous Winner feedback loop, installed-Skill scanning, EverMind Skill Hub, GitHub and curated discovery, and all existing comparison scenes remain supported.
+**v0.10 adds a native DeepSeek Harness plugin:** DSH users can install `forkprobe-dsh` directly. Its native `forkprobe_compare` tool fans text candidates out to DSH subagents, opens the same local Report, and returns the user's selected result to the current DSH Agent after Continue. The plugin no longer starts a nested `dsh` process and never copies DSH credentials. Candidate confirmation, installed-Skill scanning, deduplication, optional anonymous Winner sharing, and all existing comparison scenes remain supported.
 
 After a winner is selected, the Report's continue action saves the local handoff and lets the Agent continue with the winning Skill. The same panel lets the user choose whether to share that anonymous Skill selection to improve future community priors.
 
@@ -244,7 +245,8 @@ Each candidate must produce `video.mp4`. ForkProbe uses `ffprobe` to verify dura
 
 - Claude Code / Claude-style skill sessions
 - Codex native execution, with fallback to the OpenAI API
-- The official DeepSeek Harness headless path for text comparison, AI judging, and file-producing Artifact runners
+- A native DeepSeek Harness plugin for text candidates, AI judging, Report selection, and same-Agent continuation
+- The DeepSeek Harness headless compatibility path for file-producing figure, report, webpage, and video runners
 - Natural-language Agent surfaces such as OpenClaw, WorkBuddy, OpenCode, and similar platforms
 - Artifact comparisons for generated PPTX, scientific figures, research reports, webpages, and finished videos
 
@@ -262,13 +264,31 @@ For Codex or local Agent skill setups:
 cp -r forkprobe ~/.agents/skills/
 ```
 
-DeepSeek Harness can use the same local Skill directory and runs through its official npm package:
+### Native DeepSeek Harness plugin
+
+Install ForkProbe directly into the DSH `web` profile:
 
 ```bash
-npx @deepseek-ai/dsh web
+dsh plugin --profile web add "github:Jayden-X-L/forkprobe"
 ```
 
-ForkProbe uses the official headless profile for unattended comparison runs. With `DEEPSEEK_API_KEY` available, select the harness explicitly:
+Install it once more when the headless profile also needs the plugin:
+
+```bash
+dsh plugin --profile headless add "github:Jayden-X-L/forkprobe"
+```
+
+Restart the selected profile, then ask DSH:
+
+```text
+Use ForkProbe to recommend several Skills for this rewrite. Wait for my confirmation, compare them with native DSH subagents, open the Report, and continue with the Winner I select.
+```
+
+The plugin exposes `forkprobe_compare` for confirmed parallel runs and `forkprobe_resume` for recovering a Report verdict after the wait window. `forkprobe_compare` enforces `confirmed=true`; candidate subagents receive no tools, preventing recursive ForkProbe calls and workspace mutations.
+
+### DeepSeek Harness artifact compatibility path
+
+File-producing scientific-figure, research-report, webpage, and video tasks can still use the existing Python runners through the official headless profile. With `DEEPSEEK_API_KEY` available:
 
 ```bash
 FORKPROBE_PLATFORM=deepseek_harness \
@@ -334,7 +354,7 @@ Open the local report:
 open /tmp/forkprobe-report.html
 ```
 
-Run the same task through DeepSeek Harness:
+Run the same task through the legacy headless compatibility path:
 
 ```bash
 DEEPSEEK_API_KEY=your-key python3 scripts/compare.py \
@@ -346,7 +366,7 @@ DEEPSEEK_API_KEY=your-key python3 scripts/compare.py \
   --output /tmp/forkprobe-deepseek-report.html
 ```
 
-The scientific-figure, research-report, webpage, and video runners accept the same `--platform deepseek_harness` option. Text candidates default to `read-only`; Artifact runners default to `workspace-write`. Override this with `FORKPROBE_DSH_PERMISSION_MODE` when needed.
+New installations should prefer the native DSH plugin above for text comparisons. Scientific-figure, research-report, webpage, and video runners accept the same `--platform deepseek_harness` option. Artifact runners default to `workspace-write`; override this with `FORKPROBE_DSH_PERMISSION_MODE` when needed.
 
 ## Multi-Source Discovery, BYO, And Local-Only
 
@@ -465,11 +485,13 @@ FORKPROBE_RUN_INTEGRATION=1 python3 tests/test_integration.py
 
 ```text
 docs/       GitHub Pages launch page and screenshots
+dsh-plugin/ native DeepSeek Harness Cordis plugin
 scripts/    comparison, recommendation, report, and verdict helpers
 templates/  HTML report template
 catalog/    curated skill and artifact-pipeline catalogs
 tests/      smoke and integration tests
 services/   optional Cloudflare Worker + D1 anonymous aggregation service
+package.json  DSH community install entry and plugin metadata
 SKILL.md    Agent skill instructions
 ```
 

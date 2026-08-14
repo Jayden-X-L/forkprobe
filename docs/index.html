@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="ForkProbe v0.9 是 AI Skill 选型与试跑工具，新增 DeepSeek Harness 正式执行路径。">
-  <title>ForkProbe v0.9：AI Skill 选型与试跑工具</title>
+  <meta name="description" content="ForkProbe v0.10 是 AI Skill 选型与试跑工具，新增可直接安装的 DeepSeek Harness 原生插件。">
+  <title>ForkProbe v0.10：AI Skill 选型与试跑工具</title>
   <style>
     :root {
       color-scheme: light;
@@ -1490,11 +1490,11 @@
 
     <header class="hero" id="top">
       <div class="hero-copy">
-        <p class="eyebrow">ForkProbe v0.9：AI Skill 选型与试跑工具。</p>
+        <p class="eyebrow">ForkProbe v0.10：AI Skill 选型与试跑工具。</p>
         <h1>ForkProbe</h1>
         <p class="hero-subtitle">别猜哪个 AI Skill 有用，直接并排看结果。</p>
         <p class="hero-lede">
-          ForkProbe 是一个 AI Skill 选型与试跑工具。v0.9 新增 DeepSeek Harness 正式执行路径，同一个任务现在可以在 Claude Code、Codex 或 DeepSeek Harness 中并行试跑，再从本地 Report 选择 winner 并继续。
+          ForkProbe 是一个 AI Skill 选型与试跑工具。v0.10 新增可直接安装的 DeepSeek Harness 原生插件：在 DSH 内用原生 subagent 并行试跑文本候选，从本地 Report 选择 Winner，再回到同一 Agent 继续。
         </p>
         <div class="hero-actions">
           <a class="button button-primary" href="#report-demo">查看预览</a>
@@ -1929,7 +1929,7 @@
           <p class="section-kicker">一句话启动 skill 对比</p>
           <h2>把任务交给 Agent 前，说“先帮我比较几个 skill”。</h2>
           <p class="section-lede">
-            不管你用 Claude Code、Codex、OpenClaw、WorkBuddy 还是 OpenCode，都可以先让 forkprobe 找候选、跑对比、给评审，再由你决定继续哪一个 skill。
+            不管你用 Claude Code、Codex、DeepSeek Harness、OpenClaw、WorkBuddy 还是 OpenCode，都可以先让 forkprobe 找候选、跑对比、给评审，再由你决定继续哪一个 skill。
           </p>
           <div class="prompt-box">
             <code id="promptText">先帮我比较几个 skill，看看哪个更适合当前任务。或者：请用 forkprobe 推荐候选，等我确认后再并排执行并生成 report，让我选择 winner。</code>
@@ -1941,7 +1941,7 @@
 
     <footer class="footer">
       <div class="footer-inner">
-        <span>ForkProbe v0.9 · AI Skill 选型与试跑工具</span>
+        <span>ForkProbe v0.10 · AI Skill 选型与试跑工具</span>
         <span>任务内容保留本地 · 匿名选择由用户决定</span>
       </div>
     </footer>
@@ -1955,8 +1955,8 @@
       en: {
         langCode: 'en',
         text: {
-          'meta.title': 'ForkProbe v0.9: AI Skill Selection and Trial-Run Tool',
-          'meta.description': 'ForkProbe v0.9 adds first-class execution through the official DeepSeek Harness headless profile.',
+          'meta.title': 'ForkProbe v0.10: AI Skill Selection and Trial-Run Tool',
+          'meta.description': 'ForkProbe v0.10 adds an installable native DeepSeek Harness plugin.',
           'nav.aria': 'Primary navigation',
           'nav.brandAria': 'forkprobe home',
           'nav.home': 'Home',
@@ -1966,9 +1966,9 @@
           'nav.preview': 'Preview',
           'nav.usecases': 'Use cases',
           'nav.start': 'Start',
-          'hero.eyebrow': 'ForkProbe v0.9: AI Skill selection and trial-run tool.',
+          'hero.eyebrow': 'ForkProbe v0.10: AI Skill selection and trial-run tool.',
           'hero.subtitle': 'Stop guessing which AI Skill works. Compare the real outputs side by side.',
-          'hero.lede': 'ForkProbe is an AI Skill selection and trial-run tool for Agent workflows. v0.9 adds first-class DeepSeek Harness execution, so the same task can run through Claude Code, Codex, or DeepSeek Harness before you choose a Winner in the local Report and continue.',
+          'hero.lede': 'ForkProbe is an AI Skill selection and trial-run tool for Agent workflows. v0.10 adds an installable native DeepSeek Harness plugin: run text candidates through native DSH subagents, choose a Winner in the local Report, and continue in the same Agent.',
           'hero.previewButton': 'View preview',
           'hero.usecasesButton': 'Use cases',
           'hero.visualAria': 'Preview of a forkprobe comparison report',
@@ -2099,10 +2099,10 @@
           'privacy.open': 'View sample progress and full rules',
           'cta.kicker': 'Start skill comparison in one sentence',
           'cta.title': 'Before handing a task to your Agent, say: "compare a few skills first."',
-          'cta.lede': 'Whether you use Claude Code, Codex, OpenClaw, WorkBuddy, OpenCode, or another Agent surface, forkprobe can recommend candidates, run comparisons, generate a report, and let you decide which skill to continue with.',
+          'cta.lede': 'Whether you use Claude Code, Codex, DeepSeek Harness, OpenClaw, WorkBuddy, OpenCode, or another Agent surface, forkprobe can recommend candidates, run comparisons, generate a report, and let you decide which skill to continue with.',
           'cta.prompt': 'Compare a few skills first and see which one fits the current task better. Or: use forkprobe to recommend candidates, wait for my confirmation, run them side by side, generate a report, and let me choose the winner.',
           'cta.copy': 'Copy',
-          'footer.left': 'ForkProbe v0.9 · AI Skill selection and trial-run tool',
+          'footer.left': 'ForkProbe v0.10 · AI Skill selection and trial-run tool',
           'footer.right': 'Task content stays local · anonymous selection is optional',
           'toast.downloaded': 'Skill download started.',
           'ui.copied': 'Copied',
@@ -2165,8 +2165,8 @@
       zh: {
         langCode: 'zh-CN',
         text: {
-          'meta.title': 'ForkProbe v0.9：AI Skill 选型与试跑工具',
-          'meta.description': 'ForkProbe v0.9 新增 DeepSeek Harness 正式执行路径。',
+          'meta.title': 'ForkProbe v0.10：AI Skill 选型与试跑工具',
+          'meta.description': 'ForkProbe v0.10 新增可直接安装的 DeepSeek Harness 原生插件。',
           'nav.aria': '主导航',
           'nav.brandAria': 'forkprobe 首页',
           'nav.home': '首页',
@@ -2176,9 +2176,9 @@
           'nav.preview': '预览',
           'nav.usecases': '场景',
           'nav.start': '开始',
-          'hero.eyebrow': 'ForkProbe v0.9：AI Skill 选型与试跑工具。',
+          'hero.eyebrow': 'ForkProbe v0.10：AI Skill 选型与试跑工具。',
           'hero.subtitle': '别猜哪个 AI Skill 有用，直接并排看结果。',
-          'hero.lede': 'ForkProbe 是一个 AI Skill 选型与试跑工具。v0.9 新增 DeepSeek Harness 正式执行路径，同一个任务现在可以在 Claude Code、Codex 或 DeepSeek Harness 中并行试跑，再从本地 Report 选择 winner 并继续。',
+          'hero.lede': 'ForkProbe 是一个 AI Skill 选型与试跑工具。v0.10 新增可直接安装的 DeepSeek Harness 原生插件：在 DSH 内用原生 subagent 并行试跑文本候选，从本地 Report 选择 Winner，再回到同一 Agent 继续。',
           'hero.previewButton': '查看预览',
           'hero.usecasesButton': '适用场景',
           'hero.visualAria': 'forkprobe 对比报告界面预览',
@@ -2309,10 +2309,10 @@
           'privacy.open': '查看样本进度与完整规则',
           'cta.kicker': '一句话启动 skill 对比',
           'cta.title': '把任务交给 Agent 前，说“先帮我比较几个 skill”。',
-          'cta.lede': '不管你用 Claude Code、Codex、OpenClaw、WorkBuddy 还是 OpenCode，都可以先让 forkprobe 找候选、跑对比、给评审，再由你决定继续哪一个 skill。',
+          'cta.lede': '不管你用 Claude Code、Codex、DeepSeek Harness、OpenClaw、WorkBuddy 还是 OpenCode，都可以先让 forkprobe 找候选、跑对比、给评审，再由你决定继续哪一个 skill。',
           'cta.prompt': '先帮我比较几个 skill，看看哪个更适合当前任务。或者：请用 forkprobe 推荐候选，等我确认后再并排执行并生成 report，让我选择 winner。',
           'cta.copy': '复制',
-          'footer.left': 'ForkProbe v0.9 · AI Skill 选型与试跑工具',
+          'footer.left': 'ForkProbe v0.10 · AI Skill 选型与试跑工具',
           'footer.right': '任务内容保留本地 · 匿名选择由用户决定',
           'toast.downloaded': '已为你下载 Skill。',
           'ui.copied': '已复制',

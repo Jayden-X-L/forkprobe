@@ -4,7 +4,7 @@ forkprobe main orchestration: run a task in parallel with and without skill(s).
 Usage:
     python compare.py --input task.txt --skill baseline --skill humanizer --output report.html
 
-v0.9 status: DeepSeek Harness support, anonymous Winner feedback, multi-source discovery, artifact comparison, HTML report,
+v0.10 status: Native DeepSeek Harness plugin support, anonymous Winner feedback, multi-source discovery, artifact comparison, HTML report,
 research-report and webpage artifact routing, and local HTML reports
 rendering, local verdict capture, and first artifact comparison flows.
 """
@@ -14,11 +14,12 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -33,6 +34,7 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_DIR = SCRIPT_DIR.parent
 CATALOG_DIR = PROJECT_DIR / "catalog"
 LOGS_DIR = Path.cwd() / "forkprobe-logs"
+FORKPROBE_VERSION = "v0.10"
 
 
 # --- Data structures ---
@@ -62,6 +64,7 @@ class RunResult:
     estimated_tokens_used: int = 0
     provider_tokens_used: int = 0
     token_count_method: str = "estimated_visible_context"
+    qa_warnings: list[str] = field(default_factory=list)
     error: Optional[str] = None
 
 
@@ -205,6 +208,82 @@ def estimate_run_tokens(task_input: str, system_prompt: str, output: str) -> int
     return estimate_text_tokens(system_prompt) + estimate_text_tokens(task_input) + estimate_text_tokens(output)
 
 
+def skill_prompt_fingerprint(system_prompt: str) -> str:
+    """Hash skill instructions while ignoring checkout-specific package paths."""
+    normalized = re.sub(
+        r"^Skill package path:.*$",
+        "Skill package path: <normalized>",
+        system_prompt,
+        flags=re.MULTILINE,
+    )
+    normalized = "\n".join(line.rstrip() for line in normalized.strip().splitlines())
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def dedupe_skill_specs(skills: list[SkillSpec]) -> list[SkillSpec]:
+    """Remove semantically identical Skill packages before candidate execution."""
+    deduped: list[SkillSpec] = []
+    seen: set[str] = set()
+    for skill in skills:
+        key = "baseline" if skill.id == "baseline" else skill_prompt_fingerprint(skill.system_prompt)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(skill)
+    return deduped
+
+
+def count_cjk_characters(text: str) -> int:
+    """Count Han characters for deterministic Chinese-length checks."""
+    return sum(
+        1
+        for char in text
+        if 0x3400 <= ord(char) <= 0x4DBF
+        or 0x4E00 <= ord(char) <= 0x9FFF
+        or 0xF900 <= ord(char) <= 0xFAFF
+    )
+
+
+def _requested_cjk_range(task_input: str) -> Optional[tuple[int, int, str]]:
+    """Extract an explicit Chinese character-count requirement from the task."""
+    unit = r"(?:个)?(?:汉字|中文字|中文字符|字)"
+    range_match = re.search(rf"(\d{{2,4}})\s*(?:[-~～—–至到])\s*(\d{{2,4}})\s*{unit}", task_input)
+    if range_match:
+        lower, upper = sorted((int(range_match.group(1)), int(range_match.group(2))))
+        return lower, upper, f"{lower}-{upper} Chinese characters"
+
+    max_match = re.search(rf"(?:不超过|最多|至多|上限(?:为|是)?)\s*(\d{{2,4}})\s*{unit}", task_input)
+    if max_match:
+        upper = int(max_match.group(1))
+        return 0, upper, f"at most {upper} Chinese characters"
+
+    min_match = re.search(rf"(?:不少于|至少|下限(?:为|是)?)\s*(\d{{2,4}})\s*{unit}", task_input)
+    if min_match:
+        lower = int(min_match.group(1))
+        return lower, 10**9, f"at least {lower} Chinese characters"
+
+    target_match = re.search(rf"(?:约|大约|控制在|保持在)?\s*(\d{{2,4}})\s*{unit}(?:左右)?", task_input)
+    if target_match:
+        target = int(target_match.group(1))
+        tolerance = max(5, round(target * 0.1))
+        return max(0, target - tolerance), target + tolerance, f"about {target} Chinese characters"
+    return None
+
+
+def text_constraint_warnings(task_input: str, output: str) -> list[str]:
+    """Return deterministic QA warnings for explicit Chinese length constraints."""
+    requested = _requested_cjk_range(task_input)
+    if not requested or not output:
+        return []
+    lower, upper, description = requested
+    actual = count_cjk_characters(output)
+    if lower <= actual <= upper:
+        return []
+    return [
+        f"Length requirement not met: requested {description}; output contains {actual} Chinese characters."
+    ]
+
+
 def run_one(task_input: str, skill: SkillSpec, platform, timeout: int = 120) -> RunResult:
     """Run a single subagent for one skill."""
     result: SubagentResult = spawn_subagent(
@@ -214,6 +293,9 @@ def run_one(task_input: str, skill: SkillSpec, platform, timeout: int = 120) -> 
         skill_id=skill.id,
         timeout_seconds=timeout,
     )
+    estimated_tokens = estimate_run_tokens(task_input, skill.system_prompt, result.output)
+    token_count_method = getattr(result, "token_count_method", "provider_reported")
+    provider_tokens = result.tokens_used if token_count_method == "provider_reported" else 0
     return RunResult(
         skill_id=skill.id,
         skill_name=skill.name,
@@ -222,8 +304,10 @@ def run_one(task_input: str, skill: SkillSpec, platform, timeout: int = 120) -> 
         output=result.output,
         tokens_used=result.tokens_used,
         latency_seconds=result.latency_seconds,
-        estimated_tokens_used=estimate_run_tokens(task_input, skill.system_prompt, result.output),
-        provider_tokens_used=result.tokens_used,
+        estimated_tokens_used=estimated_tokens,
+        provider_tokens_used=provider_tokens,
+        token_count_method=token_count_method,
+        qa_warnings=text_constraint_warnings(task_input, result.output),
         error=result.error,
     )
 
@@ -259,6 +343,7 @@ def run_parallel(task_input: str, skills: list[SkillSpec], max_workers: int = 3)
                     skill_category=skill.category, output="", tokens_used=0, latency_seconds=0.0,
                     estimated_tokens_used=estimate_run_tokens(task_input, skill.system_prompt, ""),
                     provider_tokens_used=0,
+                    token_count_method="unavailable",
                     error=str(e),
                 ))
 
@@ -324,7 +409,8 @@ def build_judge_task(task_input: str, results: list[RunResult], rubric: Optional
             f"Name: {r.skill_name}\n"
             f"Category: {r.skill_category}\n"
             f"Tokens: {r.tokens_used}\n"
-            f"Latency: {r.latency_seconds:.1f}s\n\n"
+            f"Latency: {r.latency_seconds:.1f}s\n"
+            f"Deterministic QA: {'; '.join(r.qa_warnings) if r.qa_warnings else 'passed'}\n\n"
             f"{body}"
         )
 
@@ -458,17 +544,20 @@ def write_log(
     output_path: Path,
     judge_result: Optional[JudgeResult] = None,
     task_type: str = "text_general",
+    platform_name: Optional[str] = None,
+    logs_dir: Optional[Path] = None,
 ) -> Path:
     """Append a log entry to forkprobe-logs/. Stores HASH only, never content."""
-    LOGS_DIR.mkdir(exist_ok=True)
+    active_logs_dir = logs_dir or LOGS_DIR
+    active_logs_dir.mkdir(parents=True, exist_ok=True)
     timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     run_id = str(uuid.uuid4())[:8]
-    log_file = LOGS_DIR / f"{timestamp.replace(':', '')}-{run_id}.json"
+    log_file = active_logs_dir / f"{timestamp.replace(':', '')}-{run_id}.json"
 
     log_entry = {
         "timestamp": timestamp,
         "run_id": run_id,
-        "platform": detect_platform().value,
+        "platform": platform_name or detect_platform().value,
         "task_type": task_type,
         "task_input_hash": "sha256:" + hashlib.sha256(task_input.encode("utf-8")).hexdigest(),
         "task_input_chars": len(task_input),
@@ -542,12 +631,12 @@ def main():
     # Load catalog and resolve skills
     catalog = load_catalog(args.domain)
     try:
-        skills = [resolve_skill(sid, catalog) for sid in skill_ids]
+        skills = dedupe_skill_specs([resolve_skill(sid, catalog) for sid in skill_ids])
     except (NotImplementedError, KeyError) as e:
         print(f"Error resolving skill: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[forkprobe] v0.9")
+    print(f"[forkprobe] {FORKPROBE_VERSION}")
     print(f"[forkprobe] Task input: {len(task_input)} chars from {input_path}")
     print(f"[forkprobe] Skills to compare: {[s.id for s in skills]}")
     print()

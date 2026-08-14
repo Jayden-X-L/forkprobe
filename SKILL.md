@@ -11,7 +11,9 @@ description: Recommend a small set of candidate skills or artifact-generation pi
 
 Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines ForkProbe's curated catalog, automatically indexed local Skills, EverMind Skill Hub, GitHub discovery, and explicit BYO sources, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code, Codex, or DeepSeek Harness), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, research reports, webpages, and videos, it compares artifact-generation pipelines and renders a report with file links, previews or playback.
 
-**v0.9 scope:** All v0.8 workflows plus first-class DeepSeek Harness execution through the official `dsh --profile headless` profile. Text candidates, AI judging, and scientific-figure, research-report, webpage, and finished-video Artifact runners accept `--platform deepseek_harness`. Use `FORKPROBE_PLATFORM=deepseek_harness` when invoking through an Agent that does not expose an unambiguous harness signal. Text runs default to `read-only`; file-producing runs default to `workspace-write`.
+**v0.10 scope:** All v0.9 workflows plus the installable `forkprobe-dsh` native DeepSeek Harness plugin. In DSH, prefer the `forkprobe_compare` tool for confirmed text comparisons: it fans candidates out through the registered native subagent provider, runs an optional judge, opens the local Report, waits for the user's Continue action, and returns the selected output to the same Agent. Use `forkprobe_resume` when the original wait window has ended. The plugin must not start nested `dsh` processes or copy credentials, and candidate subagents receive no tools. The existing `--platform deepseek_harness` runners remain the compatibility path for file-producing Artifact tasks.
+
+**v0.9 scope retained:** Text candidates, AI judging, and scientific-figure, research-report, webpage, and finished-video Artifact runners accept `--platform deepseek_harness` through the official `dsh --profile headless` profile. Use `FORKPROBE_PLATFORM=deepseek_harness` when invoking through an Agent that does not expose an unambiguous harness signal. Text compatibility runs default to `read-only`; file-producing runs default to `workspace-write`.
 
 **v0.8 scope retained:** The optional anonymous Winner feedback loop persists the local handoff and continues the Agent task in the same action. Share only the privacy-safe task type, compared Skill names, and final choice when the Report checkbox is enabled. Queue events locally, send them asynchronously to the official Cloudflare Worker, and keep community statistics separate from source quality and benchmark priors.
 
@@ -204,7 +206,9 @@ https://github.com/Yuan1z0825/nature-skills#skills/nature-polishing
 
 ### Step 4: Run text comparison
 
-For `text` and `ppt_outline` mode, invoke:
+Inside DeepSeek Harness with the native plugin installed, call `forkprobe_compare` only after showing the shortlist and obtaining explicit user confirmation. Set `confirmed=true`, pass the original task and selected Skill IDs/paths/URLs, and normally set `wait_for_verdict=true`. After the user chooses a Winner and clicks Continue, use the returned `selectedOutput` and `handoffText` to continue the original task in the same Agent. If the wait expires, call `forkprobe_resume` with the returned `logPath`.
+
+For Claude Code, Codex, or the DSH headless compatibility path, invoke:
 
 ```bash
 python scripts/compare.py \
@@ -220,7 +224,7 @@ The script:
 2. Spawns N+1 parallel subagents (one per selected skill + baseline)
    - Claude Code: prefers `claude-agent-sdk`, then Anthropic API fallback
    - Codex: prefers native `codex exec` so it inherits Codex Desktop auth/model config, then OpenAI API fallback
-   - DeepSeek Harness: uses the official one-shot `dsh --profile headless "task"` entry; resolve the executable through `FORKPROBE_DSH_CLI`, global `dsh`, or official `npx @deepseek-ai/dsh`
+   - DeepSeek Harness compatibility mode: uses the official one-shot `dsh --profile headless "task"` entry; resolve the executable through `FORKPROBE_DSH_CLI`, global `dsh`, or official `npx @deepseek-ai/dsh`
 3. Each subagent runs the same task input through its respective system prompt
 4. Collects outputs, tokens, latency
 5. Optionally runs a judge subagent when `--judge` is present
@@ -591,7 +595,10 @@ Schema:
 
 ```
 SKILL.md (this file)
-  └─> scripts/compare.py
+  ├─> dsh-plugin/lib/index.js (native DSH tools: forkprobe_compare / forkprobe_resume)
+  │     ├─> scripts/prepare_native_compare.py
+  │     └─> scripts/finalize_native_compare.py
+  └─> scripts/compare.py (cross-platform CLI and DSH compatibility path)
         ├─> scripts/platform_adapter.py (Claude Code, Codex, and DeepSeek Harness)
         ├─> scripts/recommend.py (multi-source candidate recommendation)
         ├─> scripts/candidate_providers.py (installed-local and EverMind providers)

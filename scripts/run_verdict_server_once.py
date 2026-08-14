@@ -13,15 +13,16 @@ from verdict_server import build_verdict_url, start_server, stop_server, wait_fo
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run a forkprobe verdict server for one report.")
     parser.add_argument("--log", required=True, help="forkprobe log JSON to update")
-    parser.add_argument("--port-file", required=True, help="file where the selected port is written")
+    parser.add_argument("--port-file", required=True, help="file where the tokenized verdict endpoint is written")
     parser.add_argument("--timeout", type=int, default=1800, help="seconds to wait for a verdict")
     args = parser.parse_args()
 
     log_path = Path(args.log).resolve()
     port_file = Path(args.port_file).resolve()
     port = start_server(log_path)
-    port_file.write_text(str(port), encoding="utf-8")
-    print(f"Verdict server: {build_verdict_url(port)}", flush=True)
+    verdict_url = build_verdict_url(port)
+    port_file.write_text(verdict_url, encoding="utf-8")
+    print(f"Verdict server: {verdict_url}", flush=True)
 
     try:
         verdict = wait_for_verdict(timeout_seconds=args.timeout)

@@ -13,10 +13,17 @@ venv/
 node_modules/
 .wrangler/
 
+# Local DeepSeek Harness / native plugin scratch state
+/tmp/
+.forkprobe-dsh/
+**/.credentials.yaml
+
 # forkprobe runtime artifacts
 forkprobe-logs/
 report.html
 report-*.html
+forkprobe-dsh-*-report.html
+*.forkprobe-run.json
 .skills-cache/
 *.log
 *.port

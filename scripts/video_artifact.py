@@ -791,6 +791,8 @@ def build_manifest(
             and int(video_preview.get("qa_score") or 0) >= 90
         ):
             reported_error = None
+        token_count_method = str(run_result.get("token_count_method") or "provider_reported")
+        provider_tokens = int(run_result.get("tokens_used") or 0) if token_count_method == "provider_reported" else 0
         candidates.append({
             "id": pipeline.id,
             "name": pipeline.name,
@@ -806,8 +808,9 @@ def build_manifest(
             "qa_checks": list(pipeline.qa_checks),
             "artifacts": artifacts,
             "video_preview": video_preview,
-            "tokens_used": int(run_result.get("tokens_used") or 0),
-            "provider_tokens_used": int(run_result.get("tokens_used") or 0),
+            "tokens_used": provider_tokens,
+            "provider_tokens_used": provider_tokens,
+            "token_count_method": token_count_method,
             "estimated_tokens_used": estimate_candidate_tokens(
                 task_input, pipeline, candidate_dir, summary, artifacts, run_result
             ),
