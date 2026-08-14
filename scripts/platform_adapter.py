@@ -1,22 +1,25 @@
 """
 Platform detection and subagent spawning abstraction.
 
-forkprobe runs as a skill inside either Claude Code or Codex. The two platforms
-expose slightly different APIs for spawning sub-tasks. Claude Code is reached
+forkprobe runs as a skill inside Claude Code, Codex, or DeepSeek Harness. The
+platforms expose different APIs for spawning sub-tasks. Claude Code is reached
 through claude-agent-sdk when available. Codex is reached through the native
-`codex exec` CLI first, then the OpenAI API fallback when needed.
+`codex exec` CLI first, then the OpenAI API fallback when needed. DeepSeek
+Harness is reached through its official one-shot headless profile.
 
-ForkProbe uses the official Python SDKs to call those APIs directly. This
-keeps the "subagent" abstraction simple and platform-agnostic at the call site.
+ForkProbe uses official SDKs or non-interactive CLI entry points for each
+platform. This keeps the subagent abstraction platform-agnostic at the call site.
 """
 from __future__ import annotations
 
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -24,9 +27,14 @@ from pathlib import Path
 from typing import Optional
 
 
+_DSH_PREPARE_LOCK = threading.Lock()
+_DSH_PREPARED: set[tuple[str, ...]] = set()
+
+
 class Platform(Enum):
     CLAUDE_CODE = "claude_code"
     CODEX = "codex"
+    DEEPSEEK_HARNESS = "deepseek_harness"
     STANDALONE = "standalone"  # for direct API calls, Phase 2+
     UNKNOWN = "unknown"
 
@@ -49,6 +57,30 @@ def detect_platform() -> Platform:
     2. Presence of platform-specific config dirs
     3. Fall back to UNKNOWN
     """
+    override = os.environ.get("FORKPROBE_PLATFORM", "").strip().lower().replace("-", "_")
+    aliases = {
+        "claude": Platform.CLAUDE_CODE,
+        "claude_code": Platform.CLAUDE_CODE,
+        "codex": Platform.CODEX,
+        "deepseek": Platform.DEEPSEEK_HARNESS,
+        "deepseek_harness": Platform.DEEPSEEK_HARNESS,
+        "dsh": Platform.DEEPSEEK_HARNESS,
+        "standalone": Platform.STANDALONE,
+        "unknown": Platform.UNKNOWN,
+        "auto": None,
+    }
+    if override:
+        if override not in aliases:
+            choices = ", ".join(sorted(key for key in aliases if key != "auto"))
+            raise ValueError(f"Unknown FORKPROBE_PLATFORM={override!r}. Expected one of: {choices}")
+        selected = aliases[override]
+        if selected is not None:
+            return selected
+
+    # Commands launched by DeepSeek Harness expose DSH_SHELL to the shell tool.
+    if os.environ.get("DSH_SHELL"):
+        return Platform.DEEPSEEK_HARNESS
+
     # Claude Code sets these env vars when running a skill
     if os.environ.get("CLAUDE_CODE_SESSION_ID") or os.environ.get("CLAUDE_PROJECT_DIR"):
         return Platform.CLAUDE_CODE
@@ -96,6 +128,8 @@ def spawn_subagent(
         return _spawn_claude_code(task_input, system_prompt, skill_id, timeout_seconds)
     elif platform == Platform.CODEX:
         return _spawn_codex(task_input, system_prompt, skill_id, timeout_seconds)
+    elif platform == Platform.DEEPSEEK_HARNESS:
+        return _spawn_deepseek_harness(task_input, system_prompt, skill_id, timeout_seconds)
     elif platform == Platform.STANDALONE:
         return _spawn_standalone(task_input, system_prompt, skill_id, timeout_seconds)
     else:
@@ -103,7 +137,10 @@ def spawn_subagent(
             output="",
             tokens_used=0,
             latency_seconds=0.0,
-            error=f"Unknown platform: {platform}. forkprobe v0.8 supports Claude Code and Codex only.",
+            error=(
+                f"Unknown platform: {platform}. forkprobe v0.9 supports Claude Code, Codex, "
+                "and DeepSeek Harness. Set FORKPROBE_PLATFORM explicitly when auto-detection is ambiguous."
+            ),
         )
 
 
@@ -260,6 +297,24 @@ def _build_codex_native_prompt(task_input: str, system_prompt: str, skill_id: st
     )
 
 
+def _build_deepseek_harness_prompt(task_input: str, system_prompt: str, skill_id: str) -> str:
+    """Package one comparison candidate for the DeepSeek Harness headless app."""
+    return (
+        "You are a ForkProbe candidate runner inside DeepSeek Harness. Produce one final answer "
+        "for the original task.\n\n"
+        "Rules for this isolated candidate:\n"
+        "- Treat the ForkProbe skill instructions below as the governing instructions for this run.\n"
+        "- Do not compare candidates, mention ForkProbe, or explain this wrapper.\n"
+        "- Do not modify files or ask the user follow-up questions.\n"
+        "- Return only the answer to the original task.\n\n"
+        f"ForkProbe candidate id: {skill_id}\n\n"
+        "## ForkProbe skill instructions\n"
+        f"{system_prompt}\n\n"
+        "## Original task\n"
+        f"{task_input}\n"
+    )
+
+
 def _parse_codex_tokens(text: str) -> int:
     """Best-effort parse of Codex CLI token usage from its terminal transcript."""
     match = re.search(r"tokens used\s+([0-9][0-9,]*)", text, flags=re.IGNORECASE)
@@ -273,6 +328,146 @@ def _tail(text: str, limit: int = 1200) -> str:
     if len(text) <= limit:
         return text
     return "..." + text[-limit:]
+
+
+def _estimate_visible_tokens(text: str) -> int:
+    """Cross-language estimate used when a harness does not expose usage data."""
+    if not text:
+        return 0
+    cjk = 0
+    latin_like = 0
+    other = 0
+    for char in text:
+        if char.isspace():
+            continue
+        code = ord(char)
+        if 0x3400 <= code <= 0x4DBF or 0x4E00 <= code <= 0x9FFF or 0xF900 <= code <= 0xFAFF:
+            cjk += 1
+        elif code < 128:
+            latin_like += 1
+        else:
+            other += 1
+    return max(1, round(cjk * 0.75 + latin_like / 4 + other / 3))
+
+
+def _deepseek_harness_command() -> Optional[list[str]]:
+    """Return the configured dsh command, with the official npx entry as fallback."""
+    configured = os.environ.get("FORKPROBE_DSH_CLI") or os.environ.get("DEEPSEEK_HARNESS_CLI")
+    if configured:
+        command = shlex.split(configured)
+        if command and (Path(command[0]).exists() or shutil.which(command[0])):
+            return command
+        return None
+
+    native = shutil.which("dsh")
+    if native:
+        return [native]
+
+    npx_enabled = os.environ.get("FORKPROBE_DSH_NPX", "1").lower() not in {"0", "false", "no", "off"}
+    npx = shutil.which("npx") if npx_enabled else None
+    if npx:
+        return [npx, "--yes", "@deepseek-ai/dsh"]
+    return None
+
+
+def _spawn_deepseek_harness_prompt(
+    prompt: str,
+    timeout: int,
+    cwd: Path,
+    permission_mode: str,
+) -> SubagentResult:
+    """Run one task through the official DeepSeek Harness headless profile."""
+    command = _deepseek_harness_command()
+    if not command:
+        return SubagentResult(
+            output="",
+            tokens_used=0,
+            latency_seconds=0.0,
+            error=(
+                "DeepSeek Harness CLI not found. Install Node.js and set FORKPROBE_DSH_CLI, "
+                "install `@deepseek-ai/dsh`, or leave FORKPROBE_DSH_NPX=1 to use the official npx entry."
+            ),
+        )
+
+    profile = os.environ.get("FORKPROBE_DSH_PROFILE", "headless")
+    env = os.environ.copy()
+    env["DSH_PERMISSION_MODE"] = permission_mode
+    t0 = time.time()
+    try:
+        prepare_key = (*command, profile, env.get("DSH_HOME", ""))
+        with _DSH_PREPARE_LOCK:
+            if prepare_key not in _DSH_PREPARED:
+                prepared = subprocess.run(
+                    [*command, "--profile", profile, "--help"],
+                    cwd=str(cwd),
+                    env=env,
+                    text=True,
+                    capture_output=True,
+                    timeout=min(timeout, 120),
+                )
+                if prepared.returncode != 0:
+                    transcript = "\n".join(part for part in [prepared.stdout, prepared.stderr] if part)
+                    return SubagentResult(
+                        output="",
+                        tokens_used=0,
+                        latency_seconds=time.time() - t0,
+                        error=f"DeepSeek Harness profile initialization failed: {_tail(transcript)}",
+                    )
+                _DSH_PREPARED.add(prepare_key)
+
+        proc = subprocess.run(
+            [*command, "--profile", profile, prompt],
+            cwd=str(cwd),
+            env=env,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+        )
+        output = proc.stdout.strip()
+        transcript = "\n".join(part for part in [proc.stdout, proc.stderr] if part).strip()
+        tokens = _estimate_visible_tokens(prompt) + _estimate_visible_tokens(output)
+        if proc.returncode != 0:
+            return SubagentResult(
+                output=output,
+                tokens_used=tokens,
+                latency_seconds=time.time() - t0,
+                error=f"DeepSeek Harness exited {proc.returncode}: {_tail(transcript)}",
+            )
+        if not output:
+            return SubagentResult(
+                output="",
+                tokens_used=tokens,
+                latency_seconds=time.time() - t0,
+                error="DeepSeek Harness returned an empty final answer.",
+            )
+        return SubagentResult(output=output, tokens_used=tokens, latency_seconds=time.time() - t0)
+    except subprocess.TimeoutExpired as exc:
+        partial_stdout = exc.stdout.decode() if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        return SubagentResult(
+            output=partial_stdout.strip(),
+            tokens_used=_estimate_visible_tokens(prompt) + _estimate_visible_tokens(partial_stdout),
+            latency_seconds=time.time() - t0,
+            error=f"DeepSeek Harness timeout after {timeout}s",
+        )
+    except Exception as exc:
+        return SubagentResult(
+            output="",
+            tokens_used=0,
+            latency_seconds=time.time() - t0,
+            error=f"{type(exc).__name__}: {exc}",
+        )
+
+
+def _spawn_deepseek_harness(
+    task_input: str,
+    system_prompt: str,
+    skill_id: str,
+    timeout: int,
+) -> SubagentResult:
+    """Run one read-only comparison candidate through `dsh --profile headless`."""
+    prompt = _build_deepseek_harness_prompt(task_input, system_prompt, skill_id)
+    permission_mode = os.environ.get("FORKPROBE_DSH_PERMISSION_MODE", "read-only")
+    return _spawn_deepseek_harness_prompt(prompt, timeout, Path.cwd(), permission_mode)
 
 
 def _spawn_codex_native(task_input: str, system_prompt: str, skill_id: str, timeout: int) -> SubagentResult:
@@ -409,6 +604,167 @@ def _spawn_codex_native(task_input: str, system_prompt: str, skill_id: str, time
                 pass
 
 
+def _spawn_codex_workspace_prompt(
+    prompt: str,
+    timeout: int,
+    cwd: Path,
+    sandbox: str,
+    writable_dirs: Optional[list[Path]] = None,
+) -> SubagentResult:
+    """Run a raw workspace task through Codex native for artifact generation."""
+    cli = _codex_cli_path()
+    if not cli:
+        return SubagentResult(
+            output="",
+            tokens_used=0,
+            latency_seconds=0.0,
+            error="Codex CLI not found. Set FORKPROBE_CODEX_CLI or install Codex CLI.",
+        )
+
+    model = os.environ.get("FORKPROBE_MODEL_CODEX_NATIVE")
+    reasoning_effort = os.environ.get("FORKPROBE_CODEX_REASONING_EFFORT")
+    t0 = time.time()
+    output_path: Optional[Path] = None
+    transcript_handle = None
+    try:
+        with tempfile.NamedTemporaryFile(prefix="forkprobe-workspace-codex-", suffix=".txt", delete=False) as handle:
+            output_path = Path(handle.name)
+
+        cmd = [
+            cli,
+            "exec",
+            "--ephemeral",
+            "--skip-git-repo-check",
+            "--sandbox",
+            sandbox,
+            "--output-last-message",
+            str(output_path),
+            "-C",
+            str(cwd),
+        ]
+        for directory in writable_dirs or []:
+            cmd.extend(["--add-dir", str(directory)])
+        if model:
+            cmd.extend(["--model", model])
+        if reasoning_effort:
+            cmd.extend(["-c", f'model_reasoning_effort="{reasoning_effort}"'])
+        cmd.append("-")
+
+        transcript_handle = tempfile.TemporaryFile(mode="w+t", encoding="utf-8")
+        proc = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=transcript_handle,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        if proc.stdin is not None:
+            proc.stdin.write(prompt)
+            proc.stdin.close()
+            proc.stdin = None
+
+        deadline = time.time() + timeout
+        last_size = -1
+        stable_polls = 0
+        final_message_ready = False
+        while time.time() < deadline:
+            size = output_path.stat().st_size if output_path.exists() else 0
+            if size > 0:
+                if size == last_size:
+                    stable_polls += 1
+                else:
+                    stable_polls = 0
+                    last_size = size
+                if stable_polls >= 4:
+                    final_message_ready = True
+                    break
+            if proc.poll() is not None:
+                break
+            time.sleep(0.1)
+
+        timed_out = proc.poll() is None and not final_message_ready
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=3)
+        transcript_handle.flush()
+        transcript_handle.seek(0)
+        transcript = transcript_handle.read()
+        output = output_path.read_text(encoding="utf-8").strip() if output_path.exists() else ""
+        if not output:
+            output = transcript.strip()
+        tokens = _parse_codex_tokens(transcript)
+        if timed_out:
+            return SubagentResult(
+                output=output,
+                tokens_used=tokens,
+                latency_seconds=time.time() - t0,
+                error=f"Codex CLI timeout after {timeout}s",
+            )
+        if proc.returncode not in {0, -15} and not final_message_ready:
+            return SubagentResult(
+                output=output,
+                tokens_used=tokens,
+                latency_seconds=time.time() - t0,
+                error=f"Codex CLI exited {proc.returncode}: {_tail(transcript)}",
+            )
+        if not output:
+            return SubagentResult(
+                output="",
+                tokens_used=tokens,
+                latency_seconds=time.time() - t0,
+                error="Codex CLI returned an empty final message.",
+            )
+        return SubagentResult(output=output, tokens_used=tokens, latency_seconds=time.time() - t0)
+    except Exception as exc:
+        return SubagentResult(
+            output="",
+            tokens_used=0,
+            latency_seconds=time.time() - t0,
+            error=f"{type(exc).__name__}: {exc}",
+        )
+    finally:
+        if transcript_handle is not None:
+            transcript_handle.close()
+        if output_path:
+            try:
+                output_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+
+def spawn_workspace_agent(
+    platform: Platform,
+    prompt: str,
+    cwd: Path,
+    timeout_seconds: int = 900,
+    sandbox: str = "workspace-write",
+    writable_dirs: Optional[list[Path]] = None,
+) -> SubagentResult:
+    """Run a file-producing task through a harness with workspace tools enabled."""
+    if platform == Platform.DEEPSEEK_HARNESS:
+        permission_mode = os.environ.get("FORKPROBE_DSH_PERMISSION_MODE", sandbox)
+        return _spawn_deepseek_harness_prompt(prompt, timeout_seconds, cwd, permission_mode)
+    if platform == Platform.CODEX:
+        return _spawn_codex_workspace_prompt(prompt, timeout_seconds, cwd, sandbox, writable_dirs)
+    if platform == Platform.CLAUDE_CODE and _codex_cli_path():
+        # Preserve the artifact runner's historical Codex-native fallback when
+        # ForkProbe is invoked from Claude Code on a machine with Codex installed.
+        return _spawn_codex_workspace_prompt(prompt, timeout_seconds, cwd, sandbox, writable_dirs)
+    return SubagentResult(
+        output="",
+        tokens_used=0,
+        latency_seconds=0.0,
+        error=(
+            f"Artifact generation is not available for platform {platform.value!r}. "
+            "Use --platform codex or --platform deepseek_harness."
+        ),
+    )
+
+
 def _spawn_codex_via_openai_api(task_input: str, system_prompt: str, skill_id: str, timeout: int) -> SubagentResult:
     """
     Call OpenAI Chat Completions API directly.
@@ -489,6 +845,10 @@ if __name__ == "__main__":
     print(f"  CODEX_SESSION_ID: {os.environ.get('CODEX_SESSION_ID', '(not set)')}")
     print(f"  CODEX_THREAD_ID: {os.environ.get('CODEX_THREAD_ID', '(not set)')}")
     print(f"  CODEX_SHELL: {os.environ.get('CODEX_SHELL', '(not set)')}")
+    print(f"  DSH_SHELL: {os.environ.get('DSH_SHELL', '(not set)')}")
     print(f"  Codex CLI: {_codex_cli_path() or '(not found)'}")
+    dsh_command = _deepseek_harness_command()
+    print(f"  DeepSeek Harness CLI: {' '.join(dsh_command) if dsh_command else '(not found)'}")
     print(f"  ~/.claude exists: {os.path.isdir(os.path.expanduser('~/.claude'))}")
     print(f"  ~/.codex exists: {os.path.isdir(os.path.expanduser('~/.codex'))}")
+    print(f"  ~/.dsh exists: {os.path.isdir(os.path.expanduser('~/.dsh'))}")

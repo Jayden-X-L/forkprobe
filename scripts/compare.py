@@ -4,7 +4,7 @@ forkprobe main orchestration: run a task in parallel with and without skill(s).
 Usage:
     python compare.py --input task.txt --skill baseline --skill humanizer --output report.html
 
-v0.8 status: anonymous Winner feedback, multi-source discovery, artifact comparison, HTML report,
+v0.9 status: DeepSeek Harness support, anonymous Winner feedback, multi-source discovery, artifact comparison, HTML report,
 research-report and webpage artifact routing, and local HTML reports
 rendering, local verdict capture, and first artifact comparison flows.
 """
@@ -506,6 +506,12 @@ def main():
     parser.add_argument("--domain", default="academic-writing", help="Catalog domain (default: academic-writing)")
     parser.add_argument("--task-type", default="text_general",
                         help="Privacy-safe task category used for anonymous aggregate selection stats")
+    parser.add_argument(
+        "--platform",
+        choices=["auto", "claude_code", "codex", "deepseek_harness", "standalone"],
+        default="auto",
+        help="Agent harness for candidate execution (default: auto-detect)",
+    )
     parser.add_argument("--no-server", action="store_true",
                         help="Skip the verdict-capture server (report still renders, but verdict goes to browser console only)")
     parser.add_argument("--verdict-timeout", type=int, default=600,
@@ -517,6 +523,9 @@ def main():
     parser.add_argument("--judge-timeout", type=int, default=120,
                         help="Seconds to wait for the judge subagent (default: 120)")
     args = parser.parse_args()
+
+    if args.platform != "auto":
+        os.environ["FORKPROBE_PLATFORM"] = args.platform
 
     # Load input
     input_path = Path(args.input)
@@ -538,7 +547,7 @@ def main():
         print(f"Error resolving skill: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[forkprobe] v0.8")
+    print(f"[forkprobe] v0.9")
     print(f"[forkprobe] Task input: {len(task_input)} chars from {input_path}")
     print(f"[forkprobe] Skills to compare: {[s.id for s in skills]}")
     print()

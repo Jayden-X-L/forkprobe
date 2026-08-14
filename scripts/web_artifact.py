@@ -29,6 +29,9 @@ from typing import Any
 
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_DIR = SCRIPT_DIR.parent
+sys.path.insert(0, str(SCRIPT_DIR))
+from platform_adapter import detect_platform, spawn_workspace_agent
+
 CATALOG_PATH = PROJECT_DIR / "catalog" / "web-artifact-skills.json"
 DEFAULT_OUTPUT_ROOT = PROJECT_DIR / "outputs" / "web-runs"
 FALSE_VALUES = {"0", "false", "no", "off"}
@@ -770,28 +773,6 @@ def build_manifest(
     }
 
 
-def _codex_cli_path() -> str | None:
-    for candidate in [
-        os.environ.get("FORKPROBE_CODEX_CLI"),
-        os.environ.get("CODEX_CLI_PATH"),
-        shutil.which("codex"),
-        "/Applications/Codex.app/Contents/Resources/codex",
-    ]:
-        if candidate and Path(candidate).exists():
-            return candidate
-    return None
-
-
-def _parse_codex_tokens(text: str) -> int:
-    match = re.search(r"tokens used\s+([0-9][0-9,]*)", text, flags=re.IGNORECASE)
-    return int(match.group(1).replace(",", "")) if match else 0
-
-
-def _tail(text: str, limit: int = 1400) -> str:
-    text = text.strip()
-    return text if len(text) <= limit else "..." + text[-limit:]
-
-
 def _has_site(candidate_dir: Path) -> bool:
     return bool(_find_site_entry(candidate_dir / "artifacts"))
 
@@ -804,7 +785,7 @@ def _write_run_result(candidate_dir: Path, result: WebRunResult) -> None:
         (candidate_dir / "runner-error.txt").write_text(result.error, encoding="utf-8")
 
 
-def run_candidate_codex(
+def run_candidate_agent(
     task_input: str,
     output_dir: Path,
     pipeline_id: str,
@@ -817,97 +798,30 @@ def run_candidate_codex(
     (candidate_dir / "artifacts").mkdir(parents=True, exist_ok=True)
     prompt = build_candidate_run_prompt(task_input, pipeline, candidate_dir)
     (candidate_dir / "RUN_PROMPT.md").write_text(prompt, encoding="utf-8")
-    cli = _codex_cli_path()
-    if not cli:
-        result = WebRunResult(pipeline.id, "", 0, 0.0, "Codex CLI not found. Set FORKPROBE_CODEX_CLI or install Codex CLI.")
-        _write_run_result(candidate_dir, result)
-        return result
-
-    t0 = time.time()
-    output_path: Path | None = None
-    output = ""
-    tokens = 0
-    error: str | None = None
-    transcript_handle = None
-    try:
-        with tempfile.NamedTemporaryFile(prefix="forkprobe-web-codex-", suffix=".txt", delete=False) as handle:
-            output_path = Path(handle.name)
-        command = [
-            cli, "exec", "--ephemeral", "--skip-git-repo-check", "--sandbox",
-            os.environ.get("FORKPROBE_WEB_SANDBOX", "workspace-write"),
-            "--output-last-message", str(output_path), "-C", str(PROJECT_DIR), "--add-dir", str(output_dir),
-        ]
-        model = os.environ.get("FORKPROBE_MODEL_CODEX_NATIVE")
-        if model:
-            command.extend(["--model", model])
-        effort = os.environ.get("FORKPROBE_CODEX_REASONING_EFFORT")
-        if effort:
-            command.extend(["-c", f'model_reasoning_effort="{effort}"'])
-        command.append("-")
-        transcript_handle = tempfile.TemporaryFile(mode="w+t", encoding="utf-8")
-        proc = subprocess.Popen(
-            command,
-            stdin=subprocess.PIPE,
-            stdout=transcript_handle,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-        if proc.stdin is not None:
-            proc.stdin.write(prompt)
-            proc.stdin.close()
-            proc.stdin = None
-
-        deadline = time.time() + timeout
-        last_size = -1
-        stable_polls = 0
-        final_message_ready = False
-        while time.time() < deadline:
-            size = output_path.stat().st_size if output_path.exists() else 0
-            if size > 0:
-                if size == last_size:
-                    stable_polls += 1
-                else:
-                    stable_polls = 0
-                    last_size = size
-                if stable_polls >= 4:
-                    final_message_ready = True
-                    break
-            if proc.poll() is not None:
-                break
-            time.sleep(0.1)
-
-        timed_out = proc.poll() is None and not final_message_ready
-        if proc.poll() is None:
-            proc.terminate()
-            try:
-                proc.wait(timeout=3)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                proc.wait(timeout=3)
-        transcript_handle.flush()
-        transcript_handle.seek(0)
-        transcript = transcript_handle.read()
-        output = output_path.read_text(encoding="utf-8").strip() if output_path.exists() else transcript.strip()
-        tokens = _parse_codex_tokens(transcript)
-        if timed_out:
-            error = f"Codex CLI timeout after {timeout}s." + (" Partial webpage files are available." if _has_site(candidate_dir) else "")
-        elif proc.returncode not in {0, -15} and not final_message_ready:
-            error = f"Codex CLI exited {proc.returncode}: {_tail(transcript)}"
-    except Exception as exc:
-        error = f"{type(exc).__name__}: {exc}"
-    finally:
-        if transcript_handle is not None:
-            transcript_handle.close()
-        if output_path:
-            output_path.unlink(missing_ok=True)
+    agent_result = spawn_workspace_agent(
+        platform=detect_platform(),
+        prompt=prompt,
+        cwd=PROJECT_DIR,
+        timeout_seconds=timeout,
+        sandbox=os.environ.get("FORKPROBE_WEB_SANDBOX", "workspace-write"),
+        writable_dirs=[output_dir],
+    )
+    output = agent_result.output
+    tokens = agent_result.tokens_used
+    error = agent_result.error
+    if error and "timeout" in error.lower() and _has_site(candidate_dir):
+        error += " Partial webpage files are available."
 
     qa = postprocess_candidate(candidate_dir)
     if not qa.get("checks", {}).get("page_loads", {}).get("passed"):
         post_error = "No runnable webpage entry was generated under artifacts/site/index.html."
         error = f"{error} {post_error}".strip() if error else post_error
-    result = WebRunResult(pipeline.id, output, tokens, time.time() - t0, error)
+    result = WebRunResult(pipeline.id, output, tokens, agent_result.latency_seconds, error)
     _write_run_result(candidate_dir, result)
     return result
+
+
+run_candidate_codex = run_candidate_agent
 
 
 def run_parallel(
@@ -922,7 +836,7 @@ def run_parallel(
     results: list[WebRunResult] = []
     with ThreadPoolExecutor(max_workers=min(max_workers, len(pipeline_ids))) as executor:
         futures = {
-            executor.submit(run_candidate_codex, task_input, output_dir, pipeline_id, timeout, pipeline_registry): pipeline_id
+            executor.submit(run_candidate_agent, task_input, output_dir, pipeline_id, timeout, pipeline_registry): pipeline_id
             for pipeline_id in pipeline_ids
         }
         for future in as_completed(futures):
@@ -1111,6 +1025,12 @@ def main() -> int:
     parser.add_argument("--skill-source", action="append", default=[], help="External web skill source; repeat for multiple")
     parser.add_argument("--max-candidates", type=int, default=5, help="Maximum default candidate pipelines")
     parser.add_argument("--run", action="store_true", help="Run candidates in parallel")
+    parser.add_argument(
+        "--platform",
+        choices=["auto", "claude_code", "codex", "deepseek_harness"],
+        default="auto",
+        help="Agent harness for candidate execution (default: auto-detect)",
+    )
     parser.add_argument("--refresh-artifacts", action="store_true", help="Re-run shared screenshot, QA, and source packaging for existing candidate files")
     parser.add_argument("--confirmed", action="store_true", help="Acknowledge that the user confirmed the shortlist")
     parser.add_argument("--timeout", type=int, default=900, help="Seconds allowed for each candidate (default: 900)")
@@ -1125,6 +1045,9 @@ def main() -> int:
     parser.add_argument("--verdict-timeout", type=int, default=600, help="Seconds to wait for a browser choice")
     parser.add_argument("--json", action="store_true", help="Print JSON summary")
     args = parser.parse_args()
+
+    if args.platform != "auto":
+        os.environ["FORKPROBE_PLATFORM"] = args.platform
 
     task_input = _read_task(args)
     if not task_input.strip():

@@ -20,15 +20,16 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.8" src="https://img.shields.io/badge/version-v0.8-2563eb">
+  <img alt="Version v0.9" src="https://img.shields.io/badge/version-v0.9-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
+  <a href="https://github.com/deepseek-ai/deepseek-harness"><img alt="DeepSeek Harness supported" src="https://img.shields.io/badge/harness-DeepSeek-0f9f8f"></a>
   <a href="https://github.com/openai/codex"><img alt="Built with OpenAI Codex" src="https://img.shields.io/badge/built%20with-OpenAI%20Codex-111827"></a>
 </p>
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.8 adds an anonymous Winner feedback loop:** after choosing a result in the Report, users can continue the Agent workflow with the winning Skill and decide whether to share the task type, compared Skill names, and final choice anonymously. ForkProbe aggregates community selections with Cloudflare Worker + D1 and exposes Skill and pairwise win rates after the minimum sample threshold. v0.7 local Skill scanning and multi-source discovery through EverMind Skill Hub, GitHub, curated catalogs, and user-provided sources remain supported alongside the existing video, webpage, writing, PPTX, scientific-figure, and research-report workflows.
+**v0.9 adds first-class DeepSeek Harness execution:** ForkProbe now runs text candidates and the AI judge through the official `dsh --profile headless` entry, and it can use DeepSeek Harness to generate scientific figures, research reports, webpages, and finished-video artifacts. Select it with `--platform deepseek_harness` or `FORKPROBE_PLATFORM=deepseek_harness`. The v0.8 anonymous Winner feedback loop, installed-Skill scanning, EverMind Skill Hub, GitHub and curated discovery, and all existing comparison scenes remain supported.
 
 After a winner is selected, the Report's continue action saves the local handoff and lets the Agent continue with the winning Skill. The same panel lets the user choose whether to share that anonymous Skill selection to improve future community priors.
 
@@ -243,6 +244,7 @@ Each candidate must produce `video.mp4`. ForkProbe uses `ffprobe` to verify dura
 
 - Claude Code / Claude-style skill sessions
 - Codex native execution, with fallback to the OpenAI API
+- The official DeepSeek Harness headless path for text comparison, AI judging, and file-producing Artifact runners
 - Natural-language Agent surfaces such as OpenClaw, WorkBuddy, OpenCode, and similar platforms
 - Artifact comparisons for generated PPTX, scientific figures, research reports, webpages, and finished videos
 
@@ -259,6 +261,22 @@ For Codex or local Agent skill setups:
 ```bash
 cp -r forkprobe ~/.agents/skills/
 ```
+
+DeepSeek Harness can use the same local Skill directory and runs through its official npm package:
+
+```bash
+npx @deepseek-ai/dsh web
+```
+
+ForkProbe uses the official headless profile for unattended comparison runs. With `DEEPSEEK_API_KEY` available, select the harness explicitly:
+
+```bash
+FORKPROBE_PLATFORM=deepseek_harness \
+DEEPSEEK_API_KEY=your-key \
+python3 scripts/compare.py --input /tmp/forkprobe-input.txt --skill baseline --judge --output /tmp/forkprobe-report.html
+```
+
+You can also pass `--platform deepseek_harness`. ForkProbe tries `FORKPROBE_DSH_CLI` first, then a global `dsh`, and finally the official `npx @deepseek-ai/dsh` entry. DeepSeek Harness is currently a developer preview, so pin a tested release for stable production workflows.
 
 Install the core dependency:
 
@@ -316,12 +334,26 @@ Open the local report:
 open /tmp/forkprobe-report.html
 ```
 
+Run the same task through DeepSeek Harness:
+
+```bash
+DEEPSEEK_API_KEY=your-key python3 scripts/compare.py \
+  --platform deepseek_harness \
+  --input /tmp/forkprobe-input.txt \
+  --skill baseline \
+  --skill humanizer \
+  --judge \
+  --output /tmp/forkprobe-deepseek-report.html
+```
+
+The scientific-figure, research-report, webpage, and video runners accept the same `--platform deepseek_harness` option. Text candidates default to `read-only`; Artifact runners default to `workspace-write`. Override this with `FORKPROBE_DSH_PERMISSION_MODE` when needed.
+
 ## Multi-Source Discovery, BYO, And Local-Only
 
 Before running a comparison, `scripts/recommend.py` builds a candidate shortlist and waits for confirmation. Default sources are:
 
 - ForkProbe's curated catalog and baseline.
-- Installed Skills discovered automatically under `~/.codex/skills`, `~/.agents/skills`, `~/.claude/skills`, and project-level `.codex/skills`, `.agents/skills`, `.claude/skills`, or `skills` directories.
+- Installed Skills discovered automatically under `~/.codex/skills`, `~/.agents/skills`, `~/.claude/skills`, `~/.dsh/skills`, and project-level `.codex/skills`, `.agents/skills`, `.claude/skills`, `.dsh/skills`, or `skills` directories.
 - The official EverMind Skill Hub open API.
 - Known GitHub candidates and live GitHub discovery.
 - User-provided local paths, GitHub URLs, `repo#subdir` references, or raw `SKILL.md` URLs.

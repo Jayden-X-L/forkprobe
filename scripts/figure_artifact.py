@@ -14,11 +14,8 @@ import contextlib
 import json
 import os
 import re
-import shutil
-import subprocess
 import sys
 import time
-import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -26,6 +23,9 @@ from typing import Any
 
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_DIR = SCRIPT_DIR.parent
+sys.path.insert(0, str(SCRIPT_DIR))
+from platform_adapter import detect_platform, spawn_workspace_agent
+
 DEFAULT_OUTPUT_ROOT = PROJECT_DIR / "outputs" / "figure-runs"
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
 FALSE_VALUES = {"0", "false", "no", "off"}
@@ -569,33 +569,6 @@ def create_workspace(
     }
 
 
-def _codex_cli_path() -> str | None:
-    candidates = [
-        os.environ.get("FORKPROBE_CODEX_CLI"),
-        os.environ.get("CODEX_CLI_PATH"),
-        shutil.which("codex"),
-        "/Applications/Codex.app/Contents/Resources/codex",
-    ]
-    for candidate in candidates:
-        if candidate and Path(candidate).exists():
-            return candidate
-    return None
-
-
-def _parse_codex_tokens(text: str) -> int:
-    match = re.search(r"tokens used\s+([0-9][0-9,]*)", text, flags=re.IGNORECASE)
-    if not match:
-        return 0
-    return int(match.group(1).replace(",", ""))
-
-
-def _tail(text: str, limit: int = 1400) -> str:
-    text = text.strip()
-    if len(text) <= limit:
-        return text
-    return "..." + text[-limit:]
-
-
 def build_candidate_run_prompt(task_input: str, pipeline: FigurePipeline, candidate_dir: Path) -> str:
     instructions = (candidate_dir / "INSTRUCTIONS.md").read_text(encoding="utf-8")
     artifact_dir = candidate_dir / "artifacts"
@@ -633,14 +606,14 @@ Hard requirements:
 """
 
 
-def run_candidate_codex(
+def run_candidate_agent(
     task_input: str,
     output_dir: Path,
     pipeline_id: str,
     timeout: int = 900,
     pipeline_registry: dict[str, FigurePipeline] | None = None,
 ) -> FigureRunResult:
-    """Run one figure pipeline in an isolated Codex native session."""
+    """Run one figure pipeline in an isolated Codex or DeepSeek Harness session."""
     pipeline_registry = pipeline_registry or FIGURE_PIPELINES
     if pipeline_id not in pipeline_registry:
         raise KeyError(f"Unknown figure pipeline: {pipeline_id}")
@@ -651,97 +624,31 @@ def run_candidate_codex(
     prompt = build_candidate_run_prompt(task_input, pipeline, candidate_dir)
     (candidate_dir / "RUN_PROMPT.md").write_text(prompt, encoding="utf-8")
 
-    cli = _codex_cli_path()
-    if not cli:
-        result = FigureRunResult(
-            pipeline_id=pipeline.id,
-            output="",
-            tokens_used=0,
-            latency_seconds=0.0,
-            error="Codex CLI not found. Set FORKPROBE_CODEX_CLI or install Codex CLI.",
-        )
-        _write_run_result(candidate_dir, result)
-        return result
-
     sandbox = os.environ.get("FORKPROBE_FIGURE_SANDBOX", "workspace-write")
-    model = os.environ.get("FORKPROBE_MODEL_CODEX_NATIVE")
-    reasoning_effort = os.environ.get("FORKPROBE_CODEX_REASONING_EFFORT")
-    t0 = time.time()
-    output_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(prefix="forkprobe-figure-codex-", suffix=".txt", delete=False) as f:
-            output_path = Path(f.name)
+    agent_result = spawn_workspace_agent(
+        platform=detect_platform(),
+        prompt=prompt,
+        cwd=PROJECT_DIR,
+        timeout_seconds=timeout,
+        sandbox=sandbox,
+        writable_dirs=[output_dir],
+    )
+    error = agent_result.error
+    if error and "timeout" in error.lower() and _has_generated_artifacts(candidate_dir):
+        error += " Partial artifacts are available."
+    result = FigureRunResult(
+        pipeline_id=pipeline.id,
+        output=agent_result.output,
+        tokens_used=agent_result.tokens_used,
+        latency_seconds=agent_result.latency_seconds,
+        error=error,
+    )
+    _write_run_result(candidate_dir, result)
+    return result
 
-        cmd = [
-            cli,
-            "exec",
-            "--ephemeral",
-            "--skip-git-repo-check",
-            "--sandbox",
-            sandbox,
-            "--output-last-message",
-            str(output_path),
-            "-C",
-            str(PROJECT_DIR),
-            "--add-dir",
-            str(output_dir),
-        ]
-        if model:
-            cmd.extend(["--model", model])
-        if reasoning_effort:
-            cmd.extend(["-c", f'model_reasoning_effort="{reasoning_effort}"'])
-        cmd.append("-")
 
-        proc = subprocess.run(
-            cmd,
-            input=prompt,
-            text=True,
-            capture_output=True,
-            timeout=timeout,
-        )
-        transcript = f"{proc.stdout}\n{proc.stderr}"
-        output = output_path.read_text(encoding="utf-8").strip() if output_path and output_path.exists() else ""
-        if not output:
-            output = proc.stdout.strip()
-        error = None
-        if proc.returncode != 0:
-            error = f"Codex CLI exited {proc.returncode}: {_tail(transcript)}"
-        result = FigureRunResult(
-            pipeline_id=pipeline.id,
-            output=output,
-            tokens_used=_parse_codex_tokens(transcript),
-            latency_seconds=time.time() - t0,
-            error=error,
-        )
-        _write_run_result(candidate_dir, result)
-        return result
-    except subprocess.TimeoutExpired:
-        partial_note = " Partial artifacts are available." if _has_generated_artifacts(candidate_dir) else ""
-        result = FigureRunResult(
-            pipeline_id=pipeline.id,
-            output="",
-            tokens_used=0,
-            latency_seconds=time.time() - t0,
-            error=f"Codex CLI timeout after {timeout}s.{partial_note}",
-        )
-        _write_run_result(candidate_dir, result)
-        return result
-    except Exception as exc:
-        result = FigureRunResult(
-            pipeline_id=pipeline.id,
-            output="",
-            tokens_used=0,
-            latency_seconds=time.time() - t0,
-            error=f"{type(exc).__name__}: {exc}",
-        )
-        _write_run_result(candidate_dir, result)
-        return result
-    finally:
-        if output_path:
-            try:
-                output_path.unlink(missing_ok=True)
-            except OSError:
-                pass
+# Backward-compatible import for callers that used the v0.8 function name.
+run_candidate_codex = run_candidate_agent
 
 
 def _write_run_result(candidate_dir: Path, result: FigureRunResult) -> None:
@@ -773,7 +680,7 @@ def run_parallel(
     results: list[FigureRunResult] = []
     with ThreadPoolExecutor(max_workers=min(max_workers, len(pipeline_ids))) as executor:
         futures = {
-            executor.submit(run_candidate_codex, task_input, output_dir, pipeline_id, timeout, pipeline_registry): pipeline_id
+            executor.submit(run_candidate_agent, task_input, output_dir, pipeline_id, timeout, pipeline_registry): pipeline_id
             for pipeline_id in pipeline_ids
         }
         for future in as_completed(futures):
@@ -814,7 +721,13 @@ def main() -> int:
     parser.add_argument("--pipeline", action="append", default=[], help="Pipeline id to include. Repeat to override defaults")
     parser.add_argument("--skill-source", action="append", default=[], help="External figure skill source to run as a BYO pipeline. Repeat for multiple skills")
     parser.add_argument("--max-candidates", type=int, default=4, help="Maximum default pipelines when --pipeline is omitted")
-    parser.add_argument("--run", action="store_true", help="Run selected pipelines in parallel with Codex native CLI")
+    parser.add_argument("--run", action="store_true", help="Run selected pipelines in parallel with the selected Agent harness")
+    parser.add_argument(
+        "--platform",
+        choices=["auto", "claude_code", "codex", "deepseek_harness"],
+        default="auto",
+        help="Agent harness for candidate execution (default: auto-detect)",
+    )
     parser.add_argument("--timeout", type=int, default=900, help="Seconds to wait for each candidate run (default: 900)")
     parser.add_argument("--max-workers", type=int, default=2, help="Maximum concurrent candidate runs for --run")
     parser.add_argument("--render-report", action="store_true", help="Render an initial artifact report from the manifest")
@@ -827,6 +740,9 @@ def main() -> int:
     parser.add_argument("--verdict-timeout", type=int, default=600, help="Seconds to wait for a browser choice")
     parser.add_argument("--json", action="store_true", help="Print JSON summary")
     args = parser.parse_args()
+
+    if args.platform != "auto":
+        os.environ["FORKPROBE_PLATFORM"] = args.platform
 
     task_input = _read_task(args)
     if not task_input.strip():

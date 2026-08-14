@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="ForkProbe 安装、候选确认、并行试跑和 Winner 继续指南。">
-  <title>使用指南 · ForkProbe v0.8</title>
+  <title>使用指南 · ForkProbe v0.9</title>
   <link rel="stylesheet" href="assets/site-pages.css">
 </head>
-<body data-title-zh="使用指南 · ForkProbe v0.8" data-title-en="Guide · ForkProbe v0.8">
+<body data-title-zh="使用指南 · ForkProbe v0.9" data-title-en="Guide · ForkProbe v0.9">
   <nav class="site-nav" aria-label="Primary navigation">
     <a class="brand" href="index.html" data-preserve-lang>
       <span class="brand-mark">fp</span>
@@ -33,7 +33,7 @@
       <div class="page-hero-inner">
         <p class="eyebrow" data-zh="使用指南" data-en="Guide">使用指南</p>
         <h1 data-zh="先确认候选，再并行试跑。" data-en="Confirm candidates before running them in parallel.">先确认候选，再并行试跑。</h1>
-        <p class="hero-lede" data-zh="ForkProbe 运行在 Agent 工作流中。你只需要描述任务并要求先比较 Skill，Agent 会完成候选发现、确认、试跑、Report 和继续任务。" data-en="ForkProbe runs inside an Agent workflow. Describe the task and ask to compare Skills first; the Agent handles discovery, confirmation, trials, the Report, and continuation.">ForkProbe 运行在 Agent 工作流中。你只需要描述任务并要求先比较 Skill，Agent 会完成候选发现、确认、试跑、Report 和继续任务。</p>
+        <p class="hero-lede" data-zh="ForkProbe 运行在 Claude Code、Codex 或 DeepSeek Harness 工作流中。你只需要描述任务并要求先比较 Skill，Agent 会完成候选发现、确认、试跑、Report 和继续任务。" data-en="ForkProbe runs in Claude Code, Codex, or DeepSeek Harness workflows. Describe the task and ask to compare Skills first; the Agent handles discovery, confirmation, trials, the Report, and continuation.">ForkProbe 运行在 Claude Code、Codex 或 DeepSeek Harness 工作流中。你只需要描述任务并要求先比较 Skill，Agent 会完成候选发现、确认、试跑、Report 和继续任务。</p>
         <div class="button-row">
           <a class="button button-primary" href="downloads/forkprobe-skill.zip" download data-zh="下载 ForkProbe Skill" data-en="Download ForkProbe Skill">下载 ForkProbe Skill</a>
           <a class="button button-secondary" href="https://github.com/Jayden-X-L/forkprobe" target="_blank" rel="noopener">GitHub</a>
@@ -75,10 +75,14 @@
           <p class="section-lede" data-zh="下载包包含 SKILL.md、候选目录、运行脚本、Report 模板和匿名反馈 Worker 参考实现。" data-en="The package includes SKILL.md, candidate catalogs, runners, Report templates, and the anonymous-feedback Worker reference implementation.">下载包包含 SKILL.md、候选目录、运行脚本、Report 模板和匿名反馈 Worker 参考实现。</p>
         </div>
         <div class="code-block">~/.codex/skills/forkprobe/
-~/.claude/skills/forkprobe/</div>
+~/.claude/skills/forkprobe/
+~/.dsh/skills/forkprobe/
+
+# DeepSeek Harness
+DEEPSEEK_API_KEY=your-key python3 scripts/compare.py --platform deepseek_harness ...</div>
         <div class="notice">
-          <strong data-zh="ForkProbe 会自动扫描常见本机 Skill 目录。" data-en="ForkProbe scans common local Skill directories automatically.">ForkProbe 会自动扫描常见本机 Skill 目录。</strong>
-          <span data-zh="你也可以在任务中显式提供本地路径或 GitHub Skill 地址，作为本次比较的候选来源。" data-en="You can also provide a local path or GitHub Skill URL explicitly as a candidate source for the current comparison.">你也可以在任务中显式提供本地路径或 GitHub Skill 地址，作为本次比较的候选来源。</span>
+          <strong data-zh="ForkProbe 会自动扫描常见本机 Skill 目录，并支持 DeepSeek Harness 官方 headless profile。" data-en="ForkProbe scans common local Skill directories and supports the official DeepSeek Harness headless profile.">ForkProbe 会自动扫描常见本机 Skill 目录，并支持 DeepSeek Harness 官方 headless profile。</strong>
+          <span data-zh="使用 --platform deepseek_harness 显式选择；ForkProbe 会查找 FORKPROBE_DSH_CLI、全局 dsh 或官方 npx 入口。DeepSeek Harness 当前仍为 developer preview。" data-en="Select it with --platform deepseek_harness. ForkProbe resolves FORKPROBE_DSH_CLI, a global dsh, or the official npx entry. DeepSeek Harness is currently a developer preview.">使用 --platform deepseek_harness 显式选择；ForkProbe 会查找 FORKPROBE_DSH_CLI、全局 dsh 或官方 npx 入口。DeepSeek Harness 当前仍为 developer preview。</span>
         </div>
       </div>
     </section>
@@ -95,7 +99,7 @@
 
   <footer class="page-footer">
     <div class="footer-inner">
-      <span>ForkProbe v0.8</span>
+      <span>ForkProbe v0.9</span>
       <span data-zh="推荐 → 确认 → 试跑 → 选择 → 继续" data-en="Recommend → confirm → trial-run → choose → continue">推荐 → 确认 → 试跑 → 选择 → 继续</span>
     </div>
   </footer>

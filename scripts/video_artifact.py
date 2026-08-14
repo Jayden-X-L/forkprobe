@@ -17,7 +17,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
@@ -26,6 +25,9 @@ from typing import Any
 
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_DIR = SCRIPT_DIR.parent
+sys.path.insert(0, str(SCRIPT_DIR))
+from platform_adapter import detect_platform, spawn_workspace_agent
+
 CATALOG_PATH = PROJECT_DIR / "catalog" / "video-artifact-skills.json"
 DEFAULT_OUTPUT_ROOT = PROJECT_DIR / "outputs" / "video-runs"
 FALSE_VALUES = {"0", "false", "no", "off"}
@@ -975,28 +977,6 @@ def create_workspace(
     }
 
 
-def _codex_cli_path() -> str | None:
-    for candidate in [
-        os.environ.get("FORKPROBE_CODEX_CLI"),
-        os.environ.get("CODEX_CLI_PATH"),
-        shutil.which("codex"),
-        "/Applications/Codex.app/Contents/Resources/codex",
-    ]:
-        if candidate and Path(candidate).exists():
-            return candidate
-    return None
-
-
-def _parse_codex_tokens(text: str) -> int:
-    match = re.search(r"tokens used\s+([0-9][0-9,]*)", text, flags=re.IGNORECASE)
-    return int(match.group(1).replace(",", "")) if match else 0
-
-
-def _tail(text: str, limit: int = 1400) -> str:
-    text = text.strip()
-    return text if len(text) <= limit else "..." + text[-limit:]
-
-
 def _has_generated_artifacts(candidate_dir: Path) -> bool:
     artifact_dir = candidate_dir / "artifacts"
     return artifact_dir.exists() and any(
@@ -1016,7 +996,7 @@ def _write_run_result(candidate_dir: Path, result: VideoRunResult) -> None:
         (candidate_dir / "runner-error.txt").write_text(result.error, encoding="utf-8")
 
 
-def run_candidate_codex(
+def run_candidate_agent(
     task_input: str,
     output_dir: Path,
     pipeline_id: str,
@@ -1032,55 +1012,38 @@ def run_candidate_codex(
     candidate_dir = output_dir / "candidates" / pipeline.id
     prompt = build_candidate_run_prompt(task_input, pipeline, candidate_dir, video_type, assets)
     (candidate_dir / "RUN_PROMPT.md").write_text(prompt, encoding="utf-8")
-    cli = _codex_cli_path()
-    if not cli:
-        result = VideoRunResult(pipeline.id, "", 0, 0.0, "Codex CLI not found. Set FORKPROBE_CODEX_CLI or install Codex CLI.")
-        _write_run_result(candidate_dir, result)
-        return result
 
     sandbox = os.environ.get("FORKPROBE_VIDEO_SANDBOX", "workspace-write")
-    model = os.environ.get("FORKPROBE_MODEL_CODEX_NATIVE")
-    reasoning_effort = os.environ.get("FORKPROBE_CODEX_REASONING_EFFORT")
-    t0 = time.time()
-    output_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(prefix="forkprobe-video-codex-", suffix=".txt", delete=False) as handle:
-            output_path = Path(handle.name)
-        cmd = [
-            cli, "exec", "--ephemeral", "--skip-git-repo-check", "--sandbox", sandbox,
-            "--output-last-message", str(output_path), "-C", str(PROJECT_DIR),
-            "--add-dir", str(output_dir),
-        ]
-        for asset in assets:
-            path = Path(str(asset.get("path") or ""))
-            add_dir = path if path.is_dir() else path.parent
-            if add_dir.exists():
-                cmd.extend(["--add-dir", str(add_dir)])
-        if model:
-            cmd.extend(["--model", model])
-        if reasoning_effort:
-            cmd.extend(["-c", f'model_reasoning_effort="{reasoning_effort}"'])
-        cmd.append("-")
-        proc = subprocess.run(cmd, input=prompt, text=True, capture_output=True, timeout=timeout)
-        transcript = f"{proc.stdout}\n{proc.stderr}"
-        output = output_path.read_text(encoding="utf-8").strip() if output_path.exists() else ""
-        output = output or proc.stdout.strip()
-        error = None if proc.returncode == 0 else f"Codex CLI exited {proc.returncode}: {_tail(transcript)}"
-        result = VideoRunResult(pipeline.id, output, _parse_codex_tokens(transcript), time.time() - t0, error)
-    except subprocess.TimeoutExpired:
-        partial = " Partial artifacts are available." if _has_generated_artifacts(candidate_dir) else ""
-        result = VideoRunResult(pipeline.id, "", 0, time.time() - t0, f"Codex CLI timeout after {timeout}s.{partial}")
-    except Exception as exc:
-        result = VideoRunResult(pipeline.id, "", 0, time.time() - t0, f"{type(exc).__name__}: {exc}")
-    finally:
-        if output_path:
-            try:
-                output_path.unlink(missing_ok=True)
-            except OSError:
-                pass
+    writable_dirs = [output_dir]
+    for asset in assets:
+        path = Path(str(asset.get("path") or ""))
+        add_dir = path if path.is_dir() else path.parent
+        if add_dir.exists():
+            writable_dirs.append(add_dir)
+    agent_result = spawn_workspace_agent(
+        platform=detect_platform(),
+        prompt=prompt,
+        cwd=PROJECT_DIR,
+        timeout_seconds=timeout,
+        sandbox=sandbox,
+        writable_dirs=writable_dirs,
+    )
+    error = agent_result.error
+    if error and "timeout" in error.lower() and _has_generated_artifacts(candidate_dir):
+        error += " Partial artifacts are available."
+    result = VideoRunResult(
+        pipeline.id,
+        agent_result.output,
+        agent_result.tokens_used,
+        agent_result.latency_seconds,
+        error,
+    )
     _write_run_result(candidate_dir, result)
     postprocess_candidate(candidate_dir, video_type, assets)
     return result
+
+
+run_candidate_codex = run_candidate_agent
 
 
 def run_parallel(
@@ -1099,7 +1062,7 @@ def run_parallel(
     with ThreadPoolExecutor(max_workers=min(max_workers, len(pipeline_ids))) as executor:
         futures = {
             executor.submit(
-                run_candidate_codex, task_input, output_dir, pipeline_id,
+                run_candidate_agent, task_input, output_dir, pipeline_id,
                 video_type, assets, timeout, registry,
             ): pipeline_id
             for pipeline_id in pipeline_ids
@@ -1138,6 +1101,12 @@ def main() -> int:
     parser.add_argument("--skill-source", action="append", default=[], help="External video skill source; repeat for multiple")
     parser.add_argument("--max-candidates", type=int, default=None, help="Maximum default candidates; defaults to the full scene shortlist")
     parser.add_argument("--run", action="store_true", help="Run candidates in parallel")
+    parser.add_argument(
+        "--platform",
+        choices=["auto", "claude_code", "codex", "deepseek_harness"],
+        default="auto",
+        help="Agent harness for candidate execution (default: auto-detect)",
+    )
     parser.add_argument("--refresh-artifacts", action="store_true", help="Re-run ffprobe, poster generation, packaging, and shared QA")
     parser.add_argument("--confirmed", action="store_true", help="Acknowledge that the user confirmed the shortlist")
     parser.add_argument("--timeout", type=int, default=900, help="Seconds allowed for each candidate (default: 900)")
@@ -1152,6 +1121,9 @@ def main() -> int:
     parser.add_argument("--verdict-timeout", type=int, default=600, help="Seconds to wait for a browser choice")
     parser.add_argument("--json", action="store_true", help="Print JSON summary")
     args = parser.parse_args()
+
+    if args.platform != "auto":
+        os.environ["FORKPROBE_PLATFORM"] = args.platform
 
     task_input = _read_task(args)
     if not task_input.strip():

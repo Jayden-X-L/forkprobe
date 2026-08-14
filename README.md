@@ -14,15 +14,16 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.8" src="https://img.shields.io/badge/version-v0.8-2563eb">
+  <img alt="Version v0.9" src="https://img.shields.io/badge/version-v0.9-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/report-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
+  <a href="https://github.com/deepseek-ai/deepseek-harness"><img alt="DeepSeek Harness supported" src="https://img.shields.io/badge/harness-DeepSeek-0f9f8f"></a>
   <a href="https://github.com/openai/codex"><img alt="Built with OpenAI Codex" src="https://img.shields.io/badge/built%20with-OpenAI%20Codex-111827"></a>
 </p>
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
-**v0.8 新增匿名 Winner 反馈闭环：** 用户在 Report 中选定结果后，可在同一个动作里让 Agent 沿胜出 Skill 继续任务，并决定是否匿名分享任务类型、参与比较的 Skill 名称和最终选择。ForkProbe 使用 Cloudflare Worker + D1 汇总社区选择，达到最小样本量后提供 Skill 胜率和两两胜率。v0.7 的本机 Skill 自动扫描、EverMind Skill Hub、GitHub 与 curated 多来源发现，以及此前的视频、网页、写作、PPTX、科研绘图和调研报告能力继续支持。
+**v0.9 新增 DeepSeek Harness 正式执行路径：** ForkProbe 可以通过官方 `dsh --profile headless` 并行运行文本候选和 AI judge，也可以让 DeepSeek Harness 生成科研绘图、调研报告、网页和视频成品。使用 `--platform deepseek_harness` 或 `FORKPROBE_PLATFORM=deepseek_harness` 即可显式选择。v0.8 的匿名 Winner 反馈闭环、本机 Skill 扫描、EverMind Skill Hub、GitHub 与 curated 多来源发现，以及此前的全部场景继续支持。
 
 选定 winner 后，Report 的“继续”按钮会同时保存本地 handoff，并让 Agent 沿胜出 Skill 继续任务。用户可以在同一区域选择是否匿名分享本次 Skill 选择，为未来的社区推荐先验积累样本。
 
@@ -237,6 +238,7 @@ python3 scripts/video_artifact.py \
 
 - Claude Code / Claude 风格 skill 会话
 - Codex 原生执行路径，并在失败时 fallback 到 OpenAI API
+- DeepSeek Harness 官方 headless 执行路径，支持文本比较、AI judge 和文件型 Artifact runner
 - OpenClaw、WorkBuddy、OpenCode 等自然语言 Agent 工作流
 - “做一个 PPT”、“生成论文 figure”、“生成调研报告”、“制作网页成品”和“比较视频成片”这类 artifact comparison
 
@@ -255,6 +257,22 @@ Codex / 本地 Agent skill 目录：
 ```bash
 cp -r forkprobe ~/.agents/skills/
 ```
+
+DeepSeek Harness 可以继续使用同一个本地 Skill 目录，并通过官方 npm 包启动：
+
+```bash
+npx @deepseek-ai/dsh web
+```
+
+ForkProbe 的非交互运行使用官方 headless profile。准备好 `DEEPSEEK_API_KEY` 后，可直接指定该 harness：
+
+```bash
+FORKPROBE_PLATFORM=deepseek_harness \
+DEEPSEEK_API_KEY=your-key \
+python3 scripts/compare.py --input /tmp/forkprobe-input.txt --skill baseline --judge --output /tmp/forkprobe-report.html
+```
+
+也可以在命令中使用 `--platform deepseek_harness`。ForkProbe 会优先使用 `FORKPROBE_DSH_CLI` 指定的命令，其次使用全局 `dsh`，最后通过官方 `npx @deepseek-ai/dsh` 入口运行。DeepSeek Harness 当前为 developer preview，建议固定已验证版本用于稳定生产任务。
 
 安装核心依赖：
 
@@ -312,12 +330,26 @@ python3 scripts/compare.py \
 open /tmp/forkprobe-report.html
 ```
 
+同一条任务改用 DeepSeek Harness：
+
+```bash
+DEEPSEEK_API_KEY=your-key python3 scripts/compare.py \
+  --platform deepseek_harness \
+  --input /tmp/forkprobe-input.txt \
+  --skill baseline \
+  --skill writing-anti-ai \
+  --judge \
+  --output /tmp/forkprobe-deepseek-report.html
+```
+
+科研绘图、调研报告、网页和视频 runner 同样接受 `--platform deepseek_harness`。文本候选默认使用 `read-only` 权限，Artifact runner 默认使用 `workspace-write`；可用 `FORKPROBE_DSH_PERMISSION_MODE` 覆盖。
+
 ## 多来源候选发现、BYO 与 local-only
 
 在正式对比前，`scripts/recommend.py` 会先生成候选清单并等待确认。默认候选来源包括：
 
 - ForkProbe curated 目录和 baseline。
-- 自动扫描的本机已安装 Skill：`~/.codex/skills`、`~/.agents/skills`、`~/.claude/skills`，以及项目内 `.codex/skills`、`.agents/skills`、`.claude/skills`、`skills`。
+- 自动扫描的本机已安装 Skill：`~/.codex/skills`、`~/.agents/skills`、`~/.claude/skills`、`~/.dsh/skills`，以及项目内 `.codex/skills`、`.agents/skills`、`.claude/skills`、`.dsh/skills`、`skills`。
 - EverMind Skill Hub 官方开放 API。
 - GitHub 已知候选与实时搜索。
 - 用户显式提供的本地路径、GitHub URL、`repo#subdir` 或 raw `SKILL.md` URL。

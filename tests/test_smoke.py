@@ -26,16 +26,93 @@ sys.path.insert(0, str(PROJECT_DIR / "scripts"))
 
 class TestPlatformAdapter(unittest.TestCase):
     def test_imports(self):
-        from platform_adapter import detect_platform, spawn_subagent, Platform, SubagentResult
+        from platform_adapter import detect_platform, spawn_subagent, spawn_workspace_agent, Platform, SubagentResult
         self.assertTrue(callable(detect_platform))
         self.assertTrue(callable(spawn_subagent))
+        self.assertTrue(callable(spawn_workspace_agent))
         # Enum has all expected members
-        self.assertEqual({p.value for p in Platform}, {"claude_code", "codex", "standalone", "unknown"})
+        self.assertEqual(
+            {p.value for p in Platform},
+            {"claude_code", "codex", "deepseek_harness", "standalone", "unknown"},
+        )
 
     def test_detect_platform_returns_enum(self):
         from platform_adapter import detect_platform, Platform
         result = detect_platform()
         self.assertIsInstance(result, Platform)
+
+    def test_detect_platform_honors_deepseek_override(self):
+        from platform_adapter import detect_platform, Platform
+        with patch.dict(os.environ, {"FORKPROBE_PLATFORM": "dsh"}):
+            self.assertEqual(detect_platform(), Platform.DEEPSEEK_HARNESS)
+
+    def test_deepseek_harness_headless_run(self):
+        from platform_adapter import _DSH_PREPARED, _spawn_deepseek_harness
+        with tempfile.TemporaryDirectory() as tmp:
+            fake_cli = Path(tmp) / "dsh"
+            prompt_path = Path(tmp) / "prompt.txt"
+            mode_path = Path(tmp) / "permission.txt"
+            fake_cli.write_text(
+                "#!/usr/bin/env python3\n"
+                "import os, pathlib, sys\n"
+                "if '--help' in sys.argv:\n"
+                "    print('Usage: dsh --profile headless task')\n"
+                "    raise SystemExit(0)\n"
+                "pathlib.Path(os.environ['FORKPROBE_FAKE_PROMPT_PATH']).write_text(sys.argv[-1], encoding='utf-8')\n"
+                "pathlib.Path(os.environ['FORKPROBE_FAKE_MODE_PATH']).write_text(os.environ.get('DSH_PERMISSION_MODE', ''))\n"
+                "print('deepseek answer')\n",
+                encoding="utf-8",
+            )
+            os.chmod(fake_cli, 0o755)
+            env = {
+                "FORKPROBE_DSH_CLI": str(fake_cli),
+                "FORKPROBE_FAKE_PROMPT_PATH": str(prompt_path),
+                "FORKPROBE_FAKE_MODE_PATH": str(mode_path),
+                "FORKPROBE_DSH_NPX": "0",
+            }
+            _DSH_PREPARED.clear()
+            with patch.dict(os.environ, env, clear=False):
+                result = _spawn_deepseek_harness("original task", "skill instructions", "skill-x", 30)
+            self.assertIsNone(result.error)
+            self.assertEqual(result.output, "deepseek answer")
+            self.assertGreater(result.tokens_used, 0)
+            prompt_text = prompt_path.read_text(encoding="utf-8")
+            self.assertIn("original task", prompt_text)
+            self.assertIn("skill instructions", prompt_text)
+            self.assertIn("skill-x", prompt_text)
+            self.assertEqual(mode_path.read_text(encoding="utf-8"), "read-only")
+
+    def test_deepseek_workspace_agent_enables_writes(self):
+        from platform_adapter import _DSH_PREPARED, Platform, spawn_workspace_agent
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fake_cli = root / "dsh"
+            artifact_path = root / "artifact.txt"
+            fake_cli.write_text(
+                "#!/usr/bin/env python3\n"
+                "import os, pathlib, sys\n"
+                "if '--help' in sys.argv:\n"
+                "    raise SystemExit(0)\n"
+                "pathlib.Path(os.environ['FORKPROBE_FAKE_ARTIFACT']).write_text(os.environ.get('DSH_PERMISSION_MODE', ''))\n"
+                "print('artifact complete')\n",
+                encoding="utf-8",
+            )
+            os.chmod(fake_cli, 0o755)
+            _DSH_PREPARED.clear()
+            with patch.dict(os.environ, {
+                "FORKPROBE_DSH_CLI": str(fake_cli),
+                "FORKPROBE_FAKE_ARTIFACT": str(artifact_path),
+                "FORKPROBE_DSH_NPX": "0",
+            }, clear=False):
+                result = spawn_workspace_agent(
+                    Platform.DEEPSEEK_HARNESS,
+                    "build an artifact",
+                    cwd=root,
+                    timeout_seconds=30,
+                )
+            self.assertIsNone(result.error)
+            self.assertEqual(result.output, "artifact complete")
+            self.assertEqual(artifact_path.read_text(encoding="utf-8"), "workspace-write")
 
     def test_codex_without_native_or_key_returns_clear_error(self):
         from platform_adapter import _spawn_codex
@@ -123,6 +200,16 @@ class TestSkillLoader(unittest.TestCase):
 
 
 class TestCandidateProviders(unittest.TestCase):
+    def test_default_local_roots_include_deepseek_harness(self):
+        from candidate_providers import default_local_skill_roots
+
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            project.mkdir()
+            roots = {str(path) for path in default_local_skill_roots(project)}
+        self.assertIn(str(Path.home() / ".dsh" / "skills"), roots)
+        self.assertIn(str(project.resolve() / ".dsh" / "skills"), roots)
+
     def test_provider_query_contains_scene_terms_not_raw_task(self):
         from candidate_providers import build_provider_query
 
@@ -1636,6 +1723,53 @@ class TestRenderReport(unittest.TestCase):
                 else:
                     os.environ["FORKPROBE_FIGURE_SANDBOX"] = old_sandbox
 
+    def test_run_figure_pipeline_with_fake_deepseek_harness(self):
+        from figure_artifact import create_workspace, run_parallel
+        from platform_adapter import _DSH_PREPARED
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fake_cli = tmp_path / "dsh"
+            fake_cli.write_text(
+                "#!/usr/bin/env python3\n"
+                "import pathlib, re, sys\n"
+                "if '--help' in sys.argv:\n"
+                "    raise SystemExit(0)\n"
+                "prompt = sys.argv[-1]\n"
+                "match = re.search(r'generated files under\\s*`([^`]+)`', prompt) or re.search(r'candidate outputs under:\\s*`([^`]+)`', prompt)\n"
+                "artifact_dir = pathlib.Path(match.group(1))\n"
+                "artifact_dir.mkdir(parents=True, exist_ok=True)\n"
+                "(artifact_dir / 'preview.png').write_bytes(b'fake png')\n"
+                "(artifact_dir / 'figure.svg').write_text('<svg></svg>', encoding='utf-8')\n"
+                "(artifact_dir / 'caption.md').write_text('DeepSeek caption.', encoding='utf-8')\n"
+                "(artifact_dir.parent / 'summary.md').write_text('DeepSeek Harness runner summary.', encoding='utf-8')\n"
+                "print('DeepSeek Harness runner completed.')\n",
+                encoding="utf-8",
+            )
+            os.chmod(fake_cli, 0o755)
+            task = "请使用 DeepSeek Harness 生成论文机制图成品。"
+            result = create_workspace(task, tmp_path / "run", pipeline_ids=["schematic-svg"])
+            _DSH_PREPARED.clear()
+            with patch.dict(os.environ, {
+                "FORKPROBE_PLATFORM": "deepseek_harness",
+                "FORKPROBE_DSH_CLI": str(fake_cli),
+                "FORKPROBE_DSH_NPX": "0",
+                "FORKPROBE_FIGURE_SANDBOX": "workspace-write",
+            }, clear=False):
+                runs = run_parallel(
+                    task,
+                    Path(result["output_dir"]),
+                    ["schematic-svg"],
+                    max_workers=1,
+                    timeout=30,
+                )
+            self.assertIsNone(runs[0].error)
+            self.assertGreater(runs[0].tokens_used, 0)
+            refreshed = create_workspace(task, Path(result["output_dir"]), pipeline_ids=["schematic-svg"])
+            candidate = refreshed["manifest"]["candidates"][0]
+            self.assertIn("figure.svg", {artifact["label"] for artifact in candidate["artifacts"]})
+            self.assertIn("DeepSeek Harness runner summary.", candidate["summary"])
+
     def test_figure_pipeline_timeout_keeps_partial_artifacts(self):
         from figure_artifact import create_workspace, run_parallel
 
@@ -2133,7 +2267,7 @@ class TestRenderReport(unittest.TestCase):
                 self.assertEqual(html.count("<video controls"), 1)
                 self.assertIn("video.mp4", html)
                 self.assertIn("100/100", html)
-                self.assertIn("v0.8", html)
+                self.assertIn("v0.9", html)
 
                 run_result_path = Path(workspace["output_dir"]) / "candidates" / "baseline-remotion-agent" / "run-result.json"
                 timed_out = json.loads(run_result_path.read_text(encoding="utf-8"))
@@ -2191,7 +2325,7 @@ class TestRenderReport(unittest.TestCase):
 
 
 class TestGitHubPages(unittest.TestCase):
-    def test_v08_multipage_navigation_and_community_disclosure(self):
+    def test_v09_multipage_navigation_harness_and_community_disclosure(self):
         docs_dir = PROJECT_DIR / "docs"
         pages = {
             name: (docs_dir / name).read_text(encoding="utf-8")
@@ -2200,12 +2334,13 @@ class TestGitHubPages(unittest.TestCase):
 
         for name, html in pages.items():
             with self.subTest(page=name):
-                self.assertIn("ForkProbe v0.8", html)
+                self.assertIn("ForkProbe v0.9", html)
                 self.assertIn('href="capabilities.html"', html)
                 self.assertIn('href="community.html"', html)
                 self.assertIn('href="guide.html"', html)
 
         capabilities = pages["capabilities.html"]
+        self.assertIn("DeepSeek Harness", capabilities)
         self.assertEqual(capabilities.count("data-tab-panel="), 4)
         for tab_name in ("writing", "research", "web", "video"):
             self.assertIn(f'data-tab="{tab_name}"', capabilities)

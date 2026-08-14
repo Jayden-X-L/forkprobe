@@ -9,9 +9,11 @@ description: Recommend a small set of candidate skills or artifact-generation pi
 
 ## What this skill does
 
-Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines ForkProbe's curated catalog, automatically indexed local Skills, EverMind Skill Hub, GitHub discovery, and explicit BYO sources, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code or Codex), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, research reports, webpages, and videos, it compares artifact-generation pipelines and renders a report with file links, previews or playback.
+Recommends a small candidate set for the user's task, then compares completing that task **with** each candidate skill or pipeline versus **without** a skill/pipeline baseline. Candidate recommendation combines ForkProbe's curated catalog, automatically indexed local Skills, EverMind Skill Hub, GitHub discovery, and explicit BYO sources, then dedupes and scores before asking the user to confirm. For text tasks, it spawns parallel subagents in the current platform (Claude Code, Codex, or DeepSeek Harness), collects outputs, generates a local HTML report, and lets the user pick the winner. For file-producing tasks such as PPTX, scientific figures, research reports, webpages, and videos, it compares artifact-generation pipelines and renders a report with file links, previews or playback.
 
-**v0.8 scope:** All v0.7 workflows plus the optional anonymous Winner feedback loop. After the user selects a result, persist the local handoff and continue the Agent task in the same action. Share only the privacy-safe task type, compared Skill names, and final choice when the Report checkbox is enabled. Queue events locally, send them asynchronously to the official Cloudflare Worker, and keep community statistics separate from source quality and benchmark priors.
+**v0.9 scope:** All v0.8 workflows plus first-class DeepSeek Harness execution through the official `dsh --profile headless` profile. Text candidates, AI judging, and scientific-figure, research-report, webpage, and finished-video Artifact runners accept `--platform deepseek_harness`. Use `FORKPROBE_PLATFORM=deepseek_harness` when invoking through an Agent that does not expose an unambiguous harness signal. Text runs default to `read-only`; file-producing runs default to `workspace-write`.
+
+**v0.8 scope retained:** The optional anonymous Winner feedback loop persists the local handoff and continues the Agent task in the same action. Share only the privacy-safe task type, compared Skill names, and final choice when the Report checkbox is enabled. Queue events locally, send them asynchronously to the official Cloudflare Worker, and keep community statistics separate from source quality and benchmark priors.
 
 **v0.7 scope retained:** Scan installed Skills under Codex, Agents, Claude, and project-local Skill directories; query EverMind Skill Hub and GitHub with sanitized scene terms; merge with curated and BYO candidates; dedupe by fingerprint/source; show source, license, installed state, and public quality signals; and preserve the confirmation gate before any candidate runs. `--local-only` keeps curated and installed-local discovery while skipping EverMind and live GitHub discovery.
 
@@ -89,7 +91,7 @@ Hard interaction rule:
 
 Default discovery flow:
 1. Start with local curated candidates from forkprobe's catalog.
-2. Automatically scan installed Skills under `~/.codex/skills`, `~/.agents/skills`, `~/.claude/skills`, and project-level Skill roots. Index `SKILL.md` metadata locally and never auto-install or auto-run a result.
+2. Automatically scan installed Skills under `~/.codex/skills`, `~/.agents/skills`, `~/.claude/skills`, `~/.dsh/skills`, and project-level Skill roots. Index `SKILL.md` metadata locally and never auto-install or auto-run a result.
 3. In parallel, query EverMind Skill Hub and GitHub discovery using sanitized scene terms such as `academic writing`, `PPTX`, `scientific figure`, or `frontend website`. Do not send the user's raw task, document, or local path.
 4. Verify remote candidates have an exact runnable repository/subdirectory source when possible. Reject an ambiguous repository-root reference for a nested Skill.
 5. Merge explicit BYO candidates and dedupe by content fingerprint, source repository, or command argument.
@@ -206,6 +208,7 @@ For `text` and `ppt_outline` mode, invoke:
 
 ```bash
 python scripts/compare.py \
+  --platform <auto|claude_code|codex|deepseek_harness> \
   --input <path_to_user_input> \
   --skill <skill_id_1> --skill <skill_id_2> ... \
   --judge \
@@ -213,10 +216,11 @@ python scripts/compare.py \
 ```
 
 The script:
-1. Detects platform (Claude Code vs Codex) via `platform_adapter.py`
+1. Detects platform (Claude Code, Codex, or DeepSeek Harness) via `platform_adapter.py`, unless `--platform` or `FORKPROBE_PLATFORM` overrides it
 2. Spawns N+1 parallel subagents (one per selected skill + baseline)
    - Claude Code: prefers `claude-agent-sdk`, then Anthropic API fallback
    - Codex: prefers native `codex exec` so it inherits Codex Desktop auth/model config, then OpenAI API fallback
+   - DeepSeek Harness: uses the official one-shot `dsh --profile headless "task"` entry; resolve the executable through `FORKPROBE_DSH_CLI`, global `dsh`, or official `npx @deepseek-ai/dsh`
 3. Each subagent runs the same task input through its respective system prompt
 4. Collects outputs, tokens, latency
 5. Optionally runs a judge subagent when `--judge` is present
@@ -588,7 +592,7 @@ Schema:
 ```
 SKILL.md (this file)
   └─> scripts/compare.py
-        ├─> scripts/platform_adapter.py (Claude Code vs Codex)
+        ├─> scripts/platform_adapter.py (Claude Code, Codex, and DeepSeek Harness)
         ├─> scripts/recommend.py (multi-source candidate recommendation)
         ├─> scripts/candidate_providers.py (installed-local and EverMind providers)
         ├─> scripts/discover_skills.py (PPTX skill/pipeline discovery)

@@ -1,6 +1,6 @@
 # ForkProbe Candidate Catalog
 
-**Product compatibility: ForkProbe v0.8**
+**Product compatibility: ForkProbe v0.9**
 
 This directory contains the static, curated candidate catalogs bundled with
 ForkProbe. Catalog revisions are independent from the ForkProbe product
@@ -18,5 +18,6 @@ listed below.
 ForkProbe v0.7 added multi-source discovery beyond these static catalogs,
 including local Skill scanning, EverMind Skill Hub, GitHub, and user-provided
 sources. ForkProbe v0.8 adds the optional anonymous Winner feedback loop and
-aggregate community selection statistics. Those product changes do not require
-renumbering an unchanged candidate catalog.
+aggregate community selection statistics. ForkProbe v0.9 adds DeepSeek Harness
+as an execution platform for the same candidate catalogs. Those product changes
+do not require renumbering an unchanged candidate catalog.

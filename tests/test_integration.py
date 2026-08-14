@@ -2,8 +2,8 @@
 Integration tests for forkprobe — these DO make real model calls.
 
 The default integration path validates Codex native execution (`codex exec`) when
-available. Claude Code SDK validation is opt-in because it depends on a working
-Claude Code auth/session and can time out in Codex-only environments.
+available. Claude Code SDK and DeepSeek Harness validation are separate opt-in
+paths because they depend on provider credentials.
 
 Run with: python3 tests/test_integration.py
 
@@ -71,6 +71,27 @@ class TestRealCodexNative(unittest.TestCase):
 
 
 @unittest.skipUnless(
+    os.environ.get("FORKPROBE_RUN_DEEPSEEK_INTEGRATION") == "1",
+    "Set FORKPROBE_RUN_DEEPSEEK_INTEGRATION=1 to run DeepSeek Harness integration tests",
+)
+class TestRealDeepSeekHarness(unittest.TestCase):
+    """Verify the official dsh headless path calls DeepSeek and returns text."""
+
+    def test_deepseek_harness_single_run(self):
+        from platform_adapter import _spawn_deepseek_harness
+        result = _spawn_deepseek_harness(
+            task_input="Reply with exactly: DEEPSEEK_HARNESS_OK",
+            system_prompt="Follow the user task exactly.",
+            skill_id="deepseek-harness-test",
+            timeout=180,
+        )
+        self.assertIsNone(result.error, f"Unexpected error: {result.error}")
+        self.assertEqual(result.output.strip(), "DEEPSEEK_HARNESS_OK")
+        self.assertGreater(result.tokens_used, 0)
+        self.assertGreater(result.latency_seconds, 0)
+
+
+@unittest.skipUnless(
     os.environ.get("FORKPROBE_RUN_INTEGRATION") == "1",
     "Set FORKPROBE_RUN_INTEGRATION=1 to run integration tests",
 )
@@ -118,4 +139,6 @@ if __name__ == "__main__":
         print("They make real model calls and take 30-120s.")
         print("Claude SDK integration is separate:")
         print("  FORKPROBE_RUN_CLAUDE_INTEGRATION=1 python3 tests/test_integration.py")
+        print("DeepSeek Harness integration is separate:")
+        print("  DEEPSEEK_API_KEY=... FORKPROBE_RUN_DEEPSEEK_INTEGRATION=1 python3 tests/test_integration.py")
     unittest.main(verbosity=2)

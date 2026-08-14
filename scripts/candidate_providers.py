@@ -214,9 +214,11 @@ def default_local_skill_roots(project_dir: Path | None = None) -> list[Path]:
         Path.home() / ".codex" / "skills",
         Path.home() / ".agents" / "skills",
         Path.home() / ".claude" / "skills",
+        Path.home() / ".dsh" / "skills",
         project / ".codex" / "skills",
         project / ".agents" / "skills",
         project / ".claude" / "skills",
+        project / ".dsh" / "skills",
         project / "skills",
     ]
     deduped: list[Path] = []
