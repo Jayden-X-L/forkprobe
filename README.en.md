@@ -22,7 +22,7 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.10" src="https://img.shields.io/badge/version-v0.10-2563eb">
+  <img alt="Version v1.0" src="https://img.shields.io/badge/version-v1.0-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
   <a href="https://github.com/deepseek-ai/deepseek-harness"><img alt="DeepSeek Harness supported" src="https://img.shields.io/badge/harness-DeepSeek-0f9f8f"></a>
@@ -32,7 +32,7 @@
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v0.10 adds a native DeepSeek Harness plugin:** DSH users can install `forkprobe-dsh` directly. Its native `forkprobe_compare` tool fans text candidates out to DSH subagents, opens the same local Report, and returns the user's selected result to the current DSH Agent after Continue. The plugin no longer starts a nested `dsh` process and never copies DSH credentials. Candidate confirmation, installed-Skill scanning, deduplication, optional anonymous Winner sharing, and all existing comparison scenes remain supported.
+**v1.0 formal release:** ForkProbe stabilizes the v0.10 capability set as the product baseline. DSH users can install `forkprobe-dsh` directly. Its native `forkprobe_compare` tool fans text candidates out to DSH subagents, opens the same local Report, and returns the user's selected result to the current DSH Agent after Continue. The plugin no longer starts a nested `dsh` process and never copies DSH credentials. Candidate confirmation, installed-Skill scanning, deduplication, optional anonymous Winner sharing, and all existing comparison scenes remain supported.
 
 After a winner is selected, the Report's continue action saves the local handoff and lets the Agent continue with the winning Skill. The same panel lets the user choose whether to share that anonymous Skill selection to improve future community priors.
 
@@ -98,7 +98,7 @@ The shortlist below follows the current README capability matrix. `baseline` mea
 | PPTX deck generation | Supported | Openable PPTX files, preview images, candidate notes | `baseline + presentations`, [`nature-paper2ppt`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-paper2ppt) `+ presentations`, [`academic-pptx-skill`](https://github.com/Gabberflast/academic-pptx-skill) `+ presentations`, [`ppt-master`](https://github.com/hugohe3/ppt-master), [`md-slides`](https://github.com/zl190/md-slides) |
 | Paper figures & scientific graphics | Supported | PNG previews, SVG/PDF/TIFF exports, code, captions, QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
 | Research reports | Supported | Report previews, sources.json, evidence tables, claim checks, limitations, AI judge notes | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
-| Image generation comparison | Planned | Image previews, file links, candidate notes | No fixed shortlist yet; planned support for image-generation pipelines |
+| Image prompt & style direction comparison | Planned (v1.1) | Prompts, style cards, optional image previews, candidate notes | Planned for v1.1; compare image-prompt/style pipelines first, with optional Codex render validation when available |
 | Web / HTML creation comparison | Supported | Runnable page links, desktop/mobile screenshots, QA, source, AI judge notes | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`Hallmark`](https://github.com/Nutlope/hallmark), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
 | Product-promo comparison | Supported | Playable MP4, poster, captions, script, storyboard, source, media QA, AI judge notes | `baseline-remotion-agent`, [`HyperFrames product-launch-video`](https://github.com/heygen-com/hyperframes), [`video-shotcraft`](https://github.com/Vincentwei1021/video-shotcraft) |
 | Motion-graphics comparison | Supported | Playable MP4, motion specification, source, media metadata, QA, AI judge notes | `baseline-remotion-motion`, [`HyperFrames motion-graphics`](https://github.com/heygen-com/hyperframes), [`Remotion Bits`](https://github.com/av/remotion-bits) |

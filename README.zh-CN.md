@@ -22,7 +22,7 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v0.10" src="https://img.shields.io/badge/version-v0.10-2563eb">
+  <img alt="Version v1.0" src="https://img.shields.io/badge/version-v1.0-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/report-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
   <a href="https://github.com/deepseek-ai/deepseek-harness"><img alt="DeepSeek Harness supported" src="https://img.shields.io/badge/harness-DeepSeek-0f9f8f"></a>
@@ -32,7 +32,7 @@
 
 ForkProbe 是一个 AI Skill 选型与试跑工具。它会把同一个任务交给模型本身和多个候选 skill，并排试跑，生成本地 HTML report，让你看到真实输出之后再选择 winner。
 
-**v0.10 新增 DeepSeek Harness 原生插件：** DSH 用户可以直接安装 `forkprobe-dsh`，通过原生 `forkprobe_compare` 工具并行启动候选 subagent，打开同一套本地 Report，并在点击“继续”后把用户选择的结果返回当前 DSH Agent。插件不再嵌套启动第二个 `dsh` 进程，也不会复制 DSH 凭据；安装前的用户确认、本机 Skill 扫描、候选去重、匿名 Winner 分享和此前全部场景继续支持。
+**v1.0 正式版：** ForkProbe 将 v0.10 的能力定版为稳定产品基线：DSH 用户可以直接安装 `forkprobe-dsh`，通过原生 `forkprobe_compare` 工具并行启动候选 subagent，打开同一套本地 Report，并在点击“继续”后把用户选择的结果返回当前 DSH Agent。插件不再嵌套启动第二个 `dsh` 进程，也不会复制 DSH 凭据；安装前的用户确认、本机 Skill 扫描、候选去重、匿名 Winner 分享和此前全部场景继续支持。
 
 选定 winner 后，Report 的“继续”按钮会同时保存本地 handoff，并让 Agent 沿胜出 Skill 继续任务。用户可以在同一区域选择是否匿名分享本次 Skill 选择，为未来的社区推荐先验积累样本。
 
@@ -98,7 +98,7 @@ Compare a few skills first and see which one fits the current task better.
 | PPTX 成品生成 | 已支持 | 可打开的 PPTX、预览图、候选说明 | `baseline + presentations`, [`nature-paper2ppt`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-paper2ppt) `+ presentations`, [`academic-pptx-skill`](https://github.com/Gabberflast/academic-pptx-skill) `+ presentations`, [`ppt-master`](https://github.com/hugohe3/ppt-master), [`md-slides`](https://github.com/zl190/md-slides) |
 | 论文作图 / 科研绘图 | 已支持 | PNG 预览、SVG/PDF/TIFF、代码、caption、QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
 | 调研报告 / Research report | 已支持 | 报告预览、sources.json、evidence table、claim checks、limitations、AI 评审 | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
-| 图片生成 / 生图比较 | 规划中 | 图片预览、文件链接、候选说明 | 暂不放固定候选；未来支持 image-generation pipelines |
+| 图片提示词 / 风格方向比较 | 规划中（v1.1） | Prompt、风格卡、可选图片预览、候选说明 | v1.1 规划；优先比较 image prompt / style pipelines，Codex 环境可选渲染验证 |
 | 网页 / HTML 制作比较 | 已支持 | 可运行页面链接、桌面/移动端截图、QA、源码、AI 评审 | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`Hallmark`](https://github.com/Nutlope/hallmark), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
 | 产品宣传片成品比较 | 已支持 | MP4 播放、封面、字幕、脚本、分镜、源码、媒体 QA、AI 评审 | `baseline-remotion-agent`, [`HyperFrames product-launch-video`](https://github.com/heygen-com/hyperframes), [`video-shotcraft`](https://github.com/Vincentwei1021/video-shotcraft) |
 | 动效视频成品比较 | 已支持 | MP4 播放、动效规格、源码、时长/分辨率、媒体 QA、AI 评审 | `baseline-remotion-motion`, [`HyperFrames motion-graphics`](https://github.com/heygen-com/hyperframes), [`Remotion Bits`](https://github.com/av/remotion-bits) |

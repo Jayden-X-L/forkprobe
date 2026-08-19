@@ -1,6 +1,6 @@
 # ForkProbe Candidate Catalog
 
-**Product compatibility: ForkProbe v0.10**
+**Product compatibility: ForkProbe v1.0**
 
 This directory contains the static, curated candidate catalogs bundled with
 ForkProbe. Catalog revisions are independent from the ForkProbe product
@@ -21,5 +21,6 @@ sources. ForkProbe v0.8 adds the optional anonymous Winner feedback loop and
 aggregate community selection statistics. ForkProbe v0.9 adds DeepSeek Harness
 as an execution platform for the same candidate catalogs. ForkProbe v0.10 adds
 the installable native `forkprobe-dsh` plugin, native DSH subagent fan-out, and
-same-Agent continuation after Report selection. Those product changes do not
-require renumbering an unchanged candidate catalog.
+same-Agent continuation after Report selection. ForkProbe v1.0 formalizes that
+v0.10 capability set as the stable product baseline. Those product changes do
+not require renumbering an unchanged candidate catalog.

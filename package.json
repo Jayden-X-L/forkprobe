@@ -1,6 +1,6 @@
 {
   "name": "forkprobe-dsh",
-  "version": "0.10.0",
+  "version": "1.0.0",
   "description": "Native DeepSeek Harness plugin for comparing AI Skills on the same task and choosing a winner from a local ForkProbe report.",
   "author": "Jayden-X-L",
   "homepage": "https://jayden-x-l.github.io/forkprobe/",
