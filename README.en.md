@@ -22,7 +22,7 @@
 
 <p align="center">
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-111827">
-  <img alt="Version v1.0" src="https://img.shields.io/badge/version-v1.0-2563eb">
+  <img alt="Version v1.1" src="https://img.shields.io/badge/version-v1.1-2563eb">
   <img alt="Local first reports" src="https://img.shields.io/badge/reports-local--first-0f9f8f">
   <img alt="Agent skill selector" src="https://img.shields.io/badge/agent-skill%20selector-2563eb">
   <a href="https://github.com/deepseek-ai/deepseek-harness"><img alt="DeepSeek Harness supported" src="https://img.shields.io/badge/harness-DeepSeek-0f9f8f"></a>
@@ -32,7 +32,7 @@
 
 ForkProbe is an AI skill selection and trial-run tool for Agent workflows. It gives the same task to the base model and multiple candidate skills, runs them side by side, generates a local HTML report, and lets you choose the winner before the Agent continues.
 
-**v1.0 formal release:** ForkProbe stabilizes the v0.10 capability set as the product baseline. DSH users can install `forkprobe-dsh` directly. Its native `forkprobe_compare` tool fans text candidates out to DSH subagents, opens the same local Report, and returns the user's selected result to the current DSH Agent after Continue. The plugin no longer starts a nested `dsh` process and never copies DSH credentials. Candidate confirmation, installed-Skill scanning, deduplication, optional anonymous Winner sharing, and all existing comparison scenes remain supported.
+**v1.1 adds image prompt and style-direction comparison:** ForkProbe can now compare image prompt / style pipelines. Each candidate produces `prompt.md`, `style-card.md`, `composition.md`, `negative-prompt.md`, and `render-notes.md` without calling image APIs from the runner. In Codex environments with host image generation available, the local `render-queue.json` can be used for optional render validation; other Agents can backfill externally rendered `rendered.png` files.
 
 After a winner is selected, the Report's continue action saves the local handoff and lets the Agent continue with the winning Skill. The same panel lets the user choose whether to share that anonymous Skill selection to improve future community priors.
 
@@ -42,7 +42,7 @@ When the skill ecosystem is too crowded to trust descriptions alone, ForkProbe m
 
 - You are not sure which skill fits the current task and want to see real outputs first.
 - You want to compare the baseline against several skills instead of trusting skill descriptions.
-- Your deliverable is a file artifact such as a PPTX deck, scientific figure package, research report, runnable webpage, or finished video.
+- Your deliverable is a file artifact such as a PPTX deck, scientific figure package, research report, image prompt/style package, runnable webpage, or finished video.
 - You want to find candidates across installed Skills, EverMind Skill Hub, GitHub, or a bring-your-own source before a small preflight run.
 - It is not meant for simple deterministic tasks where the best tool path is already obvious.
 
@@ -98,13 +98,13 @@ The shortlist below follows the current README capability matrix. `baseline` mea
 | PPTX deck generation | Supported | Openable PPTX files, preview images, candidate notes | `baseline + presentations`, [`nature-paper2ppt`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-paper2ppt) `+ presentations`, [`academic-pptx-skill`](https://github.com/Gabberflast/academic-pptx-skill) `+ presentations`, [`ppt-master`](https://github.com/hugohe3/ppt-master), [`md-slides`](https://github.com/zl190/md-slides) |
 | Paper figures & scientific graphics | Supported | PNG previews, SVG/PDF/TIFF exports, code, captions, QA | `baseline-python-figure`, [`scientific-visualization`](https://github.com/K-Dense-AI/scientific-agent-skills/tree/main/skills/scientific-visualization) `+ Python/SVG renderer`, [`nature-figure`](https://github.com/Yuan1z0825/nature-skills/tree/main/skills/nature-figure) `+ Python/SVG renderer`, `plot-code-python`, `schematic-svg`, `graphical-abstract-svg` |
 | Research reports | Supported | Report previews, sources.json, evidence tables, claim checks, limitations, AI judge notes | `baseline-research-report`, `source-first-research`, `analyst-style-report`, `evidence-table-report`, `company-research-report`, [`user-research-cookiy`](https://github.com/cookiy-ai/user-research-skill) `+ report package` |
-| Image prompt & style direction comparison | Planned (v1.1) | Prompts, style cards, optional image previews, candidate notes | Planned for v1.1; compare image-prompt/style pipelines first, with optional Codex render validation when available |
+| Image prompt & style direction comparison | Supported | Prompts, style cards, composition notes, negative constraints, optional image previews, candidate notes | `baseline-image-prompt`, `creative-director-prompt`, `style-system-prompt`, `prompt-as-code`, `reference-to-style`, `ecommerce-product-prompt`, `poster-key-visual-prompt`, `social-cover-prompt`, `ppt-visual-prompt` |
 | Web / HTML creation comparison | Supported | Runnable page links, desktop/mobile screenshots, QA, source, AI judge notes | `baseline-web`, [`Anthropic frontend-design`](https://github.com/anthropics/skills/tree/main/skills/frontend-design), [`Hallmark`](https://github.com/Nutlope/hallmark), [`web-artifacts-builder`](https://github.com/anthropics/skills/tree/main/skills/web-artifacts-builder), [`ui-ux-pro-max`](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), [`web-design-engineer`](https://github.com/ConardLi/garden-skills/tree/main/skills/web-design-engineer), [`baoyu-design`](https://github.com/JimLiu/baoyu-design) |
 | Product-promo comparison | Supported | Playable MP4, poster, captions, script, storyboard, source, media QA, AI judge notes | `baseline-remotion-agent`, [`HyperFrames product-launch-video`](https://github.com/heygen-com/hyperframes), [`video-shotcraft`](https://github.com/Vincentwei1021/video-shotcraft) |
 | Motion-graphics comparison | Supported | Playable MP4, motion specification, source, media metadata, QA, AI judge notes | `baseline-remotion-motion`, [`HyperFrames motion-graphics`](https://github.com/heygen-com/hyperframes), [`Remotion Bits`](https://github.com/av/remotion-bits) |
 | Talking-head rough-cut comparison | Supported | Rough-cut MP4, captions, transcript, cut list/timeline, duration reduction, media QA | [`auto-editor`](https://github.com/WyattBlue/auto-editor), [`video-editing-skill`](https://github.com/maxazure/video-editing-skill), [`video-use`](https://github.com/browser-use/video-use) `cut-only`, [`chengfeng-videocut`](https://github.com/Agentchengfeng/chengfeng-videocut-skills) (experimental) |
 
-## Six Work Modes
+## Seven Work Modes
 
 ### 1. Text comparison
 
@@ -188,7 +188,35 @@ python3 scripts/research_artifact.py \
 
 Expected outputs include `candidate-report.md`, `candidate-report.html`, `sources.json`, `evidence-table.md`, `claim-checks.md`, `limitations.md`, and `summary.md`.
 
-### 5. Web artifact comparison
+### 5. Image prompt/style artifact comparison
+
+For image-skill comparisons, image prompts, visual style directions, style cards, poster key visuals, e-commerce product images, social covers, slide illustrations, or concept art, ForkProbe compares prompt/style pipelines first instead of direct image API wrappers. Each candidate produces a prompt package and can optionally write a Codex host render queue.
+
+Recommend candidates first:
+
+```bash
+python3 scripts/recommend.py --input /tmp/forkprobe-image-task.txt
+```
+
+After confirmation, run the image prompt/style comparison:
+
+```bash
+python3 scripts/image_prompt_artifact.py \
+  --input /tmp/forkprobe-image-task.txt \
+  --pipeline baseline-image-prompt \
+  --pipeline creative-director-prompt \
+  --pipeline style-system-prompt \
+  --pipeline prompt-as-code \
+  --confirmed \
+  --run \
+  --judge \
+  --render-report \
+  --report-output /tmp/forkprobe-image-prompt-report.html
+```
+
+Expected outputs include `prompt.md`, `style-card.md`, `composition.md`, `negative-prompt.md`, `render-notes.md`, and `summary.md`, with optional `prompt.json`, `reference-usage.md`, `render-request.json`, and `rendered.png`. `--render-mode codex-host` writes `render-queue.json` for the host Codex Agent to render with its own image capability. The ForkProbe runner itself never requires an API key and never calls image APIs directly.
+
+### 6. Web artifact comparison
 
 For landing pages, product sites, dashboards, web apps, report pages, or finished HTML deliverables, ForkProbe recommends web-generation candidates first and waits for confirmation. It then generates runnable pages, captures shared `1440x1000` desktop and `390x844` mobile screenshots, and runs local-asset, responsive, interaction, and basic accessibility QA. When Python Playwright is available, it also measures mobile horizontal overflow in a real browser; otherwise `qa.json` records that the check was unavailable instead of reporting a false pass.
 
@@ -216,7 +244,7 @@ python3 scripts/web_artifact.py \
 
 Each candidate outputs `site/index.html`, `desktop.png`, `mobile.png`, `qa.json`, `source.zip`, and a candidate summary. The report switches between desktop/mobile previews and opens the finished page directly.
 
-### 6. Video artifact comparison
+### 7. Video artifact comparison
 
 Video comparison is divided into three separate scenes. Product promos, motion graphics, and talking-head rough cuts are never scored together. Recommend candidates first and wait for confirmation:
 
@@ -248,9 +276,26 @@ Each candidate must produce `video.mp4`. ForkProbe uses `ffprobe` to verify dura
 - Claude Code / Claude-style skill sessions
 - Codex native execution, with fallback to the OpenAI API
 - A native DeepSeek Harness plugin for text candidates, AI judging, Report selection, and same-Agent continuation
-- The DeepSeek Harness headless compatibility path for file-producing figure, report, webpage, and video runners
+- The DeepSeek Harness headless compatibility path for file-producing figure, report, image-prompt, webpage, and video runners
 - Natural-language Agent surfaces such as OpenClaw, WorkBuddy, OpenCode, and similar platforms
-- Artifact comparisons for generated PPTX, scientific figures, research reports, webpages, and finished videos
+- Artifact comparisons for generated PPTX, scientific figures, research reports, image prompt/style packages, webpages, and finished videos
+
+## Version History
+
+| Version | Highlights |
+|---|---|
+| v1.1 | Adds image prompt / style-direction comparison: prompt packages, optional Codex host render queue, user-rendered backfill, and the image prompt catalog. |
+| v1.0 | Stabilizes the v0.10 capability set as the product baseline: native DeepSeek Harness plugin and same-Agent continuation after Report selection. |
+| v0.10 | Adds the native `forkprobe-dsh` DeepSeek Harness plugin with subagent fan-out, AI judge, and continuation handoff. |
+| v0.9 | Adds the DeepSeek Harness headless execution path for text candidates and file-producing Artifact runners. |
+| v0.8 | Adds optional anonymous Winner feedback and community selection priors. |
+| v0.7 | Adds multi-source candidate discovery: installed local Skills, EverMind Skill Hub, GitHub discovery, and BYO sources. |
+| v0.6 | Adds finished-video comparison for product promos, motion graphics, and talking-head rough cuts. |
+| v0.5 | Adds webpage / HTML artifact comparison with runnable pages, desktop/mobile screenshots, and QA. |
+| v0.4 | Adds anti-AI / humanizer writing candidate coverage. |
+| v0.3 | Adds market research / research report artifact comparison. |
+| v0.2 | Adds paper figure / scientific graphics artifact comparison. |
+| v0.1 | Initial public release: text skill recommendation, baseline comparison, local HTML report, AI judge, and continuation handoff. |
 
 ## Installation
 

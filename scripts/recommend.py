@@ -467,6 +467,8 @@ def _skill_from_online_discovery(candidate, deliverable_type: str) -> Recommende
         produces = "web_site"
     elif deliverable_type == "video_artifact":
         produces = "video_package"
+    elif deliverable_type == "image_prompt":
+        produces = "image_prompt_package"
     else:
         produces = "text"
     return RecommendedSkill(
@@ -478,9 +480,9 @@ def _skill_from_online_discovery(candidate, deliverable_type: str) -> Recommende
         reason_zh=candidate.summary_zh,
         reason_en=candidate.summary_en,
         source=candidate.source,
-        runnable=bool(candidate.runnable and deliverable_type not in {"pptx", "visual_artifact", "research_report", "web_artifact", "video_artifact"}),
+        runnable=bool(candidate.runnable and deliverable_type not in {"pptx", "visual_artifact", "research_report", "web_artifact", "video_artifact", "image_prompt"}),
         produces=produces,
-        pipeline_steps=[candidate.command_arg] if deliverable_type in {"pptx", "visual_artifact", "research_report", "web_artifact", "video_artifact"} else [],
+        pipeline_steps=[candidate.command_arg] if deliverable_type in {"pptx", "visual_artifact", "research_report", "web_artifact", "video_artifact", "image_prompt"} else [],
         caution_zh=candidate.risk_zh,
         caution_en=candidate.risk_en,
         source_kind=candidate.category or "github_discovered",
@@ -497,6 +499,7 @@ def _skill_from_provider(candidate: ProviderCandidate, deliverable_type: str) ->
         "research_report": "research_report",
         "web_artifact": "web_site",
         "video_artifact": "video_package",
+        "image_prompt": "image_prompt_package",
     }
     produces = produces_by_deliverable.get(deliverable_type, "text")
     if candidate.provider == "local_installed":
@@ -587,6 +590,11 @@ KEYWORDS = {
         "剪辑", "短片", "短视频", "video", "promo", "product launch video",
         "motion graphics", "talking head", "rough cut",
     ],
+    "image_prompt": [
+        "图片 skill", "图片skill", "生图 skill", "生图skill", "图片提示词", "生图提示词",
+        "图片风格", "视觉风格", "风格卡", "图片 prompt", "image prompt", "image style",
+        "visual style", "midjourney", "stable diffusion", "comfyui", "gpt image", "nano banana",
+    ],
 }
 
 
@@ -647,6 +655,18 @@ VIDEO_TEXT_ONLY_HINTS = [
     "storyboard only", "video brief only", "只要视频方案", "只给视频方案",
 ]
 
+IMAGE_PROMPT_HINTS = [
+    "图片 skill", "图片skill", "生图 skill", "生图skill", "图片提示词", "生图提示词",
+    "图片风格", "视觉风格", "风格卡", "提示词 skill", "提示词skill", "image prompt",
+    "prompt package", "style card", "visual direction", "midjourney", "stable diffusion",
+    "comfyui", "gpt image", "nano banana", "图片prompt", "生图prompt",
+]
+
+IMAGE_PROMPT_EXCLUDE_FIGURE_HINTS = [
+    "论文", "科研", "机制图", "流程图", "架构图", "graphical abstract", "scientific figure",
+    "figure package", "caption", "svg", "tiff",
+]
+
 LOCAL_ONLY_HINTS = [
     "只要本地", "仅本地", "只用本地", "本地候选", "不要联网", "别联网",
     "不联网", "离线", "local only", "offline", "no network",
@@ -699,6 +719,9 @@ def detect_deliverable_type(task_text: str, signals: Optional[list[str]] = None)
     # without asking ForkProbe to generate a research-report artifact.
     if "anti_ai" in signal_set and _has_compact_any(task_text, TEXT_TRANSFORM_HINTS):
         return "text"
+    if "image_prompt" in signal_set and _has_compact_any(task_text, IMAGE_PROMPT_HINTS):
+        if not _has_compact_any(task_text, IMAGE_PROMPT_EXCLUDE_FIGURE_HINTS):
+            return "image_prompt"
     if "research_report" in signal_set and _has_compact_any(task_text, RESEARCH_REPORT_HINTS):
         return "research_report"
     if "video" in signal_set and _has_compact_any(task_text, VIDEO_ARTIFACT_HINTS):
@@ -873,6 +896,31 @@ def _video_artifact_pipeline(pipeline_id: str, catalog: dict) -> RecommendedSkil
     )
 
 
+def _image_prompt_pipeline(pipeline_id: str, catalog: dict) -> RecommendedSkill:
+    skill_meta = next((skill for skill in catalog.get("skills", []) if skill.get("id") == pipeline_id), None)
+    if not skill_meta:
+        raise KeyError(f"Image prompt pipeline {pipeline_id!r} not found in catalog")
+    source = skill_meta.get("source", "")
+    if source and skill_meta.get("subdir"):
+        source = f"{source}#{skill_meta['subdir']}"
+    return RecommendedSkill(
+        id=pipeline_id,
+        name=skill_meta["name"],
+        author=skill_meta.get("author", ""),
+        kind="pipeline",
+        command_arg=pipeline_id,
+        reason_zh=skill_meta.get("summary_zh", ""),
+        reason_en=skill_meta.get("summary_en", ""),
+        source=source,
+        runnable=False,
+        produces="image_prompt_package",
+        pipeline_steps=list(skill_meta.get("pipeline_steps", [])),
+        caution_zh="不直接调用图片 API；确认后生成 prompt package，Codex 环境可选渲染验证。",
+        caution_en="Does not call image APIs directly; after confirmation it generates a prompt package, with optional Codex render validation when available.",
+        source_kind="local_baseline" if pipeline_id == "baseline-image-prompt" else "local_curated",
+        score=10_000 if pipeline_id == "baseline-image-prompt" else int(skill_meta.get("score") or 86),
+        stars=int(skill_meta.get("stars") or 0),
+    )
 def _normalized_source(value: str) -> str:
     source = value.lower().strip().rstrip("/")
     if source.endswith(".git"):
@@ -1054,6 +1102,23 @@ def _detect_video_family(task_text: str) -> str:
     return "product_promo"
 
 
+def _detect_image_prompt_family(task_text: str) -> str:
+    compact = _compact(task_text)
+    if any(word in compact for word in ["电商", "主图", "详情图", "商品图", "产品图", "ecommerce", "productphoto", "amazon", "shopify"]):
+        return "ecommerce"
+    if any(word in compact for word in ["海报", "kv", "keyvisual", "poster", "活动视觉", "主视觉"]):
+        return "poster"
+    if any(word in compact for word in ["小红书", "封面", "社媒", "thumbnail", "cover", "rednote", "instagram", "tiktok"]):
+        return "social"
+    if any(word in compact for word in ["头像", "人像", "portrait", "character", "角色", "人物设定", "persona"]):
+        return "portrait"
+    if any(word in compact for word in ["ppt", "slide", "配图", "插图", "章节页", "presentation"]):
+        return "ppt"
+    if any(word in compact for word in ["概念图", "概念设计", "游戏", "worldbuilding", "conceptart", "电影", "影视"]):
+        return "concept"
+    return "general"
+
+
 def _figure_artifact_command(candidates: list[RecommendedSkill]) -> list[str]:
     command = ["python3", "scripts/figure_artifact.py", "--input", "<input.txt>"]
     for candidate in candidates:
@@ -1106,6 +1171,18 @@ def _video_artifact_command(
     return command
 
 
+def _image_prompt_command(candidates: list[RecommendedSkill], catalog: dict) -> list[str]:
+    known_ids = {skill.get("id") for skill in catalog.get("skills", [])}
+    command = ["python3", "scripts/image_prompt_artifact.py", "--input", "<input.txt>"]
+    for candidate in candidates:
+        if candidate.id in known_ids:
+            command.extend(["--pipeline", candidate.id])
+        elif candidate.command_arg.startswith(("http://", "https://", "/", "./", "~/")):
+            command.extend(["--skill-source", candidate.command_arg])
+    command.extend(["--confirmed", "--run", "--judge", "--render-report", "--report-output", "./image-prompt-artifact-report.html"])
+    return command
+
+
 def _note_if_no_new_external(candidates: list[RecommendedSkill], notes_zh: list[str], notes_en: list[str]) -> None:
     if not any(_is_external_candidate(candidate) for candidate in candidates):
         notes_zh.append("外部发现候选与本地 curated 候选去重后没有新增项，最终 shortlist 暂时只包含本地候选。")
@@ -1128,7 +1205,7 @@ def recommend_candidates(
     deliverable_type = detect_deliverable_type(task_text, signals)
     compare_mode = "artifact" if deliverable_type in {
         "pptx", "visual_artifact", "research_report", "web_artifact", "video_artifact"
-    } else "text"
+    } else "prompt_artifact" if deliverable_type == "image_prompt" else "text"
     signal_set = set(signals)
     candidates: list[RecommendedSkill] = []
     notes_zh: list[str] = []
@@ -1194,6 +1271,15 @@ def recommend_candidates(
         candidate = _video_artifact_pipeline(pipeline_id, video_catalog)
         _append_unique(candidates, candidate, pool_limit)
 
+    image_prompt_catalog: dict = {}
+
+    def add_image_prompt_pipeline(pipeline_id: str) -> None:
+        nonlocal image_prompt_catalog
+        if not image_prompt_catalog:
+            image_prompt_catalog = load_catalog("image-prompt-skills")
+        candidate = _image_prompt_pipeline(pipeline_id, image_prompt_catalog)
+        _append_unique(candidates, candidate, pool_limit)
+
     def add_online_candidates() -> None:
         nonlocal discovery_queries
         if local_only:
@@ -1250,6 +1336,42 @@ def recommend_candidates(
             except (OSError, ValueError) as exc:
                 notes_zh.append(f"EverMind Skill Hub 暂时不可用，已继续使用其他来源：{exc}")
                 notes_en.append(f"EverMind Skill Hub was unavailable; continued with other providers: {exc}")
+
+    if deliverable_type == "image_prompt":
+        image_family = _detect_image_prompt_family(task_text)
+        image_pipeline_ids = {
+            "ecommerce": ["baseline-image-prompt", "ecommerce-product-prompt", "style-system-prompt", "prompt-as-code"],
+            "poster": ["baseline-image-prompt", "poster-key-visual-prompt", "creative-director-prompt", "style-system-prompt"],
+            "social": ["baseline-image-prompt", "social-cover-prompt", "creative-director-prompt", "style-system-prompt"],
+            "portrait": ["baseline-image-prompt", "portrait-character-prompt", "style-system-prompt", "prompt-as-code"],
+            "ppt": ["baseline-image-prompt", "ppt-visual-prompt", "prompt-as-code", "style-system-prompt"],
+            "concept": ["baseline-image-prompt", "concept-art-prompt", "creative-director-prompt", "style-system-prompt"],
+            "general": ["baseline-image-prompt", "creative-director-prompt", "style-system-prompt", "prompt-as-code"],
+        }
+        for pipeline_id in image_pipeline_ids[image_family]:
+            add_image_prompt_pipeline(pipeline_id)
+        add_provider_candidates()
+        add_online_candidates()
+        candidates = _rank_and_limit(candidates, max_candidates)
+        _note_if_no_new_external(candidates, notes_zh, notes_en)
+        notes_zh.append("交互式使用时，必须先展示图片 prompt/style 候选和适用差异，等待用户确认后再执行 suggested command。")
+        notes_zh.append("这是图片提示词/风格方向对比模式：每条 pipeline 生成 prompt package，不在 runner 内调用图片 API。")
+        notes_zh.append("如果当前 Agent 是 Codex 且具备图片生成能力，可根据 render-queue.json 做可选渲染验证；其他 Agent 可用用户外部渲染后回填 rendered.png。")
+        notes_en.append("In interactive use, show the image prompt/style shortlist and fit differences first, then wait for confirmation before running the suggested command.")
+        notes_en.append("This is image prompt/style comparison mode: every pipeline generates a prompt package and the runner does not call image APIs.")
+        notes_en.append("When the current Agent is Codex with image generation available, render-queue.json can be used for optional validation; other Agents can use external user-rendered backfill via rendered.png.")
+        return Recommendation(
+            deliverable_type=deliverable_type,
+            compare_mode=compare_mode,
+            task_signals=signals,
+            candidates=candidates,
+            notes_zh=notes_zh,
+            notes_en=notes_en,
+            suggested_command=_image_prompt_command(candidates, image_prompt_catalog),
+            mode_explanation_zh=f"识别到交付物是图片提示词/视觉风格方向（{image_family}），应比较 prompt/style pipeline，而不是直接比较图片 API wrapper。",
+            mode_explanation_en=f"Detected an image prompt / visual style deliverable ({image_family}). Compare prompt/style pipelines, not direct image API wrappers.",
+            discovery_queries=discovery_queries,
+        )
 
     if deliverable_type == "video_artifact":
         video_family = _detect_video_family(task_text)
@@ -1544,9 +1666,10 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
     if "--input" in command:
         command[command.index("--input") + 1] = input_path
     command_text = " ".join(shlex.quote(part) for part in command)
+    is_artifact_like = recommendation.compare_mode in {"artifact", "prompt_artifact"}
 
     if lang == "en":
-        if recommendation.compare_mode == "artifact":
+        if is_artifact_like:
             lines = ["forkprobe should compare artifact-generation pipelines. Please confirm or edit before running.", ""]
         else:
             lines = ["forkprobe can compare these skills. Please confirm or edit before running.", ""]
@@ -1576,7 +1699,7 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
             lines.append("")
             lines.extend(f"Note: {note}" for note in recommendation.notes_en)
         lines.append("")
-        if recommendation.compare_mode == "artifact":
+        if is_artifact_like:
             lines.append("After confirmation:")
             if recommendation.suggested_command:
                 lines.append(command_text)
@@ -1586,6 +1709,8 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
                     lines.append("This creates one workspace per research-report pipeline, runs candidates, judges the artifact summaries, and renders the report. You can also add files to a candidate's artifacts folder and re-render.")
                 elif recommendation.deliverable_type == "web_artifact":
                     lines.append("This creates one workspace per web pipeline, builds runnable pages, captures desktop/mobile screenshots, runs QA and AI judging, and renders the comparison report.")
+                elif recommendation.deliverable_type == "image_prompt":
+                    lines.append("This creates one workspace per image prompt/style pipeline, writes prompt packages, optionally writes a Codex host render queue, and renders the comparison report. It does not call image APIs from the runner.")
                 else:
                     lines.append("This creates one workspace per artifact pipeline, runs candidates, judges the artifact summaries, and renders the report. You can also add files to a candidate's artifacts folder and re-render.")
             elif recommendation.deliverable_type == "pptx":
@@ -1597,7 +1722,7 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
             lines.append(command_text)
         return "\n".join(lines)
 
-    if recommendation.compare_mode == "artifact":
+    if is_artifact_like:
         lines = ["forkprobe 应该并排比较这些文件生成 pipeline。请确认或增删后再运行。", ""]
     else:
         lines = ["forkprobe 可以先并排比较这组 skill。请确认或增删后再运行。", ""]
@@ -1627,7 +1752,7 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
         lines.append("")
         lines.extend(f"注意: {note}" for note in recommendation.notes_zh)
     lines.append("")
-    if recommendation.compare_mode == "artifact":
+    if is_artifact_like:
         lines.append("确认后执行方式:")
         if recommendation.suggested_command:
             lines.append(command_text)
@@ -1637,6 +1762,8 @@ def format_text(recommendation: Recommendation, input_path: str = "<input.txt>",
                 lines.append("这会为每条调研报告 pipeline 创建独立 workspace、试跑候选、评审 artifact 摘要并渲染 report；也可以手动补充某个候选的 artifacts 后重新渲染。")
             elif recommendation.deliverable_type == "web_artifact":
                 lines.append("这会为每条网页 pipeline 创建独立 workspace、生成可运行网页、截取桌面/移动端预览、执行 QA 与 AI 评审，并渲染横向对比 report。")
+            elif recommendation.deliverable_type == "image_prompt":
+                lines.append("这会为每条图片 prompt/style pipeline 创建独立 workspace、生成 prompt package、可选写出 Codex host render queue，并渲染横向对比 report；runner 本身不会调用图片 API。")
             else:
                 lines.append("这会为每条文件生成 pipeline 创建独立 workspace、试跑候选、评审 artifact 摘要并渲染 report；也可以手动补充某个候选的 artifacts 后重新渲染。")
         elif recommendation.deliverable_type == "pptx":

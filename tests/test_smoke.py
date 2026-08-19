@@ -219,6 +219,14 @@ class TestCandidateProviders(unittest.TestCase):
         self.assertIn("frontend", query.search_text)
         self.assertNotIn(raw_secret.lower(), query.search_text.lower())
 
+    def test_provider_query_supports_image_prompt_without_raw_task(self):
+        from candidate_providers import build_provider_query
+
+        query = build_provider_query("image_prompt", ["image_prompt"])
+        self.assertIn("image prompt", query.search_text)
+        self.assertIn("visual style", query.search_text)
+        self.assertNotIn("Confidential", query.search_text)
+
     def test_local_provider_scans_dedupes_and_excludes_system_skills(self):
         from candidate_providers import LocalSkillProvider, build_provider_query
 
@@ -438,6 +446,16 @@ class TestCatalog(unittest.TestCase):
         for s in catalog["skills"]:
             for field in ("id", "name", "author", "language", "category", "source", "license"):
                 self.assertIn(field, s, f"Missing {field} in skill {s.get('id')}")
+
+    def test_image_prompt_catalog_loads(self):
+        from recommend import load_catalog
+
+        catalog = load_catalog("image-prompt-skills")
+        self.assertEqual(catalog["domain"], "image-prompt")
+        ids = {skill["id"] for skill in catalog["skills"]}
+        self.assertIn("baseline-image-prompt", ids)
+        self.assertIn("creative-director-prompt", ids)
+        self.assertIn("style-system-prompt", ids)
 
     def test_diversity_matrix_complete(self):
         """The 2x2 anti-AI/academic × zh/en matrix should have at least 1 skill per cell."""
@@ -961,6 +979,76 @@ class TestRecommendations(unittest.TestCase):
         )
         self.assertNotEqual(without_source.returncode, 0)
         self.assertIn("requires at least one existing source video", without_source.stderr)
+
+    def test_recommend_image_prompt_routes_to_prompt_artifact_mode(self):
+        from recommend import format_text, recommend_candidates
+
+        rec = recommend_candidates(
+            "请比较几个图片风格 skill，为小红书封面生成生图提示词。",
+            online_discovery=False,
+        )
+        self.assertEqual(rec.deliverable_type, "image_prompt")
+        self.assertEqual(rec.compare_mode, "prompt_artifact")
+        ids = [candidate.id for candidate in rec.candidates]
+        self.assertIn("baseline-image-prompt", ids)
+        self.assertIn("social-cover-prompt", ids)
+        self.assertIn("creative-director-prompt", ids)
+        self.assertIn("scripts/image_prompt_artifact.py", rec.suggested_command)
+        self.assertIn("--confirmed", rec.suggested_command)
+        text = format_text(rec, input_path="image-task.md", lang="zh")
+        self.assertIn("prompt/style", text)
+        self.assertIn("不会调用图片 API", text)
+
+    def test_image_prompt_cli_run_requires_confirmation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(PROJECT_DIR / "scripts" / "image_prompt_artifact.py"),
+                    "--text",
+                    "请生成图片提示词。",
+                    "--output-dir",
+                    str(Path(tmp) / "run"),
+                    "--pipeline",
+                    "baseline-image-prompt",
+                    "--run",
+                    "--no-open",
+                    "--no-server",
+                ],
+                text=True,
+                capture_output=True,
+            )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("candidate confirmation", proc.stderr)
+
+    def test_image_prompt_prompt_only_report_prepares_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp) / "image-run"
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(PROJECT_DIR / "scripts" / "image_prompt_artifact.py"),
+                    "--text",
+                    "请为小红书封面生成图片提示词。",
+                    "--output-dir",
+                    str(output_dir),
+                    "--pipeline",
+                    "baseline-image-prompt",
+                    "--render-mode",
+                    "prompt-only",
+                    "--render-report",
+                    "--no-open",
+                    "--no-server",
+                    "--json",
+                ],
+                text=True,
+                capture_output=True,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            manifest = json.loads((output_dir / "artifact-manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["deliverable_type"], "image_prompt")
+            self.assertEqual(manifest["render_mode"]["selected"], "prompt-only")
+            self.assertTrue((output_dir / "image-prompt-artifact-report.html").exists())
 
 
 class TestTokenEstimates(unittest.TestCase):

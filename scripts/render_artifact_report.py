@@ -139,12 +139,14 @@ def artifact_task_type(manifest: dict[str, Any]) -> str:
         "research_report": "research_type",
         "web_artifact": "web_family",
         "video_artifact": "video_type",
+        "image_prompt": "image_family",
     }
     prefix_by_deliverable = {
         "visual_artifact": "figure",
         "research_report": "research",
         "web_artifact": "web",
         "video_artifact": "video",
+        "image_prompt": "image_prompt",
     }
     if deliverable == "pptx":
         return "pptx_generation"

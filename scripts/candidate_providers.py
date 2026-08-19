@@ -97,6 +97,7 @@ _DELIVERABLE_TERMS = {
     "research_report": ("research", "report", "evidence"),
     "web_artifact": ("frontend", "website", "web", "design"),
     "video_artifact": ("video", "editing", "motion"),
+    "image_prompt": ("image prompt", "visual style", "AI image", "prompt engineering"),
 }
 
 _SIGNAL_TERMS = {
@@ -110,6 +111,7 @@ _SIGNAL_TERMS = {
     "research_report": ("research report", "evidence"),
     "web_artifact": ("frontend", "website"),
     "video_artifact": ("video", "editing"),
+    "image_prompt": ("image prompt", "visual style", "prompt library"),
 }
 
 _DELIVERABLE_SIGNAL_ALLOWLIST = {
@@ -119,6 +121,7 @@ _DELIVERABLE_SIGNAL_ALLOWLIST = {
     "research_report": {"research_report"},
     "web_artifact": {"web_artifact"},
     "video_artifact": {"video_artifact"},
+    "image_prompt": {"image_prompt"},
 }
 
 
